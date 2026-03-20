@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater.paper;
 
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitCommandSender;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
 /**
@@ -17,5 +18,10 @@ public class PaperCommandSender extends BukkitCommandSender {
     @Override
     public void sendMessage(String message) {
         sender.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(message));
+    }
+
+    @Override
+    public void broadcastMessage(String message) {
+        Command.broadcastCommandMessage(sender, LegacyComponentSerializer.legacyAmpersand().deserialize(message));
     }
 }

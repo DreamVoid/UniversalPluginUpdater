@@ -37,4 +37,6 @@ public interface IPlatformProvider {
     List<String> getGameVersions();
 
     Logger getPlatformLogger();
+
+    String getPluginVersion(String pluginName);
 }

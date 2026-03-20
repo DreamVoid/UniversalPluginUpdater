@@ -4,8 +4,10 @@ import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -78,17 +80,30 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     }
 
     @Override
+    public String getPluginVersion(String pluginName) {
+        Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
+        if (plugin != null) {
+            //noinspection deprecation
+            return plugin.getDescription().getVersion();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<String> getLoaders() {
         return Collections.singletonList("bukkit");
     }
 
     @Override
     public List<String> getGameVersions() {
-        return Collections.singletonList(getServer().getVersion());
+        String version = Bukkit.getVersion();
+        return Collections.singletonList(version.substring(version.lastIndexOf("MC: ") + 4, version.length() - 1));
     }
 
     @Override
     public Logger getPlatformLogger() {
         return getLogger();
+
     }
 }

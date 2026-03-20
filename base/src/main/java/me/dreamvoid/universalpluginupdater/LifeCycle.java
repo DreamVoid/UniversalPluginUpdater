@@ -1,6 +1,7 @@
 package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 
 import java.util.logging.Logger;
 
@@ -29,11 +30,17 @@ public class LifeCycle {
 
         logger.info("准备 UniversalPluginUpdater 预加载.");
 
+        logger.info("加载器: " + String.join(", ", platform.getLoaders()));
+        logger.info("Minecraft 版本: " + (platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
+
         logger.info("预加载任务完成.");
     }
 
     public void postload(){
         logger.info("准备 UniversalPluginUpdater 后加载.");
+
+        // 初始化更新管理器
+        UpdateManager.initialize(platform);
 
         logger.info("某些加载任务将在之后继续。");
         logger.info("后加载任务完成. 欢迎使用 UniversalPluginUpdater！");

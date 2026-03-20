@@ -11,6 +11,11 @@ public interface ICommandSender {
     void sendMessage(String message);
 
     /**
+     * 发送消息到命令发送者，同时广播消息给其他具有 op 权限的玩家
+     */
+    void broadcastMessage(String message);
+
+    /**
      * 检查是否有特定权限
      */
     boolean hasPermission(String permission);

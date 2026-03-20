@@ -5,6 +5,7 @@ author: DreamVoid
 description: A plugin that updates other plugins on the server.
 api-version: 1.13
 load: STARTUP
+prefix: UPU
 commands:
   universalpluginupdater:
     description: 插件更新管理命令

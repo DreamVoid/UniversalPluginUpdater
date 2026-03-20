@@ -1,16 +1,19 @@
 package me.dreamvoid.universalpluginupdater.command;
 
+import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.ICommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * 通用的命令处理器
  * 由各个平台的实现调用
  */
 public class CommandHandler implements ICommandHandler {
+    private static final Logger logger = Utils.getLogger();
     private final Map<String, SubCommandHandler> subCommands = new HashMap<>();
 
     public CommandHandler() {
@@ -45,8 +48,8 @@ public class CommandHandler implements ICommandHandler {
         }
 
         // 检查权限
-        if (!context.getSender().hasPermission("universalpluginupdater." + subCommand)) {
-            context.getSender().sendMessage("&c你没有权限使用此命令！");
+        if (!context.getSender().hasPermission("universalpluginupdater.command." + subCommand)) {
+            context.getSender().sendMessage("&c你没有足够的权限使用此命令！");
             return true;
         }
 

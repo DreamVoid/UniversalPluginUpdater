@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater.bukkit;
 
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
 /**
@@ -19,6 +20,12 @@ public class BukkitCommandSender implements ICommandSender {
     public void sendMessage(String message) {
         //noinspection deprecation
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+    }
+
+    @Override
+    public void broadcastMessage(String message) {
+        //noinspection deprecation
+        Command.broadcastCommandMessage(sender, ChatColor.translateAlternateColorCodes('&', message));
     }
 
     @Override

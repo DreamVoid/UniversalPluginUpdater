@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
+import org.bukkit.plugin.Plugin;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
@@ -53,8 +54,24 @@ public class PaperPlugin extends BukkitPlugin {
 
     // 平台实现接口
 
+
+    @Override
+    public List<String> getGameVersions() {
+        return Collections.singletonList(getServer().getMinecraftVersion());
+    }
+
     @Override
     public List<String> getLoaders() {
         return Arrays.asList("bukkit", "paper");
+    }
+
+    @Override
+    public String getPluginVersion(String pluginName) {
+        Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
+        if (plugin != null) {
+            return plugin.getPluginMeta().getVersion();
+        } else {
+            return null;
+        }
     }
 }

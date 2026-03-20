@@ -10,7 +10,9 @@ import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -23,6 +25,11 @@ public class UpdateChannelManager {
     private static final Logger logger = Utils.getLogger();
 
     private final IPlatformProvider platformProvider;
+    /**
+     * 缓存AbstractUpdate实例，键为"pluginId:channelType"
+     * 这样可以保留HTTP缓存信息（lastModified）供后续请求使用
+     */
+    private final Map<String, AbstractUpdate> updateInstanceCache = new HashMap<>();
 
     public UpdateChannelManager(IPlatformProvider platformProvider) {
         this.platformProvider = platformProvider;
@@ -53,8 +60,21 @@ public class UpdateChannelManager {
             return null;
         }
 
-        // 根据渠道类型创建对应的AbstractUpdate实现
-        return createUpdateInstance(selectedChannelConfig);
+        // 生成缓存键
+        String cacheKey = lowerPluginId + ":" + selectedChannelConfig.getType();
+        
+        // 检查缓存中是否已存在该实例
+        if (updateInstanceCache.containsKey(cacheKey)) {
+            return updateInstanceCache.get(cacheKey);
+        }
+
+        // 缓存中不存在，创建新实例
+        AbstractUpdate updateInstance = createUpdateInstance(selectedChannelConfig);
+        if (updateInstance != null) {
+            updateInstanceCache.put(cacheKey, updateInstance);
+        }
+        
+        return updateInstance;
     }
 
     /**

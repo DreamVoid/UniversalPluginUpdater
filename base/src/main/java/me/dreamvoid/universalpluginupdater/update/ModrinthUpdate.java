@@ -6,6 +6,7 @@ import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.logging.Logger;
@@ -18,7 +19,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     private final String projectId;
     private final IPlatformProvider platformProvider;
     private ModrinthVersion selectedVersion;
-    private boolean versionFetched = false;
+    private String lastModified;
 
     public ModrinthUpdate(String projectId, IPlatformProvider platformProvider) {
         this.updateType = UpdateType.Modrinth;
@@ -28,37 +29,51 @@ public class ModrinthUpdate extends AbstractUpdate {
 
     /**
      * 从Modrinth API获取版本信息并选择合适的版本
+     * 使用HTTP缓存机制减少网络请求和Modrinth负载
      */
     private boolean fetchVersionInfo() {
-        if (versionFetched) {
-            return selectedVersion != null;
-        }
-
+        String url = buildApiUrl();
         try {
-            String url = buildApiUrl();
-            String response = Utils.Http.get(url);
+            Utils.Http.CacheResponse response = Utils.Http.getWithCache(url, lastModified);
 
-            if (response == null) {
-                versionFetched = true;
-                return false;
+            if (response.isNotModified()) {
+                // 返回304 Not Modified，使用缓存
+                if (selectedVersion == null) {
+                    logger.warning("Err: " + url + " [304 but no cache]");
+                    return false;
+                }
+                logger.info("Hit: " + url);
+                this.lastModified = response.lastModified;
+                return true;
             }
 
-            // 解析JSON数组
-            ModrinthVersion[] versions = gson.fromJson(response, ModrinthVersion[].class);
-            if (versions == null || versions.length == 0) {
-                versionFetched = true;
-                return false;
+            if (response.isSuccessful()) {
+                String content = response.content;
+                if (content == null) {
+                    logger.warning("Err: " + url + " [response is null]");
+                    return false;
+                }
+
+                // 解析JSON数组
+                ModrinthVersion[] versions = gson.fromJson(content, ModrinthVersion[].class);
+                if (versions == null || versions.length == 0) {
+                    logger.warning("Err: " + url + " [no versions]");
+                    return false;
+                }
+
+                // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
+                this.selectedVersion = versions[0];
+                this.lastModified = response.lastModified;
+                logger.info("Get: " + url);
+                return true;
             }
 
-            // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
-            this.selectedVersion = versions[0];
-            versionFetched = true;
-            return true;
+            logger.warning("Err: " + url + " [status code: " + response.statusCode + "]");
+            return false;
         } catch (Exception e) {
             if (logger != null) {
-                logger.warning("Failed to fetch Modrinth version info for project: " + projectId);
+                logger.warning("Err: " + url + " [" + e + "]");
             }
-            versionFetched = true;
             return false;
         }
     }
@@ -71,7 +86,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         url.append(MODRINTH_API)
                 .append("/project/")
                 .append(projectId)
-                .append("/versions");
+                .append("/version");
 
         // 构建查询参数
         StringBuilder query = new StringBuilder();
@@ -90,7 +105,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         // 添加游戏版本参数
         List<String> gameVersions = platformProvider.getGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
-            if (query.length() > 0) query.append("&");
+            if (!query.isEmpty()) query.append("&");
             query.append("game_versions=[");
             for (int i = 0; i < gameVersions.size(); i++) {
                 if (i > 0) query.append(",");
@@ -100,13 +115,13 @@ public class ModrinthUpdate extends AbstractUpdate {
         }
 
         // 添加featured参数（默认true，优先选择推荐版本）
-        if (query.length() > 0) query.append("&");
+        if (!query.isEmpty()) query.append("&");
         query.append("featured=true");
 
         // 添加changelog参数（不需要更新日志）
         query.append("&include_changelog=false");
 
-        if (query.length() > 0) {
+        if (!query.isEmpty()) {
             url.append("?").append(query);
         }
 
@@ -115,23 +130,25 @@ public class ModrinthUpdate extends AbstractUpdate {
 
     @Override
     public String getVersion() {
-        if (!versionFetched) {
-            fetchVersionInfo();
-        }
-        return selectedVersion != null ? selectedVersion.getVersionNumber() : null;
+        // 每次都发起网络请求以检查更新（可能得到304缓存命中）
+        fetchVersionInfo();
+        // 返回版本名而不是版本号
+        // 原因：本地插件版本号暂无法获取，且Modrinth版本号通常非纯数字
+        // 仅当版本号为纯数字时才适合直接比较大小
+        // 其他平台的更新渠道实现时应注意此点
+        return selectedVersion != null ? selectedVersion.getName() : null;
     }
 
     @Override
     public URL getDownloadLink() {
-        if (!versionFetched) {
-            fetchVersionInfo();
-        }
+        // 每次都发起网络请求以检查更新（可能得到304缓存命中）
+        fetchVersionInfo();
 
         if (selectedVersion != null) {
             ModrinthFile file = selectedVersion.getPrimaryFile();
             if (file != null && file.getUrl() != null) {
                 try {
-                    return new URL(file.getUrl());
+                    return new URI(file.getUrl()).toURL();
                 } catch (Exception e) {
                     if (logger != null) {
                         logger.warning("Invalid download URL from Modrinth: " + file.getUrl());
