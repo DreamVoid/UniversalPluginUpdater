@@ -1,0 +1,7 @@
+name: UniversalPluginUpdater
+version: ${project.version}
+main: me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin
+author: DreamVoid
+description: A plugin that updates other plugins on the server.
+api-version: 1.13
+load: STARTUP

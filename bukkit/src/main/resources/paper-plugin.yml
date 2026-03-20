@@ -1,0 +1,8 @@
+name: UniversalPluginUpdater
+version: ${project.version}
+authors:
+  - DreamVoid
+main: me.dreamvoid.universalpluginupdater.paper.PaperPlugin
+description: A plugin that updates other plugins on the server.
+api-version: '1.19'
+load: STARTUP
