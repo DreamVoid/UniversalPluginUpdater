@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.update;
 
 public enum UpdateType {
-    Custom("custom"),
+    URL("url"),
     Plugin("plugin"),
     GitHub("github"),
     Modrinth("modrinth"),
@@ -9,5 +9,13 @@ public enum UpdateType {
     SpigotMC("spigotmc"),
     Maven("maven");
 
-    UpdateType(String s) {}
+    private final String identifier;
+
+    UpdateType(String identifier) {
+        this.identifier = identifier;
+    }
+
+    public String getIdentifier() {
+        return identifier;
+    }
 }

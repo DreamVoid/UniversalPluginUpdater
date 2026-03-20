@@ -6,3 +6,17 @@ main: me.dreamvoid.universalpluginupdater.paper.PaperPlugin
 description: A plugin that updates other plugins on the server.
 api-version: '1.19'
 load: STARTUP
+
+permissions:
+  universalpluginupdater.command:
+    description: 允许使用所有UPU命令
+    default: op
+  universalpluginupdater.command.update:
+    description: 允许使用update命令
+    default: op
+  universalpluginupdater.command.download:
+    description: 允许使用download命令
+    default: op
+  universalpluginupdater.command.upgrade:
+    description: 允许使用upgrade命令
+    default: op
