@@ -39,4 +39,11 @@ public interface IPlatformProvider {
     Logger getPlatformLogger();
 
     String getPluginVersion(String pluginName);
+
+    /**
+     * 异步执行Runnable代码
+     * 不同平台对异步调度的方式不同，由各平台的实现来提供
+     * @param runnable 要执行的任务
+     */
+    void runTaskAsync(Runnable runnable);
 }

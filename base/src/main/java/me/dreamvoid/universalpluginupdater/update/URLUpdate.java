@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 
+import java.net.URI;
 import java.net.URL;
 
 public class URLUpdate extends AbstractUpdate {
     private final String updateUrl;
     private UpdateInfo updateInfo;
-    private long lastModified = -1;
+    private String lastModified;
     private static final Gson gson = new Gson();
 
     public URLUpdate(String updateUrl) {
@@ -86,7 +87,7 @@ public class URLUpdate extends AbstractUpdate {
         fetchUpdateInfo();
         if (updateInfo != null && updateInfo.downloadUrl != null) {
             try {
-                return new URL(updateInfo.downloadUrl);
+                return new URI(updateInfo.downloadUrl).toURL();
             } catch (Exception e) {
                 return null;
             }
@@ -102,7 +103,7 @@ public class URLUpdate extends AbstractUpdate {
         fetchUpdateInfo();
         if (updateInfo != null && updateInfo.changelog != null) {
             try {
-                return new URL(updateInfo.changelog);
+                return new URI(updateInfo.changelog).toURL();
             } catch (Exception e) {
                 return null;
             }

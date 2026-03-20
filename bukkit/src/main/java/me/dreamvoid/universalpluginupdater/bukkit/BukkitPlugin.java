@@ -30,7 +30,7 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
 
     public BukkitPlugin() {
         lifeCycle = new LifeCycle(this);
-        this.commandHandler = new CommandHandler();
+        this.commandHandler = new CommandHandler(this);
 
         lifeCycle.startUp(getLogger());
     }
@@ -54,7 +54,8 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command cmd, @NonNull String label, String @NonNull [] args) {
         BukkitCommandSender commandSender = new BukkitCommandSender(sender);
         CommandContext context = new CommandContext(label, args, commandSender);
-        return commandHandler.handleCommand(context);
+        commandHandler.handleCommand(context);
+        return true;
     }
 
     @Override
@@ -104,6 +105,10 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public Logger getPlatformLogger() {
         return getLogger();
+    }
 
+    @Override
+    public void runTaskAsync(Runnable runnable) {
+        getServer().getScheduler().runTaskAsynchronously(this, runnable);
     }
 }

@@ -3,6 +3,7 @@ package me.dreamvoid.universalpluginupdater.command;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.ICommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
+import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +16,10 @@ import java.util.logging.Logger;
 public class CommandHandler implements ICommandHandler {
     private static final Logger logger = Utils.getLogger();
     private final Map<String, SubCommandHandler> subCommands = new HashMap<>();
+    private final IPlatformProvider platformProvider;
 
-    public CommandHandler() {
+    public CommandHandler(IPlatformProvider platformProvider) {
+        this.platformProvider = platformProvider;
         registerSubCommands();
     }
 
@@ -31,30 +34,32 @@ public class CommandHandler implements ICommandHandler {
 
     @Override
     public boolean handleCommand(CommandContext context) {
-        String subCommand = context.getSubCommand();
+        platformProvider.runTaskAsync(() -> {
+            String subCommand = context.getSubCommand();
 
-        // 如果没有子命令，显示帮助
-        if (subCommand == null) {
-            showHelp(context.getSender());
-            return true;
-        }
+            // 如果没有子命令，显示帮助
+            if (subCommand == null) {
+                showHelp(context.getSender());
+                return;
+            }
 
-        // 查找对应的子命令处理器
-        SubCommandHandler handler = subCommands.get(subCommand.toLowerCase());
-        if (handler == null) {
-            context.getSender().sendMessage("&c未知或不完整的命令: " + subCommand);
-            showHelp(context.getSender());
-            return true;
-        }
+            // 查找对应的子命令处理器
+            SubCommandHandler handler = subCommands.get(subCommand.toLowerCase());
+            if (handler == null) {
+                context.getSender().sendMessage("&c未知或不完整的命令: " + subCommand);
+                return;
+            }
 
-        // 检查权限
-        if (!context.getSender().hasPermission("universalpluginupdater.command." + subCommand)) {
-            context.getSender().sendMessage("&c你没有足够的权限使用此命令！");
-            return true;
-        }
+            // 检查权限
+            if (!context.getSender().hasPermission("universalpluginupdater.command." + subCommand)) {
+                context.getSender().sendMessage("&c你没有足够的权限使用此命令！");
+                return;
+            }
 
-        // 执行子命令
-        return handler.execute(context);
+            // 执行子命令
+            handler.execute(context);
+        });
+        return true;
     }
 
     @Override
