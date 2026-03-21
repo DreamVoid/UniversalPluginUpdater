@@ -23,7 +23,7 @@ UniversalPluginUpdater (UPU) is a Minecraft server plugin that allows you to qui
 ### Commands
 | Command                | Description                        | Permission                       |
 |-------------------|---------------------------|--------------------------|
-| /universalpluginupdater (/upu)         | UniversalPluginUpdater 主命令 | universalpluginupdater.command |
+| /universalpluginupdater (/upu)         | UniversalPluginUpdater main command | universalpluginupdater.command |
 | /upu update | update list of available plugins.                    | universalpluginupdater.command.update |
 | /upu download  | download existing plugins' newer version by downloading.                  | universalpluginupdater.command.download |
 | /upu upgrade  | upgrade existing plugins by downloading/installing newer version.                  | universalpluginupdater.command.upgrade |
