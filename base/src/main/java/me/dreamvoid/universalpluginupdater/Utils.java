@@ -106,13 +106,13 @@ public class Utils {
         /**
          * 下载文件到指定目录
          * @param url 文件URL
-         * @param targetDir 目标目录
+         * @param saveDir 目标目录
          * @param desiredFilename 期望的文件名，如果为null则尝试从服务器获取文件名
          * @return {@link DownloadResult}对象
          */
-        public static DownloadResult downloadFile(String url, Path targetDir, @Nullable String desiredFilename) throws IOException {
+        public static DownloadResult download(String url, Path saveDir, @Nullable String desiredFilename) throws IOException {
             // 确保目标目录存在
-            Files.createDirectories(targetDir);
+            Files.createDirectories(saveDir);
 
             Request request = new Request.Builder().url(url)
                     .header("User-Agent", "UniversalPluginUpdater/1.0")
@@ -144,7 +144,7 @@ public class Utils {
                 }
 
                 // 构建完整的文件路径
-                Path filePath = targetDir.resolve(filename);
+                Path filePath = saveDir.resolve(filename);
 
                 // 下载文件
                 try (InputStream inputStream = response.body().byteStream()) {
@@ -198,9 +198,7 @@ public class Utils {
                 if (lastSlashIndex != -1 && lastSlashIndex < path.length() - 1) {
                     return path.substring(lastSlashIndex + 1);
                 }
-            } catch (Exception e) {
-                // 忽略异常，返回null
-            }
+            } catch (Exception ignored) {}
             return null;
         }
 

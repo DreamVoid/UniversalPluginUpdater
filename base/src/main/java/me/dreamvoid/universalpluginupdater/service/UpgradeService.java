@@ -1,0 +1,126 @@
+package me.dreamvoid.universalpluginupdater.service;
+
+import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+
+import java.nio.file.Path;
+import java.text.MessageFormat;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Logger;
+
+/**
+ * 升级执行服务
+ * 支持立即升级与延迟到插件卸载阶段执行
+ */
+public class UpgradeService {
+    private static final UpgradeService INSTANCE = new UpgradeService();
+    private static final Logger logger = Utils.getLogger();
+
+    private final Queue<PendingUpgradeOperation> pendingOperations = new ConcurrentLinkedQueue<>();
+
+    private UpgradeService() {}
+
+    public static UpgradeService getInstance() {
+        return INSTANCE;
+    }
+
+    /**
+     * 立即执行或延迟执行升级
+     */
+    public boolean upgrade(String pluginId, Path newPluginFile, Path currentPluginFile, boolean executeNow) {
+        UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
+        String strategyId = registry.getActiveStrategyId();
+        IUpgradeStrategy strategy = registry.getActiveStrategy();
+
+        if (strategy == null) {
+            logger.warning("当前升级策略 " + strategyId + " 不可用，尝试回退到 native");
+            strategyId = "native";
+            strategy = registry.getStrategy("native");
+        }
+
+        if (strategy == null) {
+            logger.severe("由于 native 升级策略不可用，" + pluginId + " 升级失败！");
+            return false;
+        }
+
+        boolean shouldExecuteNow = executeNow || strategy.supportSaveUpgrade();
+        if (shouldExecuteNow) {
+            return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
+        } else {
+            pendingOperations.add(new PendingUpgradeOperation(pluginId, newPluginFile, currentPluginFile, strategyId));
+            logger.info("将 " + pluginId + " 插件的升级任务加入队列 (" + strategyId + ")");
+            return true;
+        }
+    }
+
+    /**
+     * 判断在当前策略下此次升级是否会立刻执行
+     */
+    public boolean canUpgradeNow(boolean executeNow) {
+        IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
+        return executeNow || (strategy != null && strategy.supportSaveUpgrade());
+    }
+
+    /**
+     * 在插件卸载阶段执行所有排队升级任务
+     */
+    public ExecutionResult executePendingUpgrades() {
+        int successCount = 0;
+        int failureCount = 0;
+
+        PendingUpgradeOperation operation;
+        while ((operation = pendingOperations.poll()) != null) {
+            boolean ok = executeUpgrade(operation.pluginId, operation.newPluginFile, operation.currentPluginFile, operation.strategyId);
+            if (ok) {
+                successCount++;
+            } else {
+                failureCount++;
+            }
+        }
+
+        return new ExecutionResult(successCount, failureCount);
+    }
+
+    public int getPendingCount() {
+        return pendingOperations.size();
+    }
+
+    private boolean executeUpgrade(String pluginId, Path newPluginFile, Path currentPluginFile, String preferredStrategyId) {
+        try {
+            UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
+            String strategyId = preferredStrategyId;
+            IUpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
+
+            if (strategy == null) {
+                strategyId = registry.getActiveStrategyId();
+                strategy = registry.getActiveStrategy();
+            }
+
+            if (strategy == null) {
+                logger.warning(MessageFormat.format("当前升级策略 {0} 不可用，尝试回退到 native", strategyId));
+                strategyId = "native";
+                strategy = registry.getStrategy("native");
+            }
+
+            if (strategy == null) {
+                logger.severe(MessageFormat.format("由于 native 升级策略不可用，{0} 升级失败！", pluginId));
+                return false;
+            }
+
+            return strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
+        } catch (Exception e) {
+            logger.warning(MessageFormat.format("插件 {0} 执行升级任务时出现异常: {1}", pluginId, e));
+            return false;
+        }
+    }
+
+    private record PendingUpgradeOperation(String pluginId, Path newPluginFile, Path currentPluginFile, String strategyId) { }
+
+    public record ExecutionResult(int successCount, int failureCount) {
+        public int totalCount() {
+            return successCount + failureCount;
+        }
+    }
+}

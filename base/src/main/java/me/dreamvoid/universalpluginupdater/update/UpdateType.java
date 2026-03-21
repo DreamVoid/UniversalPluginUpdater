@@ -1,5 +1,8 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import lombok.Getter;
+
+@Getter
 public enum UpdateType {
     URL("url"),
     Plugin("plugin"),
@@ -10,12 +13,7 @@ public enum UpdateType {
     Maven("maven");
 
     private final String identifier;
-
     UpdateType(String identifier) {
         this.identifier = identifier;
-    }
-
-    public String getIdentifier() {
-        return identifier;
     }
 }

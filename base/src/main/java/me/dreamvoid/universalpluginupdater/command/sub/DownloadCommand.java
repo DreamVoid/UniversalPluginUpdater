@@ -1,8 +1,8 @@
 package me.dreamvoid.universalpluginupdater.command.sub;
 
-import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.ISubCommand;
+import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
@@ -17,8 +17,12 @@ import java.util.logging.Logger;
  * download 子命令处理器
  * 仅下载插件更新
  */
-public class DownloadCommand implements ISubCommand {
-    private static final Logger logger = Utils.getLogger();
+public final class DownloadCommand implements ISubCommand {
+    private final Logger logger;
+
+    public DownloadCommand(IPlatformProvider platform) {
+        logger = platform.getPlatformLogger();
+    }
 
     @Override
     public void execute(CommandContext context) {
@@ -32,7 +36,7 @@ public class DownloadCommand implements ISubCommand {
 
                 // 检查是否有可下载的更新
                 if (updateInfos.isEmpty()) {
-                    context.getSender().broadcastMessage("&c没有可下载的更新。请先执行 /upu update 命令。");
+                    context.getSender().broadcastMessage("目前没有可下载更新的插件。使用 /upu update 检查更新。");
                     return;
                 }
 
@@ -43,7 +47,7 @@ public class DownloadCommand implements ISubCommand {
                 // 遍历每个待更新的插件，执行下载
                 for (UpdateInfo updateInfo : updateInfos) {
                     String pluginId = updateInfo.pluginName();
-                    context.getSender().sendMessage(MessageFormat.format("&7正在下载 &b{0}&7...", pluginId));
+                    context.getSender().sendMessage(MessageFormat.format("&7正在下载 {0}...", pluginId));
 
                     try {
                         // 获取该插件的更新实例
@@ -56,29 +60,23 @@ public class DownloadCommand implements ISubCommand {
 
                         // 执行下载
                         if (updateInstance.download()) {
-                            context.getSender().sendMessage(MessageFormat.format("&a✓ {0} &f已下载", pluginId));
+                            context.getSender().sendMessage(MessageFormat.format("{0} 已下载。", pluginId));
                             successCount++;
                         } else {
-                            context.getSender().sendMessage(MessageFormat.format("&c✗ {0} &f下载失败", pluginId));
+                            context.getSender().sendMessage(MessageFormat.format("&c{0} 下载失败！", pluginId));
                             failureCount++;
                         }
                     } catch (Exception e) {
-                        logger.severe(MessageFormat.format("下载插件 {0} 时出错: {1}", pluginId, e));
-                        context.getSender().sendMessage(MessageFormat.format("&c✗ {0} &f下载时出错: &7{1}", pluginId, e.getMessage()));
+                        context.getSender().sendMessage(MessageFormat.format("&c{0} 下载失败: {1}", pluginId, e.getMessage()));
                         failureCount++;
                     }
                 }
 
                 // 显示下载总结
-                context.getSender().broadcastMessage(MessageFormat.format("下载完成！成功: &a{0}&f，失败: &c{1}", successCount, failureCount));
-
-                if (failureCount == 0 && successCount > 0) {
-                    context.getSender().broadcastMessage("所有文件已下载到 plugins/UniversalPluginUpdater/downloads/ 文件夹。");
-                }
-
+                context.getSender().broadcastMessage(MessageFormat.format("下载了 {0} 个插件，有 {1} 个插件下载失败。文件已保存到 plugins/UniversalPluginUpdater/downloads/ 文件夹。", successCount, failureCount));
             } catch (Exception e) {
-                logger.severe("下载更新时出错: " + e);
-                context.getSender().broadcastMessage("&c下载更新时出错，请查看控制台了解更多信息！");
+                logger.severe("下载更新时出现异常: " + e);
+                context.getSender().broadcastMessage("&c下载更新时出现异常，请查看控制台了解更多信息！");
             } finally {
                 AsyncLock.release();
             }

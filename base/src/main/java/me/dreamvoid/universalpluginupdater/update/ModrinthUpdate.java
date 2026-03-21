@@ -3,13 +3,13 @@ package me.dreamvoid.universalpluginupdater.update;
 import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
-import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,39 +46,39 @@ public class ModrinthUpdate extends AbstractUpdate {
             if (response.isNotModified()) {
                 // 返回304 Not Modified，使用缓存
                 if (selectedVersion == null) {
-                    logger.warning("Err: " + url + " [304 but no cache]");
+                    logger.warning(MessageFormat.format("Err: {0} [304 but no cache]", url));
                     return false;
                 }
-                logger.info("Hit: " + url);
                 this.lastModified = response.lastModified;
+                logger.info(MessageFormat.format("Hit: {0}", url));
                 return true;
             }
 
             if (response.isSuccess()) {
                 String content = response.content;
                 if (content == null) {
-                    logger.warning("Err: " + url + " [response is null]");
+                    logger.warning(MessageFormat.format("Err: {0} [response is null]", url));
                     return false;
                 }
 
                 // 解析JSON数组
                 ModrinthVersion[] versions = gson.fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
-                    logger.warning("Err: " + url + " [no versions]");
+                    logger.warning(MessageFormat.format("Err: {0} [no versions]", url));
                     return false;
                 }
 
                 // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
                 this.selectedVersion = versions[0];
                 this.lastModified = response.lastModified;
-                logger.info("Get: " + url);
+                logger.info(MessageFormat.format("Get: {0}", url));
                 return true;
             }
 
-            logger.warning("Err: " + url + " [status code: " + response.statusCode + "]");
+            logger.warning(MessageFormat.format("Err: {0} [status code: {1}]", url, response.statusCode));
             return false;
         } catch (Exception e) {
-            logger.warning("Err: " + url + " [" + e + "]");
+            logger.warning(MessageFormat.format("Err: {0} [{1}]", url, e));
             return false;
         }
     }
@@ -135,14 +135,11 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public boolean upgrade() {
+    public boolean upgrade(boolean now) {
         // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
         try {
             // 首先执行下载（如果还没下载）
-            if (!download()) {
-                logger.warning("下载失败");
-                return false;
-            }
+            if (!download()) return false;
 
             // 获取当前插件文件
             Path currentPluginFile = platform.getPluginFile(pluginId);
@@ -151,53 +148,37 @@ public class ModrinthUpdate extends AbstractUpdate {
             Path newPluginFile = platform.getDataPath().resolve("downloads").resolve(selectedVersion.getPrimaryFile().getFilename());
 
             if (!Files.exists(newPluginFile)) {
-                logger.warning("下载的文件丢失: " + newPluginFile);
+                logger.warning(MessageFormat.format("下载的文件丢失: {0}", newPluginFile));
                 return false;
             }
 
-            // 获取当前活跃的升级策略
-            IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
-            if (strategy == null) {
-                logger.warning("当前没有配置可用的升级策略！");
-                return false;
-            }
-
-            // 执行升级
-            boolean result = strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
-
-            if (result) {
-                logger.info("升级完成 (" + UpgradeStrategyRegistry.getInstance().getActiveStrategyId() + ")");
-            } else {
-                logger.warning("升级失败 (" + UpgradeStrategyRegistry.getInstance().getActiveStrategyId() + ")");
-            }
-
-            return result;
+            return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning("升级失败: " + e);
+            logger.warning(MessageFormat.format("升级失败: {0}", e));
             return false;
         }
     }
 
     @Override
     public boolean download() {
+        // 从缓存的版本信息中获取下载链接
+        if (selectedVersion == null) {
+            logger.warning("no selectedVersion");
+            return false;
+        }
+
+        ModrinthFile file = selectedVersion.getPrimaryFile();
+        if (file == null || file.getUrl() == null) {
+            logger.warning("no primary file");
+            return false;
+        }
+
+        String downloadUrl = file.getUrl();
+        String filename = file.getFilename();
+        String preferredHash = file.getPreferredHash();
+        String hashAlgorithm = file.getPreferredHashAlgorithm();
+
         try {
-            // 从缓存的版本信息中获取下载链接
-            if (selectedVersion == null) {
-                logger.warning("no selectedVersion");
-                return false;
-            }
-
-            ModrinthFile file = selectedVersion.getPrimaryFile();
-            if (file == null || file.getUrl() == null) {
-                logger.warning("no primary file");
-                return false;
-            }
-
-            String downloadUrl = file.getUrl();
-            String filename = file.getFilename();
-            String preferredHash = file.getPreferredHash();
-            String hashAlgorithm = file.getPreferredHashAlgorithm();
-
             // TODO: 从配置文件中读取自定义文件名配置
 
             // 获取数据目录下的downloads文件夹
@@ -206,46 +187,39 @@ public class ModrinthUpdate extends AbstractUpdate {
 
             // 检查文件是否已存在且完整
             if (filePath.toFile().exists()) {
-                if (preferredHash != null && hashAlgorithm != null) {
-                    // 验证现有文件的完整性
-                    if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                        logger.info("文件存在且完整: " + filename);
-                        return true;  // 文件完整，不必重新下载
-                    } else {
-                        // 删除不完整的文件
-                        Files.delete(filePath);
-                    }
+                if (preferredHash != null && hashAlgorithm != null
+                        && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                    logger.info(MessageFormat.format("Hit: {0}", downloadUrl));
+                    return true;  // 文件完整，不必重新下载
                 } else {
-                    // 没有哈希值，始终重新下载
                     Files.delete(filePath);
                 }
             }
 
-            logger.info("download: " + downloadUrl);
             // 执行下载
-            Utils.Http.DownloadResult result = Utils.Http.downloadFile(downloadUrl, downloadDir, filename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, filename);
 
             if (!result.success) {
-                logger.warning("下载失败: " + result.errorMessage);
+                logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, result.errorMessage));
                 return false;
             }
 
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    logger.info("下载完成: " + result.filename);
+                    logger.info(MessageFormat.format("Get: {0}", downloadUrl));
                     return true;
                 } else {
-                    logger.warning("下载的文件验证失败: " + result.filename);
+                    logger.warning(MessageFormat.format("Err: {0} [checksum mismatch]", downloadUrl));
                     Files.delete(filePath);  // 删除不完整的文件
                     return false;
                 }
             } else {
-                logger.info("下载完成: " + result.filename);
+                logger.info(MessageFormat.format("Get: {0}", downloadUrl));
                 return true;
             }
         } catch (Exception e) {
-            logger.warning("下载失败: " + e);
+            logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, e));
             return false;
         }
     }

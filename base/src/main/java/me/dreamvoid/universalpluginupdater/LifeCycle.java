@@ -2,9 +2,11 @@ package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
+import java.text.MessageFormat;
 import java.util.logging.Logger;
 
 public class LifeCycle {
@@ -32,8 +34,8 @@ public class LifeCycle {
 
         logger.info("准备 UniversalPluginUpdater 预加载.");
 
-        logger.info("加载器: " + String.join(", ", platform.getLoaders()));
-        logger.info("Minecraft 版本: " + (platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
+        logger.info(MessageFormat.format("加载器: {0}", String.join(", ", platform.getLoaders())));
+        logger.info(MessageFormat.format("Minecraft 版本: {0}", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
         UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
@@ -54,6 +56,14 @@ public class LifeCycle {
 
     public void unload(){
         logger.info("准备 UniversalPluginUpdater 卸载.");
+
+        UpgradeService.ExecutionResult result = UpgradeService.getInstance().executePendingUpgrades();
+        if (result.totalCount() > 0) {
+            logger.info(MessageFormat.format("升级了 {0} 个插件，有 {1} 个插件升级失败。", result.successCount(), result.failureCount()));
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ignored) {}
+        }
 
         logger.info("卸载任务完成. 感谢使用 UniversalPluginUpdater！");
     }

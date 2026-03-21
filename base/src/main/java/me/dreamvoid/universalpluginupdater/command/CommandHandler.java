@@ -30,9 +30,9 @@ public class CommandHandler implements ICommandHandler {
      * 注册所有子命令
      */
     private void registerSubCommands() {
-        subCommands.put("update", new UpdateCommand());
-        subCommands.put("download", new DownloadCommand());
-        subCommands.put("upgrade", new UpgradeCommand());
+        subCommands.put("update", new UpdateCommand(platform));
+        subCommands.put("download", new DownloadCommand(platform));
+        subCommands.put("upgrade", new UpgradeCommand(platform));
     }
 
     @Override
@@ -97,16 +97,16 @@ public class CommandHandler implements ICommandHandler {
     private void showHelp(ICommandSender sender) {
         sender.sendMessage(
                 MessageFormat.format("UniversalPluginUpdater {0} ({1})", platform.getPluginVersion(), platform.getPlatformName()) + "\n" +
-                "用法：upu <命令>\n" +
+                "用法：upu <命令> [选项]\n" +
                 "\n" +
                 "通用插件更新器 upu 提供插件管理和信息查询等功能。\n" +
                 "它提供的功能类似 APT 工具（像 apt 和 apt-get），\n" +
                 "并且默认情况下被设置得更适合交互。\n" +
                 "\n" +
                 "常用命令：\n" +
-                "  /upu update - 检查所有插件的更新\n" +
-                "  /upu download - 仅下载插件更新\n" +
-                "  /upu upgrade - 下载并更新插件\n" +
+                "  /upu update - 更新可用插件列表\n" +
+                "  /upu download - 通过 下载 来下载现有插件的更新版本\n" +
+                "  /upu upgrade - 通过 下载/安装 来升级现有插件到更新版本\n" +
                 "\n" +
                 "本插件配置选项及语法都已经在文档中进行了详细说明。\n" +
                 "插件及其版本偏好可以通过配置文件来设置。\n" +

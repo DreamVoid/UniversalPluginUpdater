@@ -1,12 +1,14 @@
 package me.dreamvoid.universalpluginupdater.update.modrinth;
 
 import com.google.gson.annotations.SerializedName;
+import lombok.Getter;
 
 import java.util.Map;
 
 /**
  * Modrinth API返回的文件信息
  */
+@Getter
 public class ModrinthFile {
     @SerializedName("id")
     private String id;
@@ -25,30 +27,6 @@ public class ModrinthFile {
 
     @SerializedName("hashes")
     private Map<String, String> hashes;  // 哈希值映射，如 {"sha1": "...", "sha512": "..."}
-
-    public String getId() {
-        return id;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public boolean isPrimary() {
-        return primary;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public Map<String, String> getHashes() {
-        return hashes;
-    }
 
     /**
      * 获取文件哈希值

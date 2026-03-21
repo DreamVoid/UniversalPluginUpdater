@@ -1,12 +1,14 @@
 package me.dreamvoid.universalpluginupdater.update.modrinth;
 
 import com.google.gson.annotations.SerializedName;
+import lombok.Getter;
 
 import java.util.List;
 
 /**
  * Modrinth API返回的版本信息
  */
+@Getter
 public class ModrinthVersion {
     @SerializedName("id")
     private String id;
@@ -40,50 +42,6 @@ public class ModrinthVersion {
 
     @SerializedName("loaders")
     private List<String> loaders;
-
-    public String getId() {
-        return id;
-    }
-
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getVersionNumber() {
-        return versionNumber;
-    }
-
-    public String getChangelog() {
-        return changelog;
-    }
-
-    public String getDatePublished() {
-        return datePublished;
-    }
-
-    public String getVersionType() {
-        return versionType;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public List<ModrinthFile> getFiles() {
-        return files;
-    }
-
-    public List<String> getGameVersions() {
-        return gameVersions;
-    }
-
-    public List<String> getLoaders() {
-        return loaders;
-    }
 
     /**
      * 获取主要的（primary=true）文件

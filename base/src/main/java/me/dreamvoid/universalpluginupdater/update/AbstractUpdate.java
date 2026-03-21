@@ -1,7 +1,5 @@
 package me.dreamvoid.universalpluginupdater.update;
 
-import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
-
 public abstract class AbstractUpdate {
     public UpdateType updateType;
 
@@ -24,7 +22,16 @@ public abstract class AbstractUpdate {
      * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑
      * @return 升级是否成功
      */
-    public abstract boolean upgrade();
+    public boolean upgrade(){
+        return upgrade(false);
+    };
+
+    /**
+     * 升级现有插件，可指定是否立刻执行
+     * @param now true 立刻执行，false 延迟到插件卸载阶段执行
+     * @return 升级是否成功
+     */
+    public abstract boolean upgrade(boolean now);
 
     /**
      * 获取缓存的版本号
@@ -39,19 +46,4 @@ public abstract class AbstractUpdate {
      * @return 插件 ID
      */
     public abstract String getPluginId();
-
-    /**
-     * 执行通用的升级逻辑
-     * 子类可以调用此方法完成升级
-     * @param upgradeStrategy 升级策略
-     * @return 升级是否成功
-     */
-    protected boolean executeUpgrade(IUpgradeStrategy upgradeStrategy) {
-        if (upgradeStrategy == null) {
-            return false;
-        }
-
-        // TODO: 实现通用升级逻辑
-        return false;
-    }
 }

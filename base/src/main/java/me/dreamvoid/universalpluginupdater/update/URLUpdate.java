@@ -4,13 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
-import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -88,16 +88,16 @@ public class URLUpdate extends AbstractUpdate {
 
     @Override
     public boolean download() {
+        // 从缓存的更新信息中获取下载链接
+        if (updateInfo == null || updateInfo.downloadUrl == null) {
+            return false;
+        }
+
+        String downloadUrl = updateInfo.downloadUrl;
+        String preferredHash = updateInfo.getPreferredHash();
+        String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
+
         try {
-            // 从缓存的更新信息中获取下载链接
-            if (updateInfo == null || updateInfo.downloadUrl == null) {
-                return false;
-            }
-
-            String downloadUrl = updateInfo.downloadUrl;
-            String preferredHash = updateInfo.getPreferredHash();
-            String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
-
             // TODO: 从配置文件中读取自定义文件名配置
 
             // 获取数据目录下的downloads文件夹
@@ -106,9 +106,10 @@ public class URLUpdate extends AbstractUpdate {
             // 首先尝试获取文件名（从URL或其他地方）
             // 此处我们让Utils自动从Content-Disposition或URL路径提取
             // 第一次下载时，我们不知道最终的文件名，所以先执行一次下载获取文件名
-            Utils.Http.DownloadResult result = Utils.Http.downloadFile(downloadUrl, downloadDir, null);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, null);
 
             if (!result.success) {
+                logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, result.errorMessage));
                 return false;
             }
 
@@ -118,19 +119,22 @@ public class URLUpdate extends AbstractUpdate {
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = filePath;
+                    logger.info(MessageFormat.format("Get: {0}", downloadUrl));
                     return true;
                 } else {
                     // 删除不完整的文件
                     Files.delete(filePath);
                     this.downloadedFilePath = null;
+                    logger.warning(MessageFormat.format("Err: {0} [checksum mismatch]", downloadUrl));
                     return false;
                 }
             } else {
-                // 没有哈希值，直接返回成功
                 this.downloadedFilePath = filePath;
+                logger.info(MessageFormat.format("Get: {0}", downloadUrl));
                 return true;
             }
         } catch (Exception e) {
+            logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, e));
             return false;
         }
     }
@@ -141,14 +145,11 @@ public class URLUpdate extends AbstractUpdate {
     }
 
     @Override
-    public boolean upgrade() {
+    public boolean upgrade(boolean now) {
         // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
         try {
             // 首先执行下载（如果还没下载）
-            if (!download()) {
-                logger.warning("Failed to download plugin for upgrade");
-                return false;
-            }
+            if (!download()) return false;
 
             // 获取当前插件文件
             Path currentPluginFile = platform.getPluginFile(pluginId);
@@ -157,29 +158,13 @@ public class URLUpdate extends AbstractUpdate {
             Path newPluginFile = downloadedFilePath;
 
             if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning("Downloaded plugin file not found");
+                logger.warning(MessageFormat.format("下载的文件丢失: {0}", newPluginFile));
                 return false;
             }
 
-            // 获取当前活跃的升级策略
-            IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
-            if (strategy == null) {
-                logger.warning("No active upgrade strategy configured");
-                return false;
-            }
-
-            // 执行升级
-            boolean result = strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
-
-            if (result) {
-                logger.info("Plugin upgraded successfully using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
-            } else {
-                logger.warning("Plugin upgrade failed using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
-            }
-
-            return result;
+            return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning("Upgrade error: " + e);
+            logger.warning(MessageFormat.format("升级失败: {0}", e));
             return false;
         }
     }

@@ -1,8 +1,8 @@
 package me.dreamvoid.universalpluginupdater.command.sub;
 
-import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.ISubCommand;
+import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
@@ -16,8 +16,12 @@ import java.util.logging.Logger;
  * update 子命令处理器
  * 检查所有插件的更新
  */
-public class UpdateCommand implements ISubCommand {
-    private static final Logger logger = Utils.getLogger();
+public final class UpdateCommand implements ISubCommand {
+    private final Logger logger;
+
+    public UpdateCommand(IPlatformProvider platform) {
+        logger = platform.getPlatformLogger();
+    }
 
     @Override
     public void execute(CommandContext context) {
@@ -35,7 +39,7 @@ public class UpdateCommand implements ISubCommand {
                 }
 
                 // 显示可更新的插件数量
-                context.getSender().broadcastMessage(MessageFormat.format("发现 {0} 个可更新的插件。", updateInfos.size()));
+                context.getSender().broadcastMessage(MessageFormat.format("有 {0} 个插件可以升级。", updateInfos.size()));
 
                 // 详细列出每个可更新的插件
                 for (UpdateInfo update : updateInfos) {
@@ -43,7 +47,7 @@ public class UpdateCommand implements ISubCommand {
                     context.getSender().sendMessage(message);
                 }
 
-                context.getSender().sendMessage("使用 /upu download 命令下载更新，或使用 /upu upgrade 直接更新");
+                context.getSender().broadcastMessage("使用 /upu download 命令下载更新，或使用 /upu upgrade 安装更新。");
             } catch (Exception e) {
                 logger.severe("检查更新时出错: " + e);
                 context.getSender().broadcastMessage("&c检查更新时出错，请查看控制台了解更多信息！");

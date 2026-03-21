@@ -2,14 +2,17 @@ package me.dreamvoid.universalpluginupdater.bukkit.upgrade;
 
 import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import org.bukkit.Bukkit;
+import org.jspecify.annotations.NonNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.logging.Logger;
 
 /**
- * Bukkit 更新文件夹升级策略
+ * Bukkit 更新文件夹升级策略<br>
  * 使用 Bukkit 服务器的 update 文件夹来管理插件更新
+ * @author DreamVoid
  */
 public class BukkitUpgradeStrategy implements IUpgradeStrategy {
     private final Logger logger;
@@ -19,7 +22,7 @@ public class BukkitUpgradeStrategy implements IUpgradeStrategy {
     }
 
     @Override
-    public String getId() {
+    public @NonNull String getId() {
         return "bukkit";
     }
 
@@ -29,12 +32,16 @@ public class BukkitUpgradeStrategy implements IUpgradeStrategy {
     }
 
     @Override
+    public boolean supportSaveUpgrade() {
+        return true;
+    }
+
+    @Override
     public boolean upgrade(String pluginId, Path newPluginFile, Path currentPluginFile) {
         try {
             // 获取 Bukkit 的 update 文件夹
             Path updateFolder = Bukkit.getUpdateFolderFile().toPath();
             if (!Files.exists(updateFolder)) {
-                logger.warning("插件目录不存在");
                 Files.createDirectories(updateFolder);
             }
 
@@ -44,17 +51,11 @@ public class BukkitUpgradeStrategy implements IUpgradeStrategy {
             // 将新的插件文件复制到 update 文件夹
             Path targetPath = updateFolder.resolve(filename);
 
-            // 如果目标文件已存在，删除它
-            if (Files.exists(targetPath)) {
-                logger.info("删除已存在的文件 " + targetPath);
-                Files.delete(targetPath);
-            }
-
             // 复制新文件
             logger.info("移动新插件文件到 " + targetPath);
-            Files.copy(newPluginFile, targetPath);
+            Files.move(newPluginFile, targetPath,  StandardCopyOption.REPLACE_EXISTING);
 
-            logger.info("插件 " + pluginId + " 的文件已移动到更新目录，重启服务器生效。");
+            logger.info("插件 " + pluginId + " 已更新，重启服务器生效。");
             return true;
         } catch (Exception e) {
             logger.warning("更新 " + pluginId + " 时出现异常: " + e);

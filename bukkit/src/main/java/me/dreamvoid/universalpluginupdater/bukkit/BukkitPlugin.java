@@ -50,7 +50,7 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
         
         // 注册 Bukkit 特定的升级策略
         UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));
-        //UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
+        UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
     }
 
     @Override

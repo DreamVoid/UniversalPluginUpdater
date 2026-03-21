@@ -14,6 +14,7 @@ import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,7 @@ public class UpdateChannelManager {
             String jsonContent = new String(Files.readAllBytes(configPath));
             return gson.fromJson(jsonContent, PluginUpdateConfig.class);
         } catch (IOException e) {
-            logger.warning("无法加载 " + pluginId + " 的更新配置");
+            logger.warning(MessageFormat.format("无法加载 {0} 的更新配置", pluginId));
             return null;
         }
     }
@@ -163,10 +164,10 @@ public class UpdateChannelManager {
                         return new ModrinthUpdate(pluginId, modrinthInfo.getProjectId(), platform);
                     }
                 }
-                default -> logger.warning("未知更新渠道: " + type);
+                default -> logger.warning(MessageFormat.format("未知更新渠道: {0}", type));
             }
         } catch (Exception e) {
-            logger.warning("Failed to create update instance for channel type: " + type);
+            logger.warning(MessageFormat.format("为更新渠道 {0} 创建实例时出现异常: {1}", type, e));
         }
         return null;
     }

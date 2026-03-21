@@ -66,7 +66,7 @@ public class CheckUpdateService {
 
             // 执行更新检查，联网获取最新版本信息
             if (!updateInstance.update()) {
-                logger.warning(MessageFormat.format("无法检查插件 {0} 的更新", pluginId));
+                logger.warning(MessageFormat.format("无法检查插件 {0} 的更新！", pluginId));
                 return null;
             }
 

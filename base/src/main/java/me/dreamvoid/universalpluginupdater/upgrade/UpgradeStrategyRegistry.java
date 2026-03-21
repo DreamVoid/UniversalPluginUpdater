@@ -3,6 +3,7 @@ package me.dreamvoid.universalpluginupdater.upgrade;
 import me.dreamvoid.universalpluginupdater.Utils;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -39,7 +40,7 @@ public class UpgradeStrategyRegistry {
         strategies.put(strategyId, strategy);
         
         if (logger != null) {
-            logger.info("注册新的升级方式: " + strategy.getId() + " (" + strategy.getDisplayName() + ")");
+            logger.info(MessageFormat.format("注册新的升级方式: {0} ({1})", strategy.getId(), strategy.getDisplayName()));
         }
     }
 
@@ -69,9 +70,9 @@ public class UpgradeStrategyRegistry {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
             IUpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
-                logger.info("当前使用的升级策略: " + strategyId + " (" + strategy.getDisplayName() + ")");
+                logger.info(MessageFormat.format("当前使用的升级策略: {0} ({1})", strategyId, strategy.getDisplayName()));
             } else {
-                logger.info("当前使用的升级策略: " + strategyId + " (未注册)");
+                logger.info(MessageFormat.format("当前使用的升级策略: {0} [未注册]", strategyId));
             }
         }
     }
@@ -87,9 +88,9 @@ public class UpgradeStrategyRegistry {
         IUpgradeStrategy strategy = strategies.get(activeStrategy);
         
         // 如果不存在且不是 native，则回退到 native
-        if (strategy == null && !"native".equals(activeStrategy)) {
+        if (strategy == null && !activeStrategy.equals("native")) {
             if (logger != null) {
-                logger.warning("当前使用的升级策略 '" + activeStrategy + "' 未注册，回退到 'native'");
+                logger.warning(MessageFormat.format("当前使用的升级策略 \"{0}\" 不可用，回退到 \"native\"", activeStrategy));
             }
             this.activeStrategy = "native";
             strategy = strategies.get("native");
