@@ -18,7 +18,7 @@ The development of UniversalPluginUpdater was inspired by [APT](https://wiki.deb
 
 ## Download
 * Stable version
-  * [Modrinth](https://modrinth.com/plugin/universalpluginupdater/versions)
+  * [Modrinth](https://modrinth.com/plugin/upu/versions)
   * [GitHub Releases](https://github.com/DreamVoid/UniversalPluginUpdater/releases)
 
 ## Commands and Permissions
