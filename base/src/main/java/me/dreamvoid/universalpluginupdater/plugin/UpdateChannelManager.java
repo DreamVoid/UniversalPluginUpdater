@@ -152,7 +152,7 @@ public class UpdateChannelManager {
                 case "url" -> {
                     UrlChannelInfo urlInfo = gson.fromJson(gson.toJsonTree(config), UrlChannelInfo.class);
                     if (urlInfo.getUrl() != null) {
-                        return new URLUpdate(urlInfo.getUrl());
+                        return new URLUpdate(urlInfo.getUrl(), platform);
                     }
                 }
                 case "modrinth" -> {

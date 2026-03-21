@@ -2,7 +2,10 @@ package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.plugin.UpdateChannelManager;
+import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,6 +15,8 @@ import java.util.List;
 public class UpdateManager {
     private static UpdateManager instance;
     private CheckUpdateService checkUpdateService;
+    private UpdateChannelManager updateChannelManager;
+    private List<UpdateInfo> cachedUpdateInfos = new ArrayList<>();  // 缓存最后一次的检查结果
 
     private UpdateManager() {
     }
@@ -23,7 +28,8 @@ public class UpdateManager {
     public static synchronized void initialize(IPlatformProvider platform) {
         if (instance == null) {
             instance = new UpdateManager();
-            instance.checkUpdateService = new CheckUpdateService(platform);
+            instance.updateChannelManager = new UpdateChannelManager(platform);
+            instance.checkUpdateService = new CheckUpdateService(platform, instance.updateChannelManager);
         }
     }
 
@@ -45,6 +51,28 @@ public class UpdateManager {
         if (checkUpdateService == null) {
             throw new IllegalStateException("CheckUpdateService 未初始化");
         }
-        return checkUpdateService.checkAllPluginUpdates();
+        // 执行检查并缓存结果
+        cachedUpdateInfos = checkUpdateService.checkAllPluginUpdates();
+        return cachedUpdateInfos;
+    }
+
+    /**
+     * 获取缓存的更新信息列表
+     * @return 最后一次检查的结果
+     */
+    public List<UpdateInfo> getCachedUpdateInfos() {
+        return new ArrayList<>(cachedUpdateInfos);  // 返回副本以防外部修改
+    }
+
+    /**
+     * 获取指定插件的更新渠道实例，用于执行download/upgrade等操作
+     * @param pluginId 插件ID
+     * @return 对应的AbstractUpdate实例，若无法获取返回null
+     */
+    public AbstractUpdate getUpdateChannelForPlugin(String pluginId) {
+        if (updateChannelManager == null) {
+            throw new IllegalStateException("UpdateChannelManager 未初始化");
+        }
+        return updateChannelManager.getUpdateChannelForPlugin(pluginId);
     }
 }

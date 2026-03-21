@@ -20,9 +20,9 @@ public class CheckUpdateService {
     private final UpdateChannelManager channelManager;
     private final Logger logger;
 
-    public CheckUpdateService(IPlatformProvider platform) {
+    public CheckUpdateService(IPlatformProvider platform, UpdateChannelManager channelManager) {
         this.platform = platform;
-        this.channelManager = new UpdateChannelManager(platform);
+        this.channelManager = channelManager;
         this.logger = Utils.getLogger();
     }
 
@@ -53,7 +53,7 @@ public class CheckUpdateService {
     /**
      * 检查单个插件的更新
      * @param pluginId 插件标识符（小写）
-     * @return 如果有更新则返回PendingUpdate对象，否则返回null
+     * @return 如果有更新则返回UpdateInfo对象，否则返回null
      */
     private UpdateInfo checkPluginUpdate(String pluginId) {
         try {
@@ -64,8 +64,14 @@ public class CheckUpdateService {
                 return null;
             }
 
-            // 获取远程版本信息
-            String remoteVersion = updateInstance.getVersion();
+            // 执行更新检查，联网获取最新版本信息
+            if (!updateInstance.update()) {
+                logger.warning(MessageFormat.format("无法检查插件 {0} 的更新", pluginId));
+                return null;
+            }
+
+            // 获取缓存的远程版本信息
+            String remoteVersion = updateInstance.getCachedVersion();
             if (remoteVersion == null) {
                 logger.warning(MessageFormat.format("无法获取插件 {0} 的远程版本信息！", pluginId));
                 return null;

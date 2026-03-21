@@ -6,8 +6,8 @@ import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
 
-import java.net.URI;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +33,8 @@ public class ModrinthUpdate extends AbstractUpdate {
      * 从Modrinth API获取版本信息并选择合适的版本
      * 使用HTTP缓存机制减少网络请求和Modrinth负载
      */
-    private boolean fetchVersionInfo() {
+    @Override
+    public boolean update() {
         String url = buildApiUrl();
         try {
             Utils.Http.Response response = Utils.Http.get(url, lastModified);
@@ -102,13 +103,13 @@ public class ModrinthUpdate extends AbstractUpdate {
         // 添加加载器参数
         List<String> loaders = platform.getLoaders();
         if (loaders != null && !loaders.isEmpty()) {
-            queries.add("loaders=[" + String.join(",", loaders) + "]");
+            queries.add("loaders=[\"" + String.join("\",\"", loaders) + "\"]");
         }
 
         // 添加游戏版本参数
         List<String> gameVersions = platform.getGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
-            queries.add("game_versions=[" + String.join(",", gameVersions) + "]");
+            queries.add("game_versions=[\"" + String.join("\",\"", gameVersions) + "\"]");
         }
 
         url.append("?").append(String.join("&", queries));
@@ -116,9 +117,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getVersion() {
-        // 每次都发起网络请求以检查更新（可能得到304缓存命中）
-        fetchVersionInfo();
+    public String getCachedVersion() {
         // 返回版本名而不是版本号
         // 原因：本地插件版本号暂无法获取，且Modrinth版本号通常非纯数字
         // 仅当版本号为纯数字时才适合直接比较大小
@@ -127,36 +126,81 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public URL getDownloadUrl() {
-        // 每次都发起网络请求以检查更新（可能得到304缓存命中）
-        fetchVersionInfo();
-
-        if (selectedVersion != null) {
-            ModrinthFile file = selectedVersion.getPrimaryFile();
-            if (file != null && file.getUrl() != null) {
-                try {
-                    return new URI(file.getUrl()).toURL();
-                } catch (Exception e) {
-                    logger.warning("Invalid download URL from Modrinth: " + file.getUrl());
-                }
-            }
-        }
-
-        return null;
-    }
-
-    @Override
     public boolean download() {
         try {
-            URL link = getDownloadUrl();
-            if (link == null) {
+            // 从缓存的版本信息中获取下载链接
+            if (selectedVersion == null) {
+                logger.warning("no selectedVersion");
                 return false;
             }
 
-            String response = Utils.Http.get(link.toString());
-            return response != null;
+            ModrinthFile file = selectedVersion.getPrimaryFile();
+            if (file == null || file.getUrl() == null) {
+                logger.warning("no primary file");
+                return false;
+            }
+
+            String downloadUrl = file.getUrl();
+            String filename = file.getFilename();
+            String preferredHash = file.getPreferredHash();
+            String hashAlgorithm = file.getPreferredHashAlgorithm();
+
+            // TODO: 从配置文件中读取自定义文件名配置
+
+            // 获取数据目录下的downloads文件夹
+            Path downloadDir = platform.getDataPath().resolve("downloads");
+            Path filePath = downloadDir.resolve(filename);
+
+            // 检查文件是否已存在且完整
+            if (filePath.toFile().exists()) {
+                if (preferredHash != null && hashAlgorithm != null) {
+                    // 验证现有文件的完整性
+                    if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                        logger.info("File already exists and is complete: " + filename);
+                        return true;  // 文件完整，不必重新下载
+                    } else {
+                        logger.warning("File hash mismatch, will re-download: " + filename);
+                        // 删除不完整的文件
+                        Files.delete(filePath);
+                    }
+                } else {
+                    // 没有哈希值，始终重新下载
+                    logger.info("No hash provided, will re-download: " + filename);
+                    Files.delete(filePath);
+                }
+            }
+
+            logger.info("download: " + downloadUrl);
+            // 执行下载
+            Utils.Http.DownloadResult result = Utils.Http.downloadFile(downloadUrl, downloadDir, filename);
+
+            if (!result.success) {
+                logger.warning("Failed to download: " + result.errorMessage);
+                return false;
+            }
+
+            // 验证下载文件的完整性
+            if (preferredHash != null && hashAlgorithm != null) {
+                if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                    logger.info("Downloaded and verified: " + result.filename);
+                    return true;
+                } else {
+                    logger.warning("Downloaded file hash mismatch: " + result.filename);
+                    Files.delete(filePath);  // 删除不完整的文件
+                    return false;
+                }
+            } else {
+                logger.info("Downloaded (no hash verification): " + result.filename);
+                return true;
+            }
         } catch (Exception e) {
+            logger.warning("Download error: " + e);
             return false;
         }
+    }
+
+    @Override
+    public boolean upgrade() {
+        return false;
     }
 }

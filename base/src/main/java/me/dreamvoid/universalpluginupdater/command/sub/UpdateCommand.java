@@ -51,8 +51,8 @@ public class UpdateCommand implements ISubCommand {
                 AsyncLock.release();
             }
         } else {
-            context.getSender().broadcastMessage("&c无法获得锁。锁正由另一个线程持有。");
-            context.getSender().broadcastMessage("&7请注意，通过其他手段移除锁不一定是合适的解决方案，且可能损坏您的系统。");
+            context.getSender().sendMessage("&c无法获得锁。锁正由另一个线程持有。");
+            context.getSender().sendMessage("&7请注意，通过其他手段移除锁不一定是合适的解决方案，且可能损坏您的系统。");
         }
     }
 

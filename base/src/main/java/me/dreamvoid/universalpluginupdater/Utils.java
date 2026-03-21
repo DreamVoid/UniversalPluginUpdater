@@ -7,6 +7,10 @@ import okhttp3.Request;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.logging.Logger;
 
 /**
@@ -96,6 +100,172 @@ public class Utils {
                 }
 
                 return new Response(code, null, ifModifiedSince);
+            }
+        }
+
+        /**
+         * 下载文件到指定目录
+         * @param url 文件URL
+         * @param targetDir 目标目录
+         * @param desiredFilename 期望的文件名，如果为null则尝试从服务器获取文件名
+         * @return {@link DownloadResult}对象
+         */
+        public static DownloadResult downloadFile(String url, Path targetDir, @Nullable String desiredFilename) throws IOException {
+            // 确保目标目录存在
+            Files.createDirectories(targetDir);
+
+            Request request = new Request.Builder().url(url)
+                    .header("User-Agent", "UniversalPluginUpdater/1.0")
+                    .build();
+
+            try (okhttp3.Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return new DownloadResult(false, null, "HTTP " + response.code());
+                }
+
+                // 确定文件名
+                String filename = desiredFilename;
+                if (filename == null || filename.isEmpty()) {
+                    // 尝试从Content-Disposition头获取文件名
+                    String contentDisposition = response.header("Content-Disposition");
+                    if (contentDisposition != null && contentDisposition.contains("filename=")) {
+                        filename = extractFilenameFromContentDisposition(contentDisposition);
+                    }
+
+                    // 如果无法从头获取，尝试从URL路径提取
+                    if (filename == null || filename.isEmpty()) {
+                        filename = extractFilenameFromUrl(url);
+                    }
+
+                    // 如果仍然无法获取文件名，使用默认名称
+                    if (filename == null || filename.isEmpty()) {
+                        filename = desiredFilename;
+                    }
+                }
+
+                // 构建完整的文件路径
+                Path filePath = targetDir.resolve(filename);
+
+                // 下载文件
+                try (InputStream inputStream = response.body().byteStream()) {
+                    Files.copy(inputStream, filePath);
+                }
+
+                return new DownloadResult(true, filename, null);
+            }
+        }
+
+        /**
+         * 从Content-Disposition头提取文件名
+         */
+        private static String extractFilenameFromContentDisposition(String contentDisposition) {
+            // 处理 filename*=UTF-8''filename 和 filename="filename" 的格式
+            int filenameIndex = contentDisposition.indexOf("filename");
+            if (filenameIndex == -1) {
+                return null;
+            }
+
+            String filename = contentDisposition.substring(filenameIndex);
+            // 移除 filename= 或 filename*= 的前缀
+            if (filename.startsWith("filename*=")) {
+                filename = filename.substring(10);
+            } else if (filename.startsWith("filename=")) {
+                filename = filename.substring(9);
+            }
+
+            // 移除引号
+            if (filename.startsWith("\"") && filename.endsWith("\"")) {
+                filename = filename.substring(1, filename.length() - 1);
+            }
+
+            // 移除RFC 5987编码前缀 (UTF-8'' 等)
+            if (filename.contains("''")) {
+                filename = filename.substring(filename.indexOf("''") + 2);
+            }
+
+            return filename.isEmpty() ? null : filename;
+        }
+
+        /**
+         * 从URL路径提取文件名
+         */
+        private static String extractFilenameFromUrl(String url) {
+            try {
+                // 移除查询参数
+                String path = url.split("\\?")[0];
+                // 获取最后一个 / 之后的部分
+                int lastSlashIndex = path.lastIndexOf('/');
+                if (lastSlashIndex != -1 && lastSlashIndex < path.length() - 1) {
+                    return path.substring(lastSlashIndex + 1);
+                }
+            } catch (Exception e) {
+                // 忽略异常，返回null
+            }
+            return null;
+        }
+
+        /**
+         * 下载结果对象
+         */
+        public static class DownloadResult {
+            public final boolean success;
+            public final String filename;      // 下载成功时为实际文件名，失败时为null
+            public final String errorMessage;  // 错误信息，成功时为null
+
+            public DownloadResult(boolean success, String filename, String errorMessage) {
+                this.success = success;
+                this.filename = filename;
+                this.errorMessage = errorMessage;
+            }
+        }
+    }
+
+    /**
+     * 文件相关的工具方法
+     */
+    public static class File {
+        /**
+         * 计算文件的哈希值
+         * @param filePath 文件路径
+         * @param algorithm 哈希算法（如 "SHA-256", "SHA-1", "SHA-512"）
+         * @return 十六进制的哈希字符串
+         */
+        public static String calculateHash(Path filePath, String algorithm) throws Exception {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            try (InputStream fis = Files.newInputStream(filePath)) {
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    digest.update(buffer, 0, bytesRead);
+                }
+            }
+
+            byte[] hashBytes = digest.digest();
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        }
+
+        /**
+         * 验证文件哈希值
+         * @param filePath 文件路径
+         * @param algorithm 哈希算法
+         * @param expectedHash 期望的哈希值（十六进制，不区分大小写）
+         * @return 是否匹配
+         */
+        public static boolean verifyHash(Path filePath, String algorithm, String expectedHash) {
+            try {
+                String actualHash = calculateHash(filePath, algorithm);
+                return actualHash.equalsIgnoreCase(expectedHash);
+            } catch (Exception e) {
+                return false;
             }
         }
     }

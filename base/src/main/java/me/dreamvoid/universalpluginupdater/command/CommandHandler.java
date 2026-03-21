@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater.command;
 
 import me.dreamvoid.universalpluginupdater.command.sub.DownloadCommand;
 import me.dreamvoid.universalpluginupdater.command.sub.UpdateCommand;
+import me.dreamvoid.universalpluginupdater.command.sub.UpgradeCommand;
 import me.dreamvoid.universalpluginupdater.platform.ICommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;

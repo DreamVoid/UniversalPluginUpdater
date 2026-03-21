@@ -1,5 +1,7 @@
-package me.dreamvoid.universalpluginupdater.command;
+package me.dreamvoid.universalpluginupdater.command.sub;
 
+import me.dreamvoid.universalpluginupdater.command.CommandContext;
+import me.dreamvoid.universalpluginupdater.command.ISubCommand;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 
 import java.util.Collections;
