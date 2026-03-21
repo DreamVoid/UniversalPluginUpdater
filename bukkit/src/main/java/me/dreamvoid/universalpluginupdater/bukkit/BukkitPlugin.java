@@ -5,7 +5,7 @@ import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
-import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpdateFolderStrategy;
+import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpgradeStrategy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -49,7 +49,7 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
         lifeCycle.postLoad();
         
         // 注册 Bukkit 特定的升级策略
-        UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpdateFolderStrategy(getLogger()));
+        UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));
         //UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
     }
 

@@ -11,15 +11,15 @@ import java.util.logging.Logger;
  * Bukkit 更新文件夹升级策略
  * 使用 Bukkit 服务器的 update 文件夹来管理插件更新
  */
-public class BukkitUpdateFolderStrategy implements IUpgradeStrategy {
+public class BukkitUpgradeStrategy implements IUpgradeStrategy {
     private final Logger logger;
 
-    public BukkitUpdateFolderStrategy(Logger logger) {
+    public BukkitUpgradeStrategy(Logger logger) {
         this.logger = logger;
     }
 
     @Override
-    public String getIdentifier() {
+    public String getId() {
         return "bukkit";
     }
 

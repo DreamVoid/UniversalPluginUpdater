@@ -39,7 +39,7 @@ public class UpgradeStrategyRegistry {
         strategies.put(strategyId, strategy);
         
         if (logger != null) {
-            logger.info("注册新的升级方式: " + strategyId + " (" + strategy.getDisplayName() + ")");
+            logger.info("注册新的升级方式: " + strategy.getId() + " (" + strategy.getDisplayName() + ")");
         }
     }
 

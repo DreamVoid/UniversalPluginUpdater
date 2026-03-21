@@ -19,7 +19,7 @@ public class NativeUpgradeStrategy implements IUpgradeStrategy {
     }
 
     @Override
-    public String getIdentifier() {
+    public String getId() {
         return "native";
     }
 
@@ -40,7 +40,9 @@ public class NativeUpgradeStrategy implements IUpgradeStrategy {
             }
 
             platform.getPlatformLogger().info("卸载插件: " + pluginId);
-            platform.unloadPlugin(pluginId);
+            if(platform.unloadPlugin(pluginId)){
+                platform.getPlatformLogger().warning("插件 " + pluginId + " 卸载失败！");
+            }
 
             // 如果当前插件文件存在，删除它
             if (Files.exists(currentPluginFile)) {
