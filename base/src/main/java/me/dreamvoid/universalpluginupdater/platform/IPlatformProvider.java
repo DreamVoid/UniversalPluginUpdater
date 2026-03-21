@@ -86,5 +86,13 @@ public interface IPlatformProvider {
      */
     @Nullable
     Path getPluginFile(String pluginId);
+
+
+    /**
+     * 卸载指定插件
+     * @param pluginId 插件标识符
+     * @return 卸载是否成功
+     */
+    boolean unloadPlugin(String pluginId);
 }
 

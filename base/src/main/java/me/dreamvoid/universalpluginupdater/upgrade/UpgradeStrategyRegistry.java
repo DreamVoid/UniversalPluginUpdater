@@ -69,9 +69,9 @@ public class UpgradeStrategyRegistry {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
             IUpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
-                logger.info("Active upgrade strategy set to: " + strategyId + " (" + strategy.getDisplayName() + ")");
+                logger.info("当前使用的升级策略: " + strategyId + " (" + strategy.getDisplayName() + ")");
             } else {
-                logger.info("Active upgrade strategy set to: " + strategyId + " (not yet registered)");
+                logger.info("当前使用的升级策略: " + strategyId + " (未注册)");
             }
         }
     }
@@ -89,7 +89,7 @@ public class UpgradeStrategyRegistry {
         // 如果不存在且不是 native，则回退到 native
         if (strategy == null && !"native".equals(activeStrategy)) {
             if (logger != null) {
-                logger.warning("Active strategy '" + activeStrategy + "' not found, falling back to 'native'");
+                logger.warning("当前使用的升级策略 '" + activeStrategy + "' 未注册，回退到 'native'");
             }
             this.activeStrategy = "native";
             strategy = strategies.get("native");

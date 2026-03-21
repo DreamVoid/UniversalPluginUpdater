@@ -35,7 +35,7 @@ public class LifeCycle {
         logger.info("加载器: " + String.join(", ", platform.getLoaders()));
         logger.info("Minecraft 版本: " + (platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
-        UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy());
+        UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
         logger.info("预加载任务完成.");
     }

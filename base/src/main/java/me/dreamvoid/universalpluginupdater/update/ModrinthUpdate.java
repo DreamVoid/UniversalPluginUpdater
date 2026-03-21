@@ -140,7 +140,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         try {
             // 首先执行下载（如果还没下载）
             if (!download()) {
-                logger.warning("Failed to download plugin for upgrade");
+                logger.warning("下载失败");
                 return false;
             }
 
@@ -151,14 +151,14 @@ public class ModrinthUpdate extends AbstractUpdate {
             Path newPluginFile = platform.getDataPath().resolve("downloads").resolve(selectedVersion.getPrimaryFile().getFilename());
 
             if (!Files.exists(newPluginFile)) {
-                logger.warning("Downloaded plugin file not found: " + newPluginFile);
+                logger.warning("下载的文件丢失: " + newPluginFile);
                 return false;
             }
 
             // 获取当前活跃的升级策略
             IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
             if (strategy == null) {
-                logger.warning("No active upgrade strategy configured");
+                logger.warning("当前没有配置可用的升级策略！");
                 return false;
             }
 
@@ -166,14 +166,14 @@ public class ModrinthUpdate extends AbstractUpdate {
             boolean result = strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
 
             if (result) {
-                logger.info("Plugin upgraded successfully using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+                logger.info("升级完成 (" + UpgradeStrategyRegistry.getInstance().getActiveStrategyId() + ")");
             } else {
-                logger.warning("Plugin upgrade failed using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+                logger.warning("升级失败 (" + UpgradeStrategyRegistry.getInstance().getActiveStrategyId() + ")");
             }
 
             return result;
         } catch (Exception e) {
-            logger.warning("Upgrade error: " + e);
+            logger.warning("升级失败: " + e);
             return false;
         }
     }
@@ -209,16 +209,14 @@ public class ModrinthUpdate extends AbstractUpdate {
                 if (preferredHash != null && hashAlgorithm != null) {
                     // 验证现有文件的完整性
                     if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                        logger.info("File already exists and is complete: " + filename);
+                        logger.info("文件存在且完整: " + filename);
                         return true;  // 文件完整，不必重新下载
                     } else {
-                        logger.warning("File hash mismatch, will re-download: " + filename);
                         // 删除不完整的文件
                         Files.delete(filePath);
                     }
                 } else {
                     // 没有哈希值，始终重新下载
-                    logger.info("No hash provided, will re-download: " + filename);
                     Files.delete(filePath);
                 }
             }
@@ -228,26 +226,26 @@ public class ModrinthUpdate extends AbstractUpdate {
             Utils.Http.DownloadResult result = Utils.Http.downloadFile(downloadUrl, downloadDir, filename);
 
             if (!result.success) {
-                logger.warning("Failed to download: " + result.errorMessage);
+                logger.warning("下载失败: " + result.errorMessage);
                 return false;
             }
 
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    logger.info("Downloaded and verified: " + result.filename);
+                    logger.info("下载完成: " + result.filename);
                     return true;
                 } else {
-                    logger.warning("Downloaded file hash mismatch: " + result.filename);
+                    logger.warning("下载的文件验证失败: " + result.filename);
                     Files.delete(filePath);  // 删除不完整的文件
                     return false;
                 }
             } else {
-                logger.info("Downloaded (no hash verification): " + result.filename);
+                logger.info("下载完成: " + result.filename);
                 return true;
             }
         } catch (Exception e) {
-            logger.warning("Download error: " + e);
+            logger.warning("下载失败: " + e);
             return false;
         }
     }

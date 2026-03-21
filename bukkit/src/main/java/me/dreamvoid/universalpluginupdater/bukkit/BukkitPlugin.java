@@ -49,8 +49,8 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
         lifeCycle.postLoad();
         
         // 注册 Bukkit 特定的升级策略
-        UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpdateFolderStrategy());
-        UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
+        UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpdateFolderStrategy(getLogger()));
+        //UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
     }
 
     @Override
@@ -156,5 +156,15 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
         }
 
         return null;
+    }
+
+    @Override
+    public boolean unloadPlugin(String pluginId) {
+        Plugin plugin = getServer().getPluginManager().getPlugin(pluginId);
+        if(plugin == null) {
+            return false;
+        }
+        getServer().getPluginManager().disablePlugin(plugin);
+        return true;
     }
 }
