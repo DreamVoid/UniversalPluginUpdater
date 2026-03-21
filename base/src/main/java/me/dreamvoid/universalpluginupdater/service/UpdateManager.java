@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.plugin.PendingUpdate;
+import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
 
 import java.util.List;
 
@@ -41,7 +41,7 @@ public class UpdateManager {
      * 检查所有插件的更新
      * @return 待更新的插件列表
      */
-    public List<PendingUpdate> checkAllPluginUpdates() {
+    public List<UpdateInfo> checkAllPluginUpdates() {
         if (checkUpdateService == null) {
             throw new IllegalStateException("CheckUpdateService 未初始化");
         }

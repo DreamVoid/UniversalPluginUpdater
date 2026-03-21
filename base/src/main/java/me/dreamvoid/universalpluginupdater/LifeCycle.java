@@ -25,7 +25,7 @@ public class LifeCycle {
         logger.info("初始化任务完成.");
     }
 
-    public void preload(){
+    public void preLoad(){
         logger = platform.getPlatformLogger();
 
         logger.info("准备 UniversalPluginUpdater 预加载.");
@@ -36,7 +36,7 @@ public class LifeCycle {
         logger.info("预加载任务完成.");
     }
 
-    public void postload(){
+    public void postLoad(){
         logger.info("准备 UniversalPluginUpdater 后加载.");
 
         // 初始化更新管理器

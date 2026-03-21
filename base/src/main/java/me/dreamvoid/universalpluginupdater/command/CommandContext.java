@@ -7,18 +7,12 @@ import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
  * 由平台实现填充，最终由CommandHandler处理
  */
 public class CommandContext {
-    private final String label;  // 实际使用的命令（upu或universalpluginupdater）
     private final String[] args;        // 命令参数
     private final ICommandSender sender; // 发送者
 
-    public CommandContext(String label, String[] args, ICommandSender sender) {
-        this.label = label;
-        this.args = args;
+    public CommandContext(ICommandSender sender, String[] args) {
         this.sender = sender;
-    }
-
-    public String getLabel() {
-        return label;
+        this.args = args;
     }
 
     public String[] getArgs() {

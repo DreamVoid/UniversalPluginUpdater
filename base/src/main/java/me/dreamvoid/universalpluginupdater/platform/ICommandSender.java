@@ -24,9 +24,4 @@ public interface ICommandSender {
      * 获取发送者的名称
      */
     String getName();
-
-    /**
-     * 检查是否是控制台发送者
-     */
-    boolean isConsole();
 }

@@ -31,7 +31,7 @@ public class URLUpdate extends AbstractUpdate {
      */
     private boolean fetchUpdateInfo() {
         try {
-            Utils.Http.CacheResponse response = Utils.Http.getWithCache(updateUrl, lastModified);
+            Utils.Http.Response response = Utils.Http.get(updateUrl, lastModified);
 
             if (response.isNotModified()) {
                 // 返回304 Not Modified，使用缓存
@@ -42,7 +42,7 @@ public class URLUpdate extends AbstractUpdate {
                 return true;
             }
 
-            if (response.isSuccessful()) {
+            if (response.isSuccess()) {
                 String jsonResponse = response.content;
                 if (jsonResponse == null) {
                     return false;
@@ -82,7 +82,7 @@ public class URLUpdate extends AbstractUpdate {
     }
 
     @Override
-    public URL getDownloadLink() {
+    public URL getDownloadUrl() {
         // 每次都发起网络请求以检查更新（可能得到304缓存命中）
         fetchUpdateInfo();
         if (updateInfo != null && updateInfo.downloadUrl != null) {
@@ -114,7 +114,7 @@ public class URLUpdate extends AbstractUpdate {
     @Override
     public boolean download() {
         try {
-            URL link = getDownloadLink();
+            URL link = getDownloadUrl();
             if (link == null) {
                 return false;
             }

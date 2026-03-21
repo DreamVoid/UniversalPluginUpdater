@@ -8,7 +8,9 @@ import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
 
 import java.net.URI;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class ModrinthUpdate extends AbstractUpdate {
@@ -17,14 +19,14 @@ public class ModrinthUpdate extends AbstractUpdate {
     private static final Logger logger = Utils.getLogger();
 
     private final String projectId;
-    private final IPlatformProvider platformProvider;
+    private final IPlatformProvider platform;
     private ModrinthVersion selectedVersion;
     private String lastModified;
 
-    public ModrinthUpdate(String projectId, IPlatformProvider platformProvider) {
+    public ModrinthUpdate(String projectId, IPlatformProvider platform) {
         this.updateType = UpdateType.Modrinth;
         this.projectId = projectId;
-        this.platformProvider = platformProvider;
+        this.platform = platform;
     }
 
     /**
@@ -34,7 +36,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     private boolean fetchVersionInfo() {
         String url = buildApiUrl();
         try {
-            Utils.Http.CacheResponse response = Utils.Http.getWithCache(url, lastModified);
+            Utils.Http.Response response = Utils.Http.get(url, lastModified);
 
             if (response.isNotModified()) {
                 // 返回304 Not Modified，使用缓存
@@ -47,7 +49,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 return true;
             }
 
-            if (response.isSuccessful()) {
+            if (response.isSuccess()) {
                 String content = response.content;
                 if (content == null) {
                     logger.warning("Err: " + url + " [response is null]");
@@ -71,9 +73,7 @@ public class ModrinthUpdate extends AbstractUpdate {
             logger.warning("Err: " + url + " [status code: " + response.statusCode + "]");
             return false;
         } catch (Exception e) {
-            if (logger != null) {
-                logger.warning("Err: " + url + " [" + e + "]");
-            }
+            logger.warning("Err: " + url + " [" + e + "]");
             return false;
         }
     }
@@ -89,42 +89,29 @@ public class ModrinthUpdate extends AbstractUpdate {
                 .append("/version");
 
         // 构建查询参数
-        StringBuilder query = new StringBuilder();
+        Set<String> queries = new HashSet<>();
+
+        // 添加changelog参数（不需要更新日志）
+        queries.add("include_changelog=false");
+
+        // 添加featured参数（默认true，优先选择推荐版本）
+        if (true) { // TODO: 由用户控制是否featured
+            queries.add("featured=true");
+        }
 
         // 添加加载器参数
-        List<String> loaders = platformProvider.getLoaders();
+        List<String> loaders = platform.getLoaders();
         if (loaders != null && !loaders.isEmpty()) {
-            query.append("loaders=[");
-            for (int i = 0; i < loaders.size(); i++) {
-                if (i > 0) query.append(",");
-                query.append("\"").append(loaders.get(i)).append("\"");
-            }
-            query.append("]");
+            queries.add("loaders=[" + String.join(",", loaders) + "]");
         }
 
         // 添加游戏版本参数
-        List<String> gameVersions = platformProvider.getGameVersions();
+        List<String> gameVersions = platform.getGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
-            if (!query.isEmpty()) query.append("&");
-            query.append("game_versions=[");
-            for (int i = 0; i < gameVersions.size(); i++) {
-                if (i > 0) query.append(",");
-                query.append("\"").append(gameVersions.get(i)).append("\"");
-            }
-            query.append("]");
+            queries.add("game_versions=[" + String.join(",", gameVersions) + "]");
         }
 
-        // 添加featured参数（默认true，优先选择推荐版本）
-        if (!query.isEmpty()) query.append("&");
-        query.append("featured=true");
-
-        // 添加changelog参数（不需要更新日志）
-        query.append("&include_changelog=false");
-
-        if (!query.isEmpty()) {
-            url.append("?").append(query);
-        }
-
+        url.append("?").append(String.join("&", queries));
         return url.toString();
     }
 
@@ -140,7 +127,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public URL getDownloadLink() {
+    public URL getDownloadUrl() {
         // 每次都发起网络请求以检查更新（可能得到304缓存命中）
         fetchVersionInfo();
 
@@ -150,9 +137,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 try {
                     return new URI(file.getUrl()).toURL();
                 } catch (Exception e) {
-                    if (logger != null) {
-                        logger.warning("Invalid download URL from Modrinth: " + file.getUrl());
-                    }
+                    logger.warning("Invalid download URL from Modrinth: " + file.getUrl());
                 }
             }
         }
@@ -163,7 +148,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     @Override
     public boolean download() {
         try {
-            URL link = getDownloadLink();
+            URL link = getDownloadUrl();
             if (link == null) {
                 return false;
             }

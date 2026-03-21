@@ -10,10 +10,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,12 +37,12 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
 
     @Override
     public void onLoad() {
-        lifeCycle.preload();
+        lifeCycle.preLoad();
     }
 
     @Override
     public void onEnable() {
-        lifeCycle.postload();
+        lifeCycle.postLoad();
     }
 
     @Override
@@ -53,21 +53,24 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command cmd, @NonNull String label, String @NonNull [] args) {
         BukkitCommandSender commandSender = new BukkitCommandSender(sender);
-        CommandContext context = new CommandContext(label, args, commandSender);
-        commandHandler.handleCommand(context);
+        CommandContext context = new CommandContext(commandSender, args);
+        commandHandler.executeCommand(context);
         return true;
     }
 
     @Override
     public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command cmd, @NonNull String alias, String @NonNull [] args) {
         BukkitCommandSender commandSender = new BukkitCommandSender(sender);
-        CommandContext context = new CommandContext(alias, args, commandSender);
-
-        String[] completions = commandHandler.getTabCompletion(context);
-        return new ArrayList<>(Arrays.asList(completions));
+        CommandContext context = new CommandContext(commandSender, args);
+        return commandHandler.getTabCompletion(context);
     }
 
     // 平台实现接口
+
+    @Override
+    public String getPlatformName(){
+        return "Bukkit";
+    }
 
     @Override
     @NotNull
@@ -80,7 +83,15 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
         return Arrays.stream(getServer().getPluginManager().getPlugins()).map(p -> p.getName().toLowerCase()).collect(Collectors.toList());
     }
 
+    @SuppressWarnings("deprecation")
     @Override
+    @NonNull
+    public String getPluginVersion() {
+        return this.getDescription().getVersion();
+    }
+
+    @Override
+    @Nullable
     public String getPluginVersion(String pluginName) {
         Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
         if (plugin != null) {

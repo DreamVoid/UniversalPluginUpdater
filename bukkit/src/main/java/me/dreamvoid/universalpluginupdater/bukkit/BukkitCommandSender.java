@@ -7,7 +7,6 @@ import org.bukkit.command.CommandSender;
 
 /**
  * Bukkit平台的命令发送者适配器
- * 将Bukkit的CommandSender转换为我们的抽象CommandSender
  */
 public class BukkitCommandSender implements ICommandSender {
     protected final CommandSender sender;
@@ -36,10 +35,5 @@ public class BukkitCommandSender implements ICommandSender {
     @Override
     public String getName() {
         return sender.getName();
-    }
-
-    @Override
-    public boolean isConsole() {
-        return sender instanceof org.bukkit.command.ConsoleCommandSender;
     }
 }

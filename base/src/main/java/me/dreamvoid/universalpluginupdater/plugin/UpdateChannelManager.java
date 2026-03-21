@@ -2,6 +2,10 @@ package me.dreamvoid.universalpluginupdater.plugin;
 
 import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
+import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.PluginUpdateConfig;
+import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
@@ -21,18 +25,17 @@ import java.util.logging.Logger;
  */
 public class UpdateChannelManager {
     private static final Gson gson = new Gson();
-    private static final String CHANNELS_FOLDER = "channels";
     private static final Logger logger = Utils.getLogger();
 
-    private final IPlatformProvider platformProvider;
+    private final IPlatformProvider platform;
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
      * 这样可以保留HTTP缓存信息（lastModified）供后续请求使用
      */
     private final Map<String, AbstractUpdate> updateInstanceCache = new HashMap<>();
 
-    public UpdateChannelManager(IPlatformProvider platformProvider) {
-        this.platformProvider = platformProvider;
+    public UpdateChannelManager(IPlatformProvider platform) {
+        this.platform = platform;
     }
 
     /**
@@ -90,12 +93,9 @@ public class UpdateChannelManager {
             }
 
             String jsonContent = new String(Files.readAllBytes(configPath));
-            PluginUpdateConfig config = gson.fromJson(jsonContent, PluginUpdateConfig.class);
-            return config;
+            return gson.fromJson(jsonContent, PluginUpdateConfig.class);
         } catch (IOException e) {
-            if (logger != null) {
-                logger.warning("Failed to load plugin config for: " + pluginId);
-            }
+            logger.warning("无法加载 " + pluginId + " 的更新配置");
             return null;
         }
     }
@@ -149,29 +149,22 @@ public class UpdateChannelManager {
 
         try {
             switch (type.toLowerCase()) {
-                case "url":
+                case "url" -> {
                     UrlChannelInfo urlInfo = gson.fromJson(gson.toJsonTree(config), UrlChannelInfo.class);
                     if (urlInfo.getUrl() != null) {
                         return new URLUpdate(urlInfo.getUrl());
                     }
-                    break;
-
-                case "modrinth":
+                }
+                case "modrinth" -> {
                     ModrinthChannelInfo modrinthInfo = gson.fromJson(gson.toJsonTree(config), ModrinthChannelInfo.class);
                     if (modrinthInfo.getProjectId() != null) {
-                        return new ModrinthUpdate(modrinthInfo.getProjectId(), platformProvider);
+                        return new ModrinthUpdate(modrinthInfo.getProjectId(), platform);
                     }
-                    break;
-
-                default:
-                    if (logger != null) {
-                        logger.warning("Unknown channel type: " + type);
-                    }
+                }
+                default -> logger.warning("未知更新渠道: " + type);
             }
         } catch (Exception e) {
-            if (logger != null) {
                 logger.warning("Failed to create update instance for channel type: " + type);
-            }
         }
 
         return null;
@@ -183,8 +176,8 @@ public class UpdateChannelManager {
      * @return 配置文件路径
      */
     private Path getChannelConfigPath(String pluginId) {
-        return platformProvider.getDataPath()
-                .resolve(CHANNELS_FOLDER)
+        return platform.getDataPath()
+                .resolve("channels")
                 .resolve(pluginId + ".json");
     }
 }

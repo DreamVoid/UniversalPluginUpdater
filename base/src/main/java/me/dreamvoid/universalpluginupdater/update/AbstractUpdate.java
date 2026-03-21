@@ -15,10 +15,11 @@ public abstract class AbstractUpdate {
      * 获取更新文件的下载链接
      * @return 下载链接URL
      */
-    public abstract URL getDownloadLink();
+    public abstract URL getDownloadUrl();
 
     /**
-     * 下载更新文件
+     * 下载更新文件<br>
+     * 此方法应当在用户执行 /upu download 时调用
      * @return 下载是否成功
      */
     public abstract boolean download();

@@ -5,7 +5,9 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,9 +15,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Paper平台的插件主类
- * 继承BukkitPlugin并添加Paper特定的功能
- * 使用Paper的LifecycleManager通过代码注册命令
+ * Paper平台主类
+ * @author DreamVoid
  */
 public class PaperPlugin extends BukkitPlugin {
 
@@ -33,8 +34,8 @@ public class PaperPlugin extends BukkitPlugin {
             @Override
             public void execute(@NonNull CommandSourceStack stack, String @NonNull [] args) {
                 PaperCommandSender sender = new PaperCommandSender(stack.getSender());
-                CommandContext context = new CommandContext("universalpluginupdater", args, sender);
-                commandHandler.handleCommand(context);
+                CommandContext context = new CommandContext(sender, args);
+                commandHandler.executeCommand(context);
             }
 
             @Override
@@ -45,15 +46,18 @@ public class PaperPlugin extends BukkitPlugin {
             @Override
             public @NonNull Collection<String> suggest(@NonNull CommandSourceStack stack, String @NonNull [] args) {
                 PaperCommandSender sender = new PaperCommandSender(stack.getSender());
-                CommandContext context = new CommandContext("universalpluginupdater", args, sender);
-                String[] completions = commandHandler.getTabCompletion(context);
-                return List.of(completions);
+                CommandContext context = new CommandContext(sender, args);
+                return commandHandler.getTabCompletion(context);
             }
         });
     }
 
     // 平台实现接口
 
+    @Override
+    public String getPlatformName() {
+        return "Paper";
+    }
 
     @Override
     public List<String> getGameVersions() {
@@ -66,6 +70,13 @@ public class PaperPlugin extends BukkitPlugin {
     }
 
     @Override
+    @NotNull
+    public String getPluginVersion() {
+        return getPluginMeta().getVersion();
+    }
+
+    @Override
+    @Nullable
     public String getPluginVersion(String pluginName) {
         Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
         if (plugin != null) {

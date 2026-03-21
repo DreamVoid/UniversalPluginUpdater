@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 异步操作锁
  * 用于确保同一时间只有一个异步任务正在执行
  * 类似于apt的单进程锁机制
- * 
+ * <p>
  * 线程安全，不支持等待 - 如果无法获取锁，立即返回失败
  */
 public class AsyncLock {
