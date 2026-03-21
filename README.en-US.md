@@ -14,6 +14,8 @@
 ## Introduction
 UniversalPluginUpdater (UPU) is a Minecraft server plugin that allows you to quickly update existing server plugins, while also providing APIs to help developers easily implement automatic update functionality for their plugins.
 
+The development of UniversalPluginUpdater was inspired by [APT](https://wiki.debian.org/zh_CN/Apt).
+
 ## Download
 * Stable version
   * [Modrinth](https://modrinth.com/plugin/universalpluginupdater/versions)
