@@ -2,6 +2,8 @@ package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 
 import java.util.logging.Logger;
 
@@ -33,11 +35,15 @@ public class LifeCycle {
         logger.info("加载器: " + String.join(", ", platform.getLoaders()));
         logger.info("Minecraft 版本: " + (platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
+        UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy());
+
         logger.info("预加载任务完成.");
     }
 
     public void postLoad(){
         logger.info("准备 UniversalPluginUpdater 后加载.");
+
+        UpgradeStrategyRegistry.getInstance().setActiveStrategy("native"); // TODO: 从配置文件读取默认的升级策略
 
         // 初始化更新管理器
         UpdateManager.initialize(platform);

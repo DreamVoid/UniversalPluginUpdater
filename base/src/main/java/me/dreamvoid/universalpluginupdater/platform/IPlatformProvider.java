@@ -78,4 +78,13 @@ public interface IPlatformProvider {
      * @param runnable 要执行的任务
      */
     void runTaskAsync(Runnable runnable);
+
+    /**
+     * 获取指定插件的文件路径
+     * @param pluginId 插件标识符
+     * @return 插件文件路径，如果找不到返回null
+     */
+    @Nullable
+    Path getPluginFile(String pluginId);
 }
+

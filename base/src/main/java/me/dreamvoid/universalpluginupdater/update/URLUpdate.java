@@ -4,24 +4,31 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class URLUpdate extends AbstractUpdate {
     private static final Gson gson = new Gson();
+    private static final Logger logger = Utils.getLogger();
 
+    private final String pluginId;
     private final String updateUrl;
     private final IPlatformProvider platform;
     private UpdateInfo updateInfo;
 
     private String lastModified;
+    private Path downloadedFilePath;
 
-    public URLUpdate(String updateUrl, IPlatformProvider platform) {
+    public URLUpdate(String pluginId, String updateUrl, IPlatformProvider platform) {
         this.updateType = UpdateType.URL;
+        this.pluginId = pluginId;
         this.updateUrl = updateUrl;
         this.platform = platform;
     }
@@ -110,14 +117,17 @@ public class URLUpdate extends AbstractUpdate {
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                    this.downloadedFilePath = filePath;
                     return true;
                 } else {
                     // 删除不完整的文件
                     Files.delete(filePath);
+                    this.downloadedFilePath = null;
                     return false;
                 }
             } else {
                 // 没有哈希值，直接返回成功
+                this.downloadedFilePath = filePath;
                 return true;
             }
         } catch (Exception e) {
@@ -126,8 +136,52 @@ public class URLUpdate extends AbstractUpdate {
     }
 
     @Override
+    public String getPluginId() {
+        return pluginId;
+    }
+
+    @Override
     public boolean upgrade() {
-        return false;
+        // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
+        try {
+            // 首先执行下载（如果还没下载）
+            if (!download()) {
+                logger.warning("Failed to download plugin for upgrade");
+                return false;
+            }
+
+            // 获取当前插件文件
+            Path currentPluginFile = platform.getPluginFile(pluginId);
+
+            // 使用刚才下载的文件
+            Path newPluginFile = downloadedFilePath;
+
+            if (newPluginFile == null || !Files.exists(newPluginFile)) {
+                logger.warning("Downloaded plugin file not found");
+                return false;
+            }
+
+            // 获取当前活跃的升级策略
+            IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
+            if (strategy == null) {
+                logger.warning("No active upgrade strategy configured");
+                return false;
+            }
+
+            // 执行升级
+            boolean result = strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
+
+            if (result) {
+                logger.info("Plugin upgraded successfully using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+            } else {
+                logger.warning("Plugin upgrade failed using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+            }
+
+            return result;
+        } catch (Exception e) {
+            logger.warning("Upgrade error: " + e);
+            return false;
+        }
     }
 
     /**

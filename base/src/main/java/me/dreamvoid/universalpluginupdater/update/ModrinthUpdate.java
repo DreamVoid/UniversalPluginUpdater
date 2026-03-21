@@ -3,6 +3,8 @@ package me.dreamvoid.universalpluginupdater.update;
 import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
 
@@ -18,13 +20,15 @@ public class ModrinthUpdate extends AbstractUpdate {
     private static final Gson gson = new Gson();
     private static final Logger logger = Utils.getLogger();
 
+    private final String pluginId;
     private final String projectId;
     private final IPlatformProvider platform;
     private ModrinthVersion selectedVersion;
     private String lastModified;
 
-    public ModrinthUpdate(String projectId, IPlatformProvider platform) {
+    public ModrinthUpdate(String pluginId, String projectId, IPlatformProvider platform) {
         this.updateType = UpdateType.Modrinth;
+        this.pluginId = pluginId;
         this.projectId = projectId;
         this.platform = platform;
     }
@@ -126,6 +130,55 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
+    public String getPluginId() {
+        return pluginId;
+    }
+
+    @Override
+    public boolean upgrade() {
+        // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
+        try {
+            // 首先执行下载（如果还没下载）
+            if (!download()) {
+                logger.warning("Failed to download plugin for upgrade");
+                return false;
+            }
+
+            // 获取当前插件文件
+            Path currentPluginFile = platform.getPluginFile(pluginId);
+
+            // 获取下载的新文件路径
+            Path newPluginFile = platform.getDataPath().resolve("downloads").resolve(selectedVersion.getPrimaryFile().getFilename());
+
+            if (!Files.exists(newPluginFile)) {
+                logger.warning("Downloaded plugin file not found: " + newPluginFile);
+                return false;
+            }
+
+            // 获取当前活跃的升级策略
+            IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
+            if (strategy == null) {
+                logger.warning("No active upgrade strategy configured");
+                return false;
+            }
+
+            // 执行升级
+            boolean result = strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
+
+            if (result) {
+                logger.info("Plugin upgraded successfully using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+            } else {
+                logger.warning("Plugin upgrade failed using strategy: " + UpgradeStrategyRegistry.getInstance().getActiveStrategyId());
+            }
+
+            return result;
+        } catch (Exception e) {
+            logger.warning("Upgrade error: " + e);
+            return false;
+        }
+    }
+
+    @Override
     public boolean download() {
         try {
             // 从缓存的版本信息中获取下载链接
@@ -197,10 +250,5 @@ public class ModrinthUpdate extends AbstractUpdate {
             logger.warning("Download error: " + e);
             return false;
         }
-    }
-
-    @Override
-    public boolean upgrade() {
-        return false;
     }
 }

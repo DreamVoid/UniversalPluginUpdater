@@ -4,6 +4,8 @@ import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpdateFolderStrategy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -19,6 +21,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.io.File;
+import java.lang.reflect.Method;
 
 /**
  * Bukkit 平台主类
@@ -43,6 +47,10 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public void onEnable() {
         lifeCycle.postLoad();
+        
+        // 注册 Bukkit 特定的升级策略
+        UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpdateFolderStrategy());
+        UpgradeStrategyRegistry.getInstance().setActiveStrategy("bukkit"); // 测试用
     }
 
     @Override
@@ -121,5 +129,32 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public void runTaskAsync(Runnable runnable) {
         getServer().getScheduler().runTaskAsynchronously(this, runnable);
+    }
+
+    @Override
+    @Nullable
+    public Path getPluginFile(String pluginId) {
+        Plugin plugin = getServer().getPluginManager().getPlugin(pluginId);
+        if (plugin == null || !plugin.isEnabled()) {
+            return null;
+        }
+
+        try {
+            Method getFileMethod = JavaPlugin.class.getDeclaredMethod("getFile");
+            getFileMethod.setAccessible(true);
+            File pluginFile = (File) getFileMethod.invoke(plugin);
+
+            if (pluginFile != null) {
+                return pluginFile.toPath();
+            }
+        } catch (NoSuchMethodException e) {
+            getLogger().warning("Failed to get plugin file for " + pluginId + ": getFile method not found");
+        } catch (IllegalAccessException e) {
+            getLogger().warning("Failed to get plugin file for " + pluginId + ": access denied");
+        } catch (Exception e) {
+            getLogger().warning("Failed to get plugin file for " + pluginId + " using reflection: " + e);
+        }
+
+        return null;
     }
 }

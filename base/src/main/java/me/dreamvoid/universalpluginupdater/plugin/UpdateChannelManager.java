@@ -72,7 +72,7 @@ public class UpdateChannelManager {
         }
 
         // 缓存中不存在，创建新实例
-        AbstractUpdate updateInstance = createUpdateInstance(selectedChannelConfig);
+        AbstractUpdate updateInstance = createUpdateInstance(lowerPluginId, selectedChannelConfig);
         if (updateInstance != null) {
             updateInstanceCache.put(cacheKey, updateInstance);
         }
@@ -136,10 +136,12 @@ public class UpdateChannelManager {
 
     /**
      * 根据渠道配置创建对应的AbstractUpdate实现
+     *
+     * @param pluginId 插件标识符
      * @param channelConfig 渠道配置
      * @return AbstractUpdate实现实例
      */
-    private AbstractUpdate createUpdateInstance(ChannelConfig channelConfig) {
+    private AbstractUpdate createUpdateInstance(String pluginId, ChannelConfig channelConfig) {
         String type = channelConfig.getType();
         Object config = channelConfig.getConfig();
 
@@ -152,21 +154,20 @@ public class UpdateChannelManager {
                 case "url" -> {
                     UrlChannelInfo urlInfo = gson.fromJson(gson.toJsonTree(config), UrlChannelInfo.class);
                     if (urlInfo.getUrl() != null) {
-                        return new URLUpdate(urlInfo.getUrl(), platform);
+                        return new URLUpdate(pluginId, urlInfo.getUrl(), platform);
                     }
                 }
                 case "modrinth" -> {
                     ModrinthChannelInfo modrinthInfo = gson.fromJson(gson.toJsonTree(config), ModrinthChannelInfo.class);
                     if (modrinthInfo.getProjectId() != null) {
-                        return new ModrinthUpdate(modrinthInfo.getProjectId(), platform);
+                        return new ModrinthUpdate(pluginId, modrinthInfo.getProjectId(), platform);
                     }
                 }
                 default -> logger.warning("未知更新渠道: " + type);
             }
         } catch (Exception e) {
-                logger.warning("Failed to create update instance for channel type: " + type);
+            logger.warning("Failed to create update instance for channel type: " + type);
         }
-
         return null;
     }
 
