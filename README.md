@@ -14,6 +14,8 @@
 ## 介绍
 UniversalPluginUpdater（UPU）是一个 Minecraft 服务端插件，能够让你在 Minecraft 服务器上快速升级现有的插件，同时提供一些 API 帮助开发者简单的为自己的插件实现自动更新功能。
 
+UniversalPluginUpdater 的开发受到 [APT](https://wiki.debian.org/zh_CN/Apt) 的启发。
+
 ## 下载
 * 稳定版本
   * [Modrinth](https://modrinth.com/plugin/universalpluginupdater/versions)
