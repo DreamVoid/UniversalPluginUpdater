@@ -1,0 +1,31 @@
+{
+    "message.lifecycle.startup.start": "Preparing UniversalPluginUpdater initialization.",
+    "message.lifecycle.startup.finish": "Initialization completed.",
+    "message.lifecycle.preload.start": "Preparing UniversalPluginUpdater pre-load.",
+    "message.lifecycle.preload.loaders": "Loaders: {0}",
+    "message.lifecycle.preload.gameversions": "Minecraft version: {0}",
+    "message.lifecycle.preload.finish": "Pre-load completed.",
+    "message.lifecycle.postload.start": "Preparing UniversalPluginUpdater post-load.",
+    "message.lifecycle.postload.moretasks": "Some loading tasks will continue later.",
+    "message.lifecycle.postload.finish": "Post-load completed. Welcome to UniversalPluginUpdater!",
+    "message.lifecycle.unload.start": "Preparing UniversalPluginUpdater unload.",
+    "message.lifecycle.unload.result": "Upgraded {0} plugin(s), {1} plugin(s) failed.",
+    "message.lifecycle.unload.finish": "Unload completed. Thank you for using UniversalPluginUpdater!",
+    "message.command.help": [
+        "UniversalPluginUpdater {0} ({1})",
+        "Usage: upu <command> [options]",
+        "",
+        "UniversalPluginUpdater provides plugin management and information lookup features.",
+        "It is similar to APT tools (like apt and apt-get),",
+        "and enables options more suitable for interactive by default.",
+        "",
+        "Most used commands:",
+        "  /upu update - update list of available plugins",
+        "  /upu download - download existing plugins' newer version by downloading",
+        "  /upu upgrade - upgrade existing plugins by downloading/installing newer version",
+        "",
+        "See docs for more information about the available commands.",
+        "Preferences can be configured through the config file.",
+        "                                         This UPU has NO Super Cow Powers."
+    ]
+}

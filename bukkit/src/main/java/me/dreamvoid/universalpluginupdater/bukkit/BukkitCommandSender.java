@@ -4,6 +4,7 @@ import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bukkit平台的命令发送者适配器
@@ -35,5 +36,11 @@ public class BukkitCommandSender implements ICommandSender {
     @Override
     public String getName() {
         return sender.getName();
+    }
+
+    @Override
+    @Nullable
+    public Object getHandle() {
+        return sender;
     }
 }

@@ -16,7 +16,9 @@ import java.util.logging.Logger;
 /**
  * 实用工具类
  */
-public class Utils {
+public final class Utils {
+    private Utils() {}
+
     @Getter
     @Setter
     private static Logger logger;

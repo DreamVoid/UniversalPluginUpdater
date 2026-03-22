@@ -1,12 +1,12 @@
 package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
-import java.text.MessageFormat;
 import java.util.logging.Logger;
 
 public class LifeCycle {
@@ -22,49 +22,50 @@ public class LifeCycle {
      * @param logger {@link java.util.logging.Logger} 实例。由于各平台初始化 Logger 的时机不一，因此需要一个 Logger 来辅助。
      */
     public void startUp(Logger logger){
-        logger.info("准备 UniversalPluginUpdater 初始化.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.startup.start"));
 
         Utils.setLogger(logger);
 
-        logger.info("初始化任务完成.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.startup.finish"));
     }
 
     public void preLoad(){
         logger = platform.getPlatformLogger();
+        LanguageService.instance().setPlatform(platform);
 
-        logger.info("准备 UniversalPluginUpdater 预加载.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.preload.start"));
 
-        logger.info(MessageFormat.format("加载器: {0}", String.join(", ", platform.getLoaders())));
-        logger.info(MessageFormat.format("Minecraft 版本: {0}", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
+        logger.info(LanguageService.instance().tr("message.lifecycle.preload.loaders", String.join(", ", platform.getLoaders())));
+        logger.info(LanguageService.instance().tr("message.lifecycle.preload.gameversions", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
         UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
-        logger.info("预加载任务完成.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.preload.finish"));
     }
 
     public void postLoad(){
-        logger.info("准备 UniversalPluginUpdater 后加载.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.postload.start"));
 
         UpgradeStrategyRegistry.getInstance().setActiveStrategy("native"); // TODO: 从配置文件读取默认的升级策略
 
         // 初始化更新管理器
         UpdateManager.initialize(platform);
 
-        logger.info("某些加载任务将在之后继续。");
-        logger.info("后加载任务完成. 欢迎使用 UniversalPluginUpdater！");
+        logger.info(LanguageService.instance().tr("message.lifecycle.postload.moretasks"));
+        logger.info(LanguageService.instance().tr("message.lifecycle.postload.finish"));
     }
 
     public void unload(){
-        logger.info("准备 UniversalPluginUpdater 卸载.");
+        logger.info(LanguageService.instance().tr("message.lifecycle.unload.start"));
 
         UpgradeService.ExecutionResult result = UpgradeService.getInstance().executePendingUpgrades();
         if (result.totalCount() > 0) {
-            logger.info(MessageFormat.format("升级了 {0} 个插件，有 {1} 个插件升级失败。", result.successCount(), result.failureCount()));
+            logger.info(LanguageService.instance().tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ignored) {}
         }
 
-        logger.info("卸载任务完成. 感谢使用 UniversalPluginUpdater！");
+        logger.info(LanguageService.instance().tr("message.lifecycle.unload.finish"));
     }
 }

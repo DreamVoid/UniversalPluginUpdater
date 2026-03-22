@@ -4,15 +4,15 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
+import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Paper平台主类
@@ -83,6 +83,20 @@ public class PaperPlugin extends BukkitPlugin {
             return plugin.getPluginMeta().getVersion();
         } else {
             return null;
+        }
+    }
+
+    /**
+     * 获取指定命令发送者的Locale
+     * @param sender 命令发送者
+     * @return {@link Locale} 对象
+     */
+    @Override
+    public Locale getLocale(ICommandSender sender){
+        if(sender != null && sender.getHandle() instanceof Player player){
+            return player.locale();
+        } else {
+            return LanguageService.instance().getLocale();
         }
     }
 }

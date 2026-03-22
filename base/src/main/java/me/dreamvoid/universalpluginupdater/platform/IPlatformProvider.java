@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 /**
@@ -78,6 +79,13 @@ public interface IPlatformProvider {
      * @param runnable 要执行的任务
      */
     void runTaskAsync(Runnable runnable);
+
+    /**
+     * 获取指定命令发送者的Locale
+     * @param sender 命令发送者
+     * @return {@link Locale} 对象
+     */
+    Locale getLocale(ICommandSender sender);
 
     /**
      * 获取指定插件的文件路径

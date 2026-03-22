@@ -3,15 +3,16 @@ package me.dreamvoid.universalpluginupdater.command;
 import me.dreamvoid.universalpluginupdater.command.sub.DownloadCommand;
 import me.dreamvoid.universalpluginupdater.command.sub.UpdateCommand;
 import me.dreamvoid.universalpluginupdater.command.sub.UpgradeCommand;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.platform.ICommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * 通用的命令处理器
@@ -95,22 +96,10 @@ public class CommandHandler implements ICommandHandler {
      * 显示帮助信息
      */
     private void showHelp(ICommandSender sender) {
-        sender.sendMessage(
-                MessageFormat.format("UniversalPluginUpdater {0} ({1})", platform.getPluginVersion(), platform.getPlatformName()) + "\n" +
-                "用法：upu <命令> [选项]\n" +
-                "\n" +
-                "通用插件更新器 upu 提供插件管理和信息查询等功能。\n" +
-                "它提供的功能类似 APT 工具（像 apt 和 apt-get），\n" +
-                "并且默认情况下被设置得更适合交互。\n" +
-                "\n" +
-                "常用命令：\n" +
-                "  /upu update - 更新可用插件列表\n" +
-                "  /upu download - 通过 下载 来下载现有插件的更新版本\n" +
-                "  /upu upgrade - 通过 下载/安装 来升级现有插件到更新版本\n" +
-                "\n" +
-                "本插件配置选项及语法都已经在文档中进行了详细说明。\n" +
-                "插件及其版本偏好可以通过配置文件来设置。\n" +
-                "                                         本 UPU 不具有超级牛力。"
-        );
+        Locale locale = platform.getLocale(sender);
+        sender.sendMessage(LanguageService.instance().tr(locale,
+            "message.command.help",
+            platform.getPluginVersion(),
+            platform.getPlatformName()));
     }
 }
