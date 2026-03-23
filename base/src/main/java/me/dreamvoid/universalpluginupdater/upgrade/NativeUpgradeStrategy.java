@@ -1,12 +1,12 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.text.MessageFormat;
 import java.util.logging.Logger;
 
 /**
@@ -41,30 +41,30 @@ public class NativeUpgradeStrategy implements IUpgradeStrategy {
             Path pluginDirectory = currentPluginFile != null ? currentPluginFile.getParent() : null;
 
             if (pluginDirectory == null || !Files.exists(pluginDirectory)) {
-                logger.warning("插件目录不存在！");
+                logger.warning(LanguageService.instance().tr("message.strategy.native.error.plugin-directory-missing"));
                 return false;
             }
 
             if (platform.unloadPlugin(pluginId)) {
-                logger.info(MessageFormat.format("卸载插件 {0}", pluginId));
+                logger.info(LanguageService.instance().tr("message.strategy.native.unload", pluginId));
             } else {
-                logger.warning(MessageFormat.format("插件 {0} 卸载失败！", pluginId));
+                logger.warning(LanguageService.instance().tr("message.strategy.native.error.unload-failed", pluginId));
             }
 
             // 如果当前插件文件存在，删除它
             if(Files.deleteIfExists(currentPluginFile)){
-                logger.info(MessageFormat.format("删除旧插件文件 {0}", currentPluginFile));
+                logger.info(LanguageService.instance().tr("message.strategy.native.delete-old-file", currentPluginFile));
             }
 
             // 将新文件移动到插件目录
             Path targetPath = pluginDirectory.resolve(newPluginFile.getFileName());
-            logger.info(MessageFormat.format("移动新插件文件到 {0}", targetPath));
+            logger.info(LanguageService.instance().tr("message.strategy.native.move-new-file", targetPath));
             Files.move(newPluginFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            logger.info(MessageFormat.format("插件 {0} 已更新，重启服务器生效。", pluginId));
+            logger.info(LanguageService.instance().tr("message.strategy.native.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("更新 {0} 时出现异常: {1}", pluginId, e));
+            logger.warning(LanguageService.instance().tr("message.strategy.native.error.exception", pluginId, e));
             return false;
         }
     }

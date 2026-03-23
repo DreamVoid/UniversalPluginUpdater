@@ -2,6 +2,8 @@ package me.dreamvoid.universalpluginupdater.platform;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+
 /**
  * 抽象的命令发送者接口
  * 用于屏蔽不同平台的发送者差异
@@ -34,4 +36,10 @@ public interface ICommandSender {
      */
     @Nullable
     Object getHandle();
+
+    /**
+     * 获取命令发送者的Locale
+     * @return {@link Locale} 对象
+     */
+    Locale getLocale();
 }

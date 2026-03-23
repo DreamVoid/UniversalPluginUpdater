@@ -3,15 +3,16 @@ package me.dreamvoid.universalpluginupdater.command.sub;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.ISubCommand;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 /**
@@ -26,6 +27,7 @@ public final class UpgradeCommand implements ISubCommand {
 
     @Override
     public void execute(CommandContext context) {
+        Locale locale = context.getSender().getLocale();
         if(AsyncLock.tryAcquire()) {
             try {
                 String[] subArgs = context.getSubCommandArgs();
@@ -34,11 +36,13 @@ public final class UpgradeCommand implements ISubCommand {
                     if ("--now".equalsIgnoreCase(arg)) {
                         executeNow = true;
                     } else {
-                        context.getSender().sendMessage(MessageFormat.format("&c未知的命令参数: {0}", arg));
+                        context.getSender().sendMessage(LanguageService.instance().tr(locale,
+                                "message.command.upgrade.error.unknown-arg",
+                                arg));
                     }
                 }
 
-                context.getSender().broadcastMessage("&7开始升级插件...");
+                context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.upgrade.start"));
 
                 // 获取缓存的更新信息
                 UpdateManager updateManager = UpdateManager.getInstance();
@@ -46,7 +50,7 @@ public final class UpgradeCommand implements ISubCommand {
 
                 // 检查是否有可升级的更新
                 if (updateInfos.isEmpty()) {
-                    context.getSender().broadcastMessage("目前没有可安装更新的插件。使用 /upu update 检查更新。");
+                    context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.upgrade.none"));
                     return;
                 }
 
@@ -59,48 +63,48 @@ public final class UpgradeCommand implements ISubCommand {
                 for (UpdateInfo updateInfo : updateInfos) {
                     String pluginId = updateInfo.pluginName();
                     if (scheduleUpgrade) {
-                        logger.info(MessageFormat.format("正在升级 {0}...", pluginId));
+                        logger.info(LanguageService.instance().tr("message.command.upgrade.executing", pluginId));
                     } else {
-                        logger.info(MessageFormat.format("正在安排 {0} 的升级任务...", pluginId));
+                        logger.info(LanguageService.instance().tr("message.command.upgrade.scheduling", pluginId));
                     }
 
                     try {
                         // 获取该插件的更新实例
                         AbstractUpdate updateInstance = updateManager.getUpdateChannelForPlugin(pluginId);
                         if (updateInstance == null) {
-                            logger.warning(MessageFormat.format("无法获取插件 {0} 的更新渠道！", pluginId));
+                            logger.warning(LanguageService.instance().tr("message.command.upgrade.error.no-channel", pluginId));
                             failureCount++;
                             continue;
                         }
 
                         // 执行升级
                         if (updateInstance.upgrade(executeNow)) {
-                            logger.info(MessageFormat.format(scheduleUpgrade ? "插件 {0} 已升级。" : "{0} 已加入升级队列。", pluginId));
+                            logger.info(scheduleUpgrade
+                                    ? LanguageService.instance().tr("message.command.upgrade.success.now", pluginId)
+                                    : LanguageService.instance().tr("message.command.upgrade.success.queued", pluginId));
                             successCount++;
                         } else {
-                            logger.warning(MessageFormat.format("{0} 升级失败！", pluginId));
+                            logger.warning(LanguageService.instance().tr("message.command.upgrade.error.failed", pluginId));
                             failureCount++;
                         }
                     } catch (Exception e) {
-                        logger.warning(MessageFormat.format("{0} 升级时出现异常: {1}", pluginId, e.getMessage()));
+                        logger.warning(LanguageService.instance().tr("message.command.upgrade.error.exception", pluginId, e.getMessage()));
                         failureCount++;
                     }
                 }
 
-                context.getSender().broadcastMessage(MessageFormat.format(scheduleUpgrade ?
-                                "升级了 {0} 个插件，有 {1} 个插件升级失败。重新启动服务器以启用新插件。" :
-                                "安排了 {0} 个插件的升级任务，有 {1} 个插件升级失败。重新启动服务器以完成升级过程。",
-                        successCount,
-                        failureCount));
+                context.getSender().broadcastMessage(scheduleUpgrade
+                        ? LanguageService.instance().tr(locale, "message.command.upgrade.summary.now", successCount, failureCount)
+                        : LanguageService.instance().tr(locale, "message.command.upgrade.summary.queued", successCount, failureCount));
             } catch (Exception e) {
-                logger.severe("执行升级时出错: " + e);
-                context.getSender().broadcastMessage("&c执行升级时出错，请查看控制台了解更多信息！");
+                logger.severe(LanguageService.instance().tr("message.command.upgrade.error.log", e));
+                context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.upgrade.error.game"));
             } finally {
                 AsyncLock.release();
             }
         } else {
-            context.getSender().sendMessage("&c无法获得锁。锁正由另一个线程持有。");
-            context.getSender().sendMessage("&7请注意，通过其他手段移除锁不一定是合适的解决方案，且可能损坏您的系统。");
+            context.getSender().sendMessage(LanguageService.instance().tr(locale, "message.command.lock.failed"));
+            context.getSender().sendMessage(LanguageService.instance().tr(locale, "message.command.lock.warning"));
         }
     }
 

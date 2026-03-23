@@ -4,9 +4,7 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
-import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -29,7 +27,7 @@ public class PaperPlugin extends BukkitPlugin {
     public void onEnable() {
         super.onEnable();
 
-        getLogger().info("正在向 Paper 注册命令...");
+        getLogger().info(LanguageService.instance().tr("message.lifecycle.paper.postload.register-command"));
         registerCommand("universalpluginupdater", "UniversalPluginUpdater 主命令", Collections.singleton("upu"), new BasicCommand() {
             @Override
             public void execute(@NonNull CommandSourceStack stack, String @NonNull [] args) {
@@ -86,17 +84,4 @@ public class PaperPlugin extends BukkitPlugin {
         }
     }
 
-    /**
-     * 获取指定命令发送者的Locale
-     * @param sender 命令发送者
-     * @return {@link Locale} 对象
-     */
-    @Override
-    public Locale getLocale(ICommandSender sender){
-        if(sender != null && sender.getHandle() instanceof Player player){
-            return player.locale();
-        } else {
-            return LanguageService.instance().getLocale();
-        }
-    }
 }

@@ -1,8 +1,7 @@
 package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
-import me.dreamvoid.universalpluginupdater.plugin.UpdateChannelManager;
+import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class UpdateManager {
      */
     public static UpdateManager getInstance() {
         if (instance == null) {
-            throw new IllegalStateException("UpdateManager 尚未初始化");
+            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-manager-not-initialized"));
         }
         return instance;
     }
@@ -49,7 +48,7 @@ public class UpdateManager {
      */
     public List<UpdateInfo> checkAllPluginUpdates() {
         if (checkUpdateService == null) {
-            throw new IllegalStateException("CheckUpdateService 未初始化");
+            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.check-update-service-not-initialized"));
         }
         // 执行检查并缓存结果
         cachedUpdateInfos = checkUpdateService.checkAllPluginUpdates();
@@ -71,7 +70,7 @@ public class UpdateManager {
      */
     public AbstractUpdate getUpdateChannelForPlugin(String pluginId) {
         if (updateChannelManager == null) {
-            throw new IllegalStateException("UpdateChannelManager 未初始化");
+            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-channel-manager-not-initialized"));
         }
         return updateChannelManager.getUpdateChannelForPlugin(pluginId);
     }

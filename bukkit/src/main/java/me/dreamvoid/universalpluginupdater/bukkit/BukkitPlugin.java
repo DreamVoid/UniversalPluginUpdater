@@ -4,14 +4,11 @@ import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
-import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +21,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -133,21 +129,6 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public void runTaskAsync(Runnable runnable) {
         getServer().getScheduler().runTaskAsynchronously(this, runnable);
-    }
-
-    /**
-     * 获取指定命令发送者的Locale
-     * @param sender 命令发送者
-     * @return {@link Locale} 对象
-     */
-    @Override
-    public Locale getLocale(ICommandSender sender){
-        if(sender != null && sender.getHandle() instanceof Player player){
-            //noinspection deprecation
-            return Locale.forLanguageTag(player.getLocale().replace('_', '-'));
-        } else {
-            return LanguageService.instance().getLocale();
-        }
     }
 
     @Override

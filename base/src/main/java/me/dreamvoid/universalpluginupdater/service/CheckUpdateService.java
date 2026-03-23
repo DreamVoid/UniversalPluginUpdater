@@ -2,11 +2,9 @@ package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.plugin.UpdateInfo;
-import me.dreamvoid.universalpluginupdater.plugin.UpdateChannelManager;
+import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -66,21 +64,21 @@ public class CheckUpdateService {
 
             // 执行更新检查，联网获取最新版本信息
             if (!updateInstance.update()) {
-                logger.warning(MessageFormat.format("无法检查插件 {0} 的更新！", pluginId));
+                logger.warning(LanguageService.instance().tr("message.service.check-update.error", pluginId));
                 return null;
             }
 
             // 获取缓存的远程版本信息
             String remoteVersion = updateInstance.getCachedVersion();
             if (remoteVersion == null) {
-                logger.warning(MessageFormat.format("无法获取插件 {0} 的远程版本信息！", pluginId));
+                logger.warning(LanguageService.instance().tr("message.service.check-update.error.no-remote-version", pluginId));
                 return null;
             }
 
             // 获取本地版本信息
             String localVersion = getLocalPluginVersion(pluginId);
             if (localVersion == null) {
-                logger.warning(MessageFormat.format("无法获取插件 {0} 的本地版本信息！", pluginId));
+                logger.warning(LanguageService.instance().tr("message.service.check-update.error.no-local-version", pluginId));
                 return null;
             }
 
@@ -92,7 +90,7 @@ public class CheckUpdateService {
 
             return null;
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("检查插件 {0} 的更新时出错: {1}", pluginId, e));
+            logger.warning(LanguageService.instance().tr("message.service.check-update.error.exception", pluginId, e));
             return null;
         }
     }

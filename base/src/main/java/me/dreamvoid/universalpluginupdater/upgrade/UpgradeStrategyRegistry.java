@@ -1,18 +1,18 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
 import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * 升级策略全局注册表
+ * 升级策略全局注册表<br>
  * 管理所有可用的升级策略
  */
-public class UpgradeStrategyRegistry {
+public final class UpgradeStrategyRegistry {
     private static final UpgradeStrategyRegistry INSTANCE = new UpgradeStrategyRegistry();
     
     private final Map<String, IUpgradeStrategy> strategies = new HashMap<>();
@@ -40,7 +40,7 @@ public class UpgradeStrategyRegistry {
         strategies.put(strategyId, strategy);
         
         if (logger != null) {
-            logger.info(MessageFormat.format("注册新的升级方式: {0} ({1})", strategy.getId(), strategy.getDisplayName()));
+            logger.info(LanguageService.instance().tr("message.service.strategy.registered", strategy.getId(), strategy.getDisplayName()));
         }
     }
 
@@ -70,9 +70,9 @@ public class UpgradeStrategyRegistry {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
             IUpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
-                logger.info(MessageFormat.format("当前使用的升级策略: {0} ({1})", strategyId, strategy.getDisplayName()));
+                logger.info(LanguageService.instance().tr("message.service.strategy.active", strategyId, strategy.getDisplayName()));
             } else {
-                logger.info(MessageFormat.format("当前使用的升级策略: {0} [未注册]", strategyId));
+                logger.info(LanguageService.instance().tr("message.service.strategy.active.unregistered", strategyId));
             }
         }
     }
@@ -90,7 +90,7 @@ public class UpgradeStrategyRegistry {
         // 如果不存在且不是 native，则回退到 native
         if (strategy == null && !activeStrategy.equals("native")) {
             if (logger != null) {
-                logger.warning(MessageFormat.format("当前使用的升级策略 \"{0}\" 不可用，回退到 \"native\"", activeStrategy));
+                logger.warning(LanguageService.instance().tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
             }
             this.activeStrategy = "native";
             strategy = strategies.get("native");

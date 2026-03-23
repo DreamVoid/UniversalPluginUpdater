@@ -1,4 +1,4 @@
-package me.dreamvoid.universalpluginupdater.plugin;
+package me.dreamvoid.universalpluginupdater.objects;
 
 import org.jetbrains.annotations.NotNull;
 

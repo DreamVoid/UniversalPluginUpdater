@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.bukkit.upgrade;
 
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import org.bukkit.Bukkit;
 import org.jspecify.annotations.NonNull;
@@ -52,13 +53,13 @@ public class BukkitUpgradeStrategy implements IUpgradeStrategy {
             Path targetPath = updateFolder.resolve(filename);
 
             // 复制新文件
-            logger.info("移动新插件文件到 " + targetPath);
+            logger.info(LanguageService.instance().tr("message.strategy.bukkit.move-new-file", targetPath));
             Files.move(newPluginFile, targetPath,  StandardCopyOption.REPLACE_EXISTING);
 
-            logger.info("插件 " + pluginId + " 已更新，重启服务器生效。");
+            logger.info(LanguageService.instance().tr("message.strategy.bukkit.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning("更新 " + pluginId + " 时出现异常: " + e);
+            logger.warning(LanguageService.instance().tr("message.strategy.bukkit.error.exception", pluginId, e));
             return false;
         }
     }

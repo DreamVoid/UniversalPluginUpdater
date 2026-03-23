@@ -5,7 +5,6 @@ import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
 import java.nio.file.Path;
-import java.text.MessageFormat;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
@@ -35,13 +34,13 @@ public class UpgradeService {
         IUpgradeStrategy strategy = registry.getActiveStrategy();
 
         if (strategy == null) {
-            logger.warning("当前升级策略 " + strategyId + " 不可用，尝试回退到 native");
+            logger.warning(LanguageService.instance().tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
             strategyId = "native";
             strategy = registry.getStrategy("native");
         }
 
         if (strategy == null) {
-            logger.severe("由于 native 升级策略不可用，" + pluginId + " 升级失败！");
+            logger.severe(LanguageService.instance().tr("message.service.upgrade.error.native-unavailable", pluginId));
             return false;
         }
 
@@ -50,7 +49,7 @@ public class UpgradeService {
             return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
         } else {
             pendingOperations.add(new PendingUpgradeOperation(pluginId, newPluginFile, currentPluginFile, strategyId));
-            logger.info("将 " + pluginId + " 插件的升级任务加入队列 (" + strategyId + ")");
+            logger.info(LanguageService.instance().tr("message.service.upgrade.queued", pluginId, strategyId));
             return true;
         }
     }
@@ -99,19 +98,18 @@ public class UpgradeService {
             }
 
             if (strategy == null) {
-                logger.warning(MessageFormat.format("当前升级策略 {0} 不可用，尝试回退到 native", strategyId));
-                strategyId = "native";
+                logger.warning(LanguageService.instance().tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
                 strategy = registry.getStrategy("native");
             }
 
             if (strategy == null) {
-                logger.severe(MessageFormat.format("由于 native 升级策略不可用，{0} 升级失败！", pluginId));
+                logger.severe(LanguageService.instance().tr("message.service.upgrade.error.native-unavailable", pluginId));
                 return false;
             }
 
             return strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("插件 {0} 执行升级任务时出现异常: {1}", pluginId, e));
+            logger.warning(LanguageService.instance().tr("message.service.upgrade.execute.error.exception", pluginId, e));
             return false;
         }
     }

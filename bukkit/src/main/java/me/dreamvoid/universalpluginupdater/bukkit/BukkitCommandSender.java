@@ -1,10 +1,14 @@
 package me.dreamvoid.universalpluginupdater.bukkit;
 
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
 
 /**
  * Bukkit平台的命令发送者适配器
@@ -42,5 +46,10 @@ public class BukkitCommandSender implements ICommandSender {
     @Nullable
     public Object getHandle() {
         return sender;
+    }
+
+    @Override
+    public Locale getLocale() {
+        return sender instanceof Player ? Locale.forLanguageTag(((Player) sender).getLocale().replace('_', '-')) : LanguageService.instance().getLocale();
     }
 }

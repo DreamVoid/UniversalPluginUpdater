@@ -3,16 +3,12 @@ package me.dreamvoid.universalpluginupdater.command;
 import me.dreamvoid.universalpluginupdater.command.sub.DownloadCommand;
 import me.dreamvoid.universalpluginupdater.command.sub.UpdateCommand;
 import me.dreamvoid.universalpluginupdater.command.sub.UpgradeCommand;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.platform.ICommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * 通用的命令处理器
@@ -39,6 +35,8 @@ public class CommandHandler implements ICommandHandler {
     @Override
     public void executeCommand(CommandContext context) {
         platform.runTaskAsync(() -> {
+            Locale locale = context.getSender().getLocale();
+
             String subCommand = context.getSubCommand();
 
             // 如果没有子命令，显示帮助
@@ -50,13 +48,16 @@ public class CommandHandler implements ICommandHandler {
             // 查找对应的子命令处理器
             ISubCommand handler = subCommands.get(subCommand.toLowerCase());
             if (handler == null) {
-                context.getSender().sendMessage("&c未知或不完整的命令: " + subCommand);
+                context.getSender().sendMessage(LanguageService.instance().tr(locale,
+                        "message.command.error.unknown",
+                        subCommand));
                 return;
             }
 
             // 检查权限
             if (!context.getSender().hasPermission("universalpluginupdater.command." + subCommand)) {
-                context.getSender().sendMessage("&c你没有足够的权限使用此命令！");
+                context.getSender().sendMessage(LanguageService.instance().tr(locale,
+                        "message.command.error.no-permission"));
                 return;
             }
 
@@ -96,7 +97,7 @@ public class CommandHandler implements ICommandHandler {
      * 显示帮助信息
      */
     private void showHelp(ICommandSender sender) {
-        Locale locale = platform.getLocale(sender);
+        var locale = sender.getLocale();
         sender.sendMessage(LanguageService.instance().tr(locale,
             "message.command.help",
             platform.getPluginVersion(),

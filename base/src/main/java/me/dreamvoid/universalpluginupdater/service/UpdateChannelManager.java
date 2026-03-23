@@ -1,4 +1,4 @@
-package me.dreamvoid.universalpluginupdater.plugin;
+package me.dreamvoid.universalpluginupdater.service;
 
 import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
@@ -14,7 +14,6 @@ import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +95,7 @@ public class UpdateChannelManager {
             String jsonContent = new String(Files.readAllBytes(configPath));
             return gson.fromJson(jsonContent, PluginUpdateConfig.class);
         } catch (IOException e) {
-            logger.warning(MessageFormat.format("无法加载 {0} 的更新配置", pluginId));
+            logger.warning(LanguageService.instance().tr("message.service.channel.error.config-failed", pluginId));
             return null;
         }
     }
@@ -164,10 +163,10 @@ public class UpdateChannelManager {
                         return new ModrinthUpdate(pluginId, modrinthInfo.getProjectId(), platform);
                     }
                 }
-                default -> logger.warning(MessageFormat.format("未知更新渠道: {0}", type));
+                default -> logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", type));
             }
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("为更新渠道 {0} 创建实例时出现异常: {1}", type, e));
+            logger.warning(LanguageService.instance().tr("message.service.channel.error.exception", type, e));
         }
         return null;
     }

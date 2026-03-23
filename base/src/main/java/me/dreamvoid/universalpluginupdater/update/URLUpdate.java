@@ -4,13 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.MessageFormat;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -109,7 +109,7 @@ public class URLUpdate extends AbstractUpdate {
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, null);
 
             if (!result.success) {
-                logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, result.errorMessage));
+                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage));
                 return false;
             }
 
@@ -119,22 +119,22 @@ public class URLUpdate extends AbstractUpdate {
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = filePath;
-                    logger.info(MessageFormat.format("Get: {0}", downloadUrl));
+                    logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
                     return true;
                 } else {
                     // 删除不完整的文件
                     Files.delete(filePath);
                     this.downloadedFilePath = null;
-                    logger.warning(MessageFormat.format("Err: {0} [checksum mismatch]", downloadUrl));
+                    logger.warning(LanguageService.instance().tr("message.update.error.checksum", downloadUrl));
                     return false;
                 }
             } else {
                 this.downloadedFilePath = filePath;
-                logger.info(MessageFormat.format("Get: {0}", downloadUrl));
+                logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
                 return true;
             }
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("Err: {0} [{1}]", downloadUrl, e));
+            logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, e));
             return false;
         }
     }
@@ -158,13 +158,13 @@ public class URLUpdate extends AbstractUpdate {
             Path newPluginFile = downloadedFilePath;
 
             if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(MessageFormat.format("下载的文件丢失: {0}", newPluginFile));
+                logger.warning(LanguageService.instance().tr("message.update.error.downloaded-file-missing", newPluginFile));
                 return false;
             }
 
             return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning(MessageFormat.format("升级失败: {0}", e));
+            logger.warning(LanguageService.instance().tr("message.update.error.upgrade-failed", e));
             return false;
         }
     }
