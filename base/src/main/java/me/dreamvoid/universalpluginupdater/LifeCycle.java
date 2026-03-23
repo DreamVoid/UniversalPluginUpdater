@@ -74,7 +74,10 @@ public class LifeCycle {
     }
 
     public void reload(){
-        // TODO: 增加重载时的语言
+        logger.info("准备 UniversalPluginUpdaer 重新加载...");
+
         config.reloadConfig();
+
+        logger.info("重新加载完成.");
     }
 }
