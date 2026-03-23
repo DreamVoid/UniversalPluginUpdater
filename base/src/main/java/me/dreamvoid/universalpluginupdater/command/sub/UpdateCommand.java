@@ -67,7 +67,6 @@ public final class UpdateCommand implements ISubCommand {
 
     @Override
     public List<String> getTabCompletion(CommandContext context) {
-        // TODO: 占位
         return Collections.emptyList();
     }
 }

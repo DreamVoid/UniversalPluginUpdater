@@ -63,6 +63,7 @@
     "message.command.upgrade.summary.queued": "Scheduled upgrade tasks for {0} plugin(s), {1} plugin(s) failed. Restart the server to complete the upgrade process.",
     "message.command.upgrade.error.log": "Error while upgrading plugins: {0}",
     "message.command.upgrade.error.game": "&cAn error occurred while upgrading plugins. See console for more details!",
+    "message.command.upgrade.warn.upgrade-now-disabled": "&eW: The --now argument is disabled by current config and has been ignored.",
     "message.service.channel.error.config-failed": "Unable to load update config for {0}",
     "message.service.channel.error.unknown": "Unknown update channel: {0}",
     "message.service.channel.error.exception": "Exception while creating instance for update channel {0}: {1}",

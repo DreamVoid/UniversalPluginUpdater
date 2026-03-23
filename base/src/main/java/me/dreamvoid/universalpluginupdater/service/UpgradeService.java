@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.service;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
@@ -44,7 +45,7 @@ public class UpgradeService {
             return false;
         }
 
-        boolean shouldExecuteNow = executeNow || strategy.supportSaveUpgrade();
+        boolean shouldExecuteNow = canUpgradeNow(executeNow, strategy);
         if (shouldExecuteNow) {
             return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
         } else {
@@ -59,7 +60,17 @@ public class UpgradeService {
      */
     public boolean canUpgradeNow(boolean executeNow) {
         IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
-        return executeNow || (strategy != null && strategy.supportSaveUpgrade());
+        return canUpgradeNow(executeNow, strategy);
+    }
+
+    private boolean canUpgradeNow(boolean executeNow, IUpgradeStrategy strategy) {
+        if (strategy == null) {
+            return false;
+        }
+        if (strategy.supportSaveUpgrade()) {
+            return true;
+        }
+        return executeNow && Config.Updater_AllowUpgradeNow;
     }
 
     /**

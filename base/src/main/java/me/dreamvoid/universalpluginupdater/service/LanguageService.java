@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 
 import java.io.InputStream;
@@ -198,7 +199,14 @@ public final class LanguageService {
             return parseLocale(requested);
         }
 
-        // TODO: 实现配置文件指定语言
+        String configuredLanguage = Config.Language;
+        if (configuredLanguage == null || configuredLanguage.isBlank()) {
+            configuredLanguage = "system";
+        }
+
+        if (!"system".equalsIgnoreCase(configuredLanguage)) {
+            return parseLocale(configuredLanguage);
+        }
 
         Locale systemLocale = Locale.getDefault();
         return systemLocale == null ? Locale.forLanguageTag(FALLBACK_LOCALE) : systemLocale;

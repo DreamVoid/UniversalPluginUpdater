@@ -1,16 +1,17 @@
 package me.dreamvoid.universalpluginupdater.command.sub;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.ISubCommand;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
@@ -34,7 +35,11 @@ public final class UpgradeCommand implements ISubCommand {
                 boolean executeNow = false;
                 for (String arg : subArgs) {
                     if ("--now".equalsIgnoreCase(arg)) {
-                        executeNow = true;
+                        if (Config.Updater_AllowUpgradeNow) {
+                            executeNow = true;
+                        } else {
+                            context.getSender().sendMessage(LanguageService.instance().tr(locale, "message.command.upgrade.warn.upgrade-now-disabled"));
+                        }
                     } else {
                         context.getSender().sendMessage(LanguageService.instance().tr(locale,
                                 "message.command.upgrade.error.unknown-arg",
@@ -110,12 +115,14 @@ public final class UpgradeCommand implements ISubCommand {
 
     @Override
     public List<String> getTabCompletion(CommandContext context) {
-        String[] subArgs = context.getSubCommandArgs();
-        if (subArgs.length <= 1) {
-            if (subArgs.length == 0 || "--now".startsWith(subArgs[0])) {
-                return Collections.singletonList("--now");
+        List<String> result = new ArrayList<>();
+        
+        String[] args = context.getArgs();
+        if (args.length == 2) {
+            if ("--now".startsWith(args[1]) && Config.Updater_AllowUpgradeNow) {
+                result.add("--now");
             }
         }
-        return Collections.emptyList();
+        return result;
     }
 }

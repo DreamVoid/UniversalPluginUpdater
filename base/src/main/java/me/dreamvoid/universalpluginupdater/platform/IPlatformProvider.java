@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.platform;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,6 +72,12 @@ public interface IPlatformProvider {
      * @return 平台的Logger实例，供插件使用
      */
     Logger getPlatformLogger();
+
+    /**
+     * 获取平台实现的配置对象
+     * @return 配置对象
+     */
+    Config getPlatformConfig();
 
     /**
      * 异步执行Runnable代码

@@ -2,15 +2,21 @@ package me.dreamvoid.universalpluginupdater;
 
 import lombok.Getter;
 import lombok.Setter;
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
@@ -24,10 +30,14 @@ public final class Utils {
     private static Logger logger;
 
     public static class Http {
-        private static final OkHttpClient client = new OkHttpClient.Builder()
+        private static final OkHttpClient defaultClient = new OkHttpClient.Builder()
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build();
+        private static volatile OkHttpClient client = defaultClient;
+        private static volatile String clientProxyUri = "";
+        private static volatile String clientProxyUsername = "";
+        private static volatile String clientProxyPassword = "";
 
         /**
          * HTTP响应缓存对象
@@ -58,11 +68,12 @@ public final class Utils {
          * @return 响应文本（JSON格式）
          */
         public static String get(String url) throws IOException {
+            OkHttpClient httpClient = getClient();
             Request request = new Request.Builder().url(url)
                     .header("User-Agent", "UniversalPluginUpdater/1.0")
                     .build();
 
-            try (okhttp3.Response response = client.newCall(request).execute()) {
+            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
                 return response.isSuccessful() && response.body() != null ? response.body().string() : null;
             }
         }
@@ -74,6 +85,7 @@ public final class Utils {
          * @return {@link Response}对象
          */
         public static Response get(String url, @Nullable String ifModifiedSince) throws IOException {
+            OkHttpClient httpClient = getClient();
             Request.Builder requestBuilder = new Request.Builder().url(url)
                     .header("User-Agent", "UniversalPluginUpdater/1.0");
 
@@ -84,7 +96,7 @@ public final class Utils {
 
             Request request = requestBuilder.build();
 
-            try (okhttp3.Response response = client.newCall(request).execute()) {
+            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
                 int code = response.code();
 
                 // 处理304 Not Modified
@@ -115,12 +127,13 @@ public final class Utils {
         public static DownloadResult download(String url, Path saveDir, @Nullable String desiredFilename) throws IOException {
             // 确保目标目录存在
             Files.createDirectories(saveDir);
+            OkHttpClient httpClient = getClient();
 
             Request request = new Request.Builder().url(url)
                     .header("User-Agent", "UniversalPluginUpdater/1.0")
                     .build();
 
-            try (okhttp3.Response response = client.newCall(request).execute()) {
+            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful() || response.body() == null) {
                     return new DownloadResult(false, null, "HTTP " + response.code());
                 }
@@ -155,6 +168,102 @@ public final class Utils {
 
                 return new DownloadResult(true, filename, null);
             }
+        }
+
+        private static OkHttpClient getClient() {
+            String proxyUri = trimToEmpty(Config.Updater_Proxy_Uri);
+            String username = trimToEmpty(Config.Updater_Proxy_Username);
+            String password = trimToEmpty(Config.Updater_Proxy_Password);
+
+            if (proxyUri.isEmpty()) {
+                client = defaultClient;
+                clientProxyUri = "";
+                clientProxyUsername = "";
+                clientProxyPassword = "";
+                return client;
+            }
+
+            if (Objects.equals(proxyUri, clientProxyUri)
+                    && Objects.equals(username, clientProxyUsername)
+                    && Objects.equals(password, clientProxyPassword)) {
+                return client;
+            }
+
+            Proxy proxy = createProxy(proxyUri);
+            if (proxy == null) {
+                client = defaultClient;
+                clientProxyUri = "";
+                clientProxyUsername = "";
+                clientProxyPassword = "";
+                return client;
+            }
+
+            OkHttpClient.Builder builder = defaultClient.newBuilder().proxy(proxy);
+            if (!username.isEmpty() && !password.isEmpty()) {
+                builder.proxyAuthenticator(proxyAuthenticator(username, password));
+            }
+
+            client = builder.build();
+            clientProxyUri = proxyUri;
+            clientProxyUsername = username;
+            clientProxyPassword = password;
+            return client;
+        }
+
+        private static Authenticator proxyAuthenticator(String username, String password) {
+            return (route, response) -> {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+        }
+
+        @Nullable
+        private static Proxy createProxy(String proxyUri) {
+            try {
+                URI uri = URI.create(proxyUri);
+                String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+                String host = uri.getHost();
+                int port = uri.getPort();
+
+                if ((host == null || host.isBlank()) && uri.getAuthority() != null) {
+                    String authority = uri.getAuthority();
+                    int split = authority.lastIndexOf(':');
+                    if (split > 0) {
+                        host = authority.substring(0, split);
+                        port = Integer.parseInt(authority.substring(split + 1));
+                    } else {
+                        host = authority;
+                    }
+                }
+
+                if (host == null || host.isBlank()) {
+                    return null;
+                }
+
+                if (port <= 0) {
+                    return null;
+                }
+
+                Proxy.Type type = switch (scheme) {
+                    case "http", "https" -> Proxy.Type.HTTP;
+                    case "socks4", "socks4a", "socks5", "socks" -> Proxy.Type.SOCKS;
+                    default -> null;
+                };
+
+                if (type == null) {
+                    return null;
+                }
+
+                return new Proxy(type, new InetSocketAddress(host, port));
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        private static String trimToEmpty(@Nullable String text) {
+            return text == null ? "" : text.trim();
         }
 
         /**

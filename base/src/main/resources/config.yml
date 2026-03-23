@@ -1,0 +1,10 @@
+verbose: false
+language: system
+
+updater:
+  strategy: native
+  allow-upgrade-now: true
+  proxy:
+    uri: ~
+    username: ~
+    password: ~

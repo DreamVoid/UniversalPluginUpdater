@@ -10,7 +10,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Paper平台主类
@@ -84,4 +87,8 @@ public class PaperPlugin extends BukkitPlugin {
         }
     }
 
+    @Override
+    public void runTaskAsync(Runnable runnable) {
+        getServer().getAsyncScheduler().runNow(this, task -> runnable.run());
+    }
 }
