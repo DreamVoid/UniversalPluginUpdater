@@ -26,12 +26,4 @@ public class AsyncLock {
     public static void release() {
         locked.set(false);
     }
-
-    /**
-     * 检查当前是否有线程持有锁
-     * @return true 如果锁已被持有，false 如果锁可用
-     */
-    public static boolean isLocked() {
-        return locked.get();
-    }
 }

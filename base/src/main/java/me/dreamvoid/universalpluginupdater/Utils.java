@@ -206,18 +206,11 @@ public final class Utils {
 
         /**
          * 下载结果对象
+         *
+         * @param filename     下载成功时为实际文件名，失败时为null
+         * @param errorMessage 错误信息，成功时为null
          */
-        public static class DownloadResult {
-            public final boolean success;
-            public final String filename;      // 下载成功时为实际文件名，失败时为null
-            public final String errorMessage;  // 错误信息，成功时为null
-
-            public DownloadResult(boolean success, String filename, String errorMessage) {
-                this.success = success;
-                this.filename = filename;
-                this.errorMessage = errorMessage;
-            }
-        }
+        public record DownloadResult(boolean success, String filename, String errorMessage) { }
     }
 
     /**

@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 
@@ -14,10 +15,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
@@ -42,6 +43,12 @@ public final class LanguageService {
     private LanguageService() {
     }
 
+    /**
+     * 获取语言服务实例
+     * @return 语言服务实例
+     * @see #tr(String, Object...)
+     * @see #tr(Locale, String, Object...)
+     */
     public static LanguageService instance() {
         return INSTANCE;
     }
@@ -58,7 +65,7 @@ public final class LanguageService {
      * @return 翻译后的文本
      */
     public String tr(String key, Object... args) {
-        return formatMessage(getBundle(resolveLocaleName(getLocalTag(getLocale()))), key, args);
+        return formatMessage(getLocale(), key, args);
     }
 
     /**
@@ -68,17 +75,30 @@ public final class LanguageService {
      * @return 翻译后的文本
      */
     public String tr(Locale locale, String key, Object... args) {
-        return formatMessage(getBundle(resolveLocaleName(getLocalTag(locale))), key, args);
+        return formatMessage(locale, key, args);
     }
 
-    private String formatMessage(Map<String, JsonElement> bundle, String key, Object... args) {
-        JsonElement template = bundle.get(key);
+    private String formatMessage(Locale requestedLocale, String key, Object... args) {
+        String safeKey = sanitizeKey(key);
+        if (safeKey.isEmpty()) {
+            return "";
+        }
+
+        String requestedResolved = resolveLocaleName(getLocalTag(requestedLocale));
+        String defaultResolved = resolveLocaleName(getLocalTag(getLocale()));
+
+        JsonElement template = getBundle(requestedResolved).get(safeKey);
+
+        if (template == null && isLocaleDifferent(requestedResolved, defaultResolved)) {
+            template = getBundle(defaultResolved).get(safeKey);
+        }
+
+        if (template == null && isLocaleDifferent(requestedResolved, FALLBACK_LOCALE) && isLocaleDifferent(defaultResolved, FALLBACK_LOCALE)) {
+            template = getBundle(FALLBACK_LOCALE).get(safeKey);
+        }
+
         if (template == null) {
-            Map<String, JsonElement> fallback = getBundle(FALLBACK_LOCALE);
-            template = fallback.get(key);
-            if (template == null) {
-                return key;
-            }
+            return safeKey;
         }
 
         if (template.isJsonArray()) {
@@ -96,6 +116,13 @@ public final class LanguageService {
             // 单文本单行处理
             return MessageFormat.format(template.getAsString(), args);
         }
+    }
+
+    private boolean isLocaleDifferent(String left, String right) {
+        if (left == null || right == null) {
+            return true;
+        }
+        return !normalizeLocaleTag(left).equalsIgnoreCase(normalizeLocaleTag(right));
     }
 
     private Map<String, JsonElement> getBundle(String localeName) {
@@ -130,7 +157,7 @@ public final class LanguageService {
             }
 
             byte[] bytes = inputStream.readAllBytes();
-            String target = new String(bytes, StandardCharsets.UTF_8).trim();
+            String target = sanitizeRawText(new String(bytes, StandardCharsets.UTF_8)).trim();
             return target.isEmpty() ? null : target;
         } catch (Exception e) {
             logger.warning("加载语言链接失败 " + resourcePath + ": " + e);
@@ -152,7 +179,7 @@ public final class LanguageService {
 
             try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
                 Map<String, JsonElement> bundle = gson.fromJson(reader, MAP_TYPE);
-                return bundle != null ? new LinkedHashMap<>(bundle) : Collections.emptyMap();
+                return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {
             logger.warning("加载语言文件失败 " + resourcePath + ": " + e);
@@ -320,18 +347,15 @@ public final class LanguageService {
             return;
         }
 
-        try {
-            Path dir = platform.getDataPath().resolve("lang");
-            if (!Files.exists(dir) || !Files.isDirectory(dir)) {
-                return;
-            }
+        Path dir = platform.getDataPath().resolve("lang");
+        if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+            return;
+        }
 
-            Files.list(dir).forEach(new Consumer<Path>() {
-                @Override
-                public void accept(Path path) {
-                    String fileName = path.getFileName().toString();
-                    LanguageService.this.addLocaleFromFileName(locales, fileName);
-                }
+        try (Stream<Path> stream = Files.list(dir)) {
+            stream.forEach(path -> {
+                String fileName = path.getFileName().toString();
+                LanguageService.this.addLocaleFromFileName(locales, fileName);
             });
         } catch (Exception e) {
             logger.warning("扫描外部语言目录失败: " + e);
@@ -350,10 +374,12 @@ public final class LanguageService {
                         continue;
                     }
 
-                    Files.list(dir).forEach(path -> {
-                        String fileName = path.getFileName().toString();
-                        addLocaleFromFileName(locales, fileName);
-                    });
+                    try (Stream<Path> stream = Files.list(dir)) {
+                        stream.forEach(path -> {
+                            String fileName = path.getFileName().toString();
+                            addLocaleFromFileName(locales, fileName);
+                        });
+                    }
                 } else if ("jar".equalsIgnoreCase(protocol)) {
                     JarURLConnection connection = (JarURLConnection) url.openConnection();
                     try (JarFile jarFile = connection.getJarFile()) {
@@ -381,18 +407,18 @@ public final class LanguageService {
     }
 
     private void addLocaleFromFileName(Set<String> locales, String fileName) {
-        if (fileName == null || fileName.isBlank()) {
+        String sanitizedFileName = sanitizeRawText(fileName).trim();
+        if (sanitizedFileName.isBlank()) {
             return;
         }
 
-        if (fileName.endsWith(".json")) {
-            String locale = fileName.substring(0, fileName.length() - 5);
+        String locale = sanitizedFileName.substring(0, sanitizedFileName.length() - 5);
+        if (sanitizedFileName.endsWith(".json")) {
             locales.add(normalizeLocaleTag(locale));
             return;
         }
 
-        if (fileName.endsWith(".link")) {
-            String locale = fileName.substring(0, fileName.length() - 5);
+        if (sanitizedFileName.endsWith(".link")) {
             locales.add(normalizeLocaleTag(locale));
         }
     }
@@ -408,7 +434,7 @@ public final class LanguageService {
                 return null;
             }
 
-            return Files.readString(path, StandardCharsets.UTF_8).trim();
+            return sanitizeRawText(Files.readString(path, StandardCharsets.UTF_8)).trim();
         } catch (Exception e) {
             logger.warning("读取外部语言文件失败 " + fileName + ": " + e);
             return null;
@@ -428,7 +454,7 @@ public final class LanguageService {
 
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
                 Map<String, JsonElement> bundle = gson.fromJson(reader, MAP_TYPE);
-                return bundle != null ? new LinkedHashMap<>(bundle) : Collections.emptyMap();
+                return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {
             logger.warning("加载外部语言文件失败 " + locale + ".json: " + e);
@@ -436,7 +462,47 @@ public final class LanguageService {
         }
     }
 
-    private String getLocalTag(Locale locale) {
+    private static Map<String, JsonElement> sanitizeBundle(Map<String, JsonElement> source) {
+        LinkedHashMap<String, JsonElement> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
+            String sanitizedKey = sanitizeKey(entry.getKey());
+            if (sanitizedKey.isEmpty()) {
+                continue;
+            }
+
+            JsonElement value = entry.getValue();
+            if (value == null || value.isJsonNull()) {
+                continue;
+            }
+
+            if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+                String sanitizedText = sanitizeRawText(value.getAsString());
+                value = new JsonPrimitive(sanitizedText);
+            }
+
+            sanitized.put(sanitizedKey, value);
+        }
+        return sanitized;
+    }
+
+    private static String sanitizeKey(String key) {
+        if (key == null) {
+            return "";
+        }
+        return sanitizeRawText(key).trim();
+    }
+
+    private static String sanitizeRawText(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        if (text.charAt(0) == '\uFEFF') {
+            return text.substring(1);
+        }
+        return text;
+    }
+
+    private static String getLocalTag(Locale locale) {
         if (locale == null) {
             return FALLBACK_LOCALE;
         }
@@ -453,7 +519,7 @@ public final class LanguageService {
         return tag;
     }
 
-    private String normalizeLocaleTag(String locale) {
+    private static String normalizeLocaleTag(String locale) {
         if (locale == null) {
             return "";
         }

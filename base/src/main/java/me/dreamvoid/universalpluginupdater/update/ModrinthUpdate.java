@@ -199,8 +199,8 @@ public class ModrinthUpdate extends AbstractUpdate {
             // 执行下载
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, filename);
 
-            if (!result.success) {
-                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage));
+            if (!result.success()) {
+                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));
                 return false;
             }
 

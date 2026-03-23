@@ -108,12 +108,12 @@ public class URLUpdate extends AbstractUpdate {
             // 第一次下载时，我们不知道最终的文件名，所以先执行一次下载获取文件名
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, null);
 
-            if (!result.success) {
-                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage));
+            if (!result.success()) {
+                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));
                 return false;
             }
 
-            Path filePath = downloadDir.resolve(result.filename);
+            Path filePath = downloadDir.resolve(result.filename());
 
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {

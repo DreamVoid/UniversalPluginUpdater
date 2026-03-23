@@ -24,7 +24,7 @@ public abstract class AbstractUpdate {
      */
     public boolean upgrade(){
         return upgrade(false);
-    };
+    }
 
     /**
      * 升级现有插件，可指定是否立刻执行
