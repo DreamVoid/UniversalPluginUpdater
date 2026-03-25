@@ -316,10 +316,57 @@ public final class Utils {
         /**
          * 下载结果对象
          *
-         * @param filename     下载成功时为实际文件名，失败时为null
-         * @param errorMessage 错误信息，成功时为null
          */
-        public record DownloadResult(boolean success, String filename, String errorMessage) { }
+                public static final class DownloadResult {
+            private final boolean success;
+            private final String filename;
+            private final String errorMessage;
+
+            /**
+             * @param filename     下载成功时为实际文件名，失败时为null
+             * @param errorMessage 错误信息，成功时为null
+             */
+            private DownloadResult(boolean success, String filename, String errorMessage) {
+                this.success = success;
+                this.filename = filename;
+                this.errorMessage = errorMessage;
+            }
+
+            public boolean success() {
+                return success;
+            }
+
+            public String filename() {
+                return filename;
+            }
+
+            public String errorMessage() {
+                return errorMessage;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == this) return true;
+                if (obj == null || obj.getClass() != this.getClass()) return false;
+                var that = (DownloadResult) obj;
+                return this.success == that.success &&
+                        Objects.equals(this.filename, that.filename) &&
+                        Objects.equals(this.errorMessage, that.errorMessage);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(success, filename, errorMessage);
+            }
+
+            @Override
+            public String toString() {
+                return "DownloadResult[" +
+                        "success=" + success + ", " +
+                        "filename=" + filename + ", " +
+                        "errorMessage=" + errorMessage + ']';
+            }
+        }
     }
 
     /**

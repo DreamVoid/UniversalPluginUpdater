@@ -85,7 +85,6 @@
     "message.strategy.native.error.plugin-directory-missing": "插件目录不存在！",
     "message.strategy.native.unload": "卸载插件 {0}",
     "message.strategy.native.error.unload-failed": "插件 {0} 卸载失败！",
-    "message.strategy.native.delete-old-file": "删除旧插件文件 {0}",
     "message.strategy.native.move-new-file": "移动新插件文件到 {0}",
     "message.strategy.native.updated": "插件 {0} 已更新，重启服务器生效。",
     "message.strategy.native.error.exception": "更新 {0} 时出现异常: {1}",

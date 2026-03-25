@@ -85,7 +85,6 @@
     "message.strategy.native.error.plugin-directory-missing": "Plugin directory does not exist!",
     "message.strategy.native.unload": "Unloading plugin {0}",
     "message.strategy.native.error.unload-failed": "Failed to unload plugin {0}!",
-    "message.strategy.native.delete-old-file": "Deleted old plugin file {0}",
     "message.strategy.native.move-new-file": "Moving new plugin file to {0}",
     "message.strategy.native.updated": "Plugin {0} has been updated. Restart the server to apply changes.",
     "message.strategy.native.error.exception": "Exception while updating {0}: {1}",
