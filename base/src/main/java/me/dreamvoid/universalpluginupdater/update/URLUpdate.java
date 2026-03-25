@@ -3,6 +3,7 @@ package me.dreamvoid.universalpluginupdater.update;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
@@ -16,21 +17,26 @@ import java.util.logging.Logger;
 
 public class URLUpdate extends AbstractUpdate {
     private static final Gson gson = new Gson();
-    private static final Logger logger = Utils.getLogger();
 
     private final String pluginId;
-    private final String updateUrl;
+    private final UrlChannelInfo info;
     private final IPlatformProvider platform;
-    private UpdateInfo updateInfo;
+    private final Logger logger;
 
+    private UpdateInfo updateInfo;
     private String lastModified;
     private Path downloadedFilePath;
 
-    public URLUpdate(String pluginId, String updateUrl, IPlatformProvider platform) {
+    public URLUpdate(String pluginId, UrlChannelInfo info, IPlatformProvider platform) {
         this.updateType = UpdateType.URL;
         this.pluginId = pluginId;
-        this.updateUrl = updateUrl;
+        this.info = info;
         this.platform = platform;
+        logger = platform.getPlatformLogger();
+
+        if (this.info.url() == null || this.info.url().isEmpty()) {
+            throw new IllegalArgumentException("URL 不存在或为空");
+        }
     }
 
     /**
@@ -47,7 +53,7 @@ public class URLUpdate extends AbstractUpdate {
     @Override
     public boolean update() {
         try {
-            Utils.Http.Response response = Utils.Http.get(updateUrl, lastModified);
+            Utils.Http.Response response = Utils.Http.get(info.url(), lastModified);
 
             if (response.isNotModified()) {
                 // 返回304 Not Modified，使用缓存

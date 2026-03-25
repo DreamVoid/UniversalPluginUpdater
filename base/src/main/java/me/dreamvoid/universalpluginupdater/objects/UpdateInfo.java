@@ -11,7 +11,12 @@ import org.jetbrains.annotations.NotNull;
  * @param newVersion     新版本
  * @param updateChannel  更新渠道类型
  */
-public record UpdateInfo(String pluginName, String currentVersion, String newVersion, String updateChannel) {
+public record UpdateInfo(
+        String pluginName,
+        String currentVersion,
+        String newVersion,
+        String updateChannel
+) {
     @NotNull
     @Override
     public String toString() {

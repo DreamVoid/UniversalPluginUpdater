@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
-import me.dreamvoid.universalpluginupdater.objects.PluginUpdateConfig;
+import me.dreamvoid.universalpluginupdater.objects.update.UpdateConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
@@ -52,8 +52,8 @@ public class UpdateChannelManager {
         String lowerPluginId = pluginId.toLowerCase();
 
         // 读取配置文件
-        PluginUpdateConfig config = loadPluginConfig(lowerPluginId);
-        if (config == null || config.getChannels() == null || config.getChannels().isEmpty()) {
+        UpdateConfig config = loadPluginConfig(lowerPluginId);
+        if (config == null || config.channels() == null || config.channels().isEmpty()) {
             return null;
         }
 
@@ -64,7 +64,7 @@ public class UpdateChannelManager {
         }
 
         // 生成缓存键
-        String cacheKey = lowerPluginId + ":" + selectedChannelConfig.getType();
+        String cacheKey = lowerPluginId + ":" + selectedChannelConfig.type();
         
         // 检查缓存中是否已存在该实例
         if (updateInstanceCache.containsKey(cacheKey)) {
@@ -85,7 +85,7 @@ public class UpdateChannelManager {
      * @param pluginId 插件标识符（小写）
      * @return 插件更新配置，如果文件不存在或解析失败返回null
      */
-    private PluginUpdateConfig loadPluginConfig(String pluginId) {
+    private UpdateConfig loadPluginConfig(String pluginId) {
         try {
             Path configPath = getChannelConfigPath(pluginId);
             if (!Files.exists(configPath)) {
@@ -93,7 +93,7 @@ public class UpdateChannelManager {
             }
 
             String jsonContent = new String(Files.readAllBytes(configPath));
-            return gson.fromJson(jsonContent, PluginUpdateConfig.class);
+            return gson.fromJson(jsonContent, UpdateConfig.class);
         } catch (IOException e) {
             logger.warning(LanguageService.instance().tr("message.service.channel.error.config-failed", pluginId));
             return null;
@@ -108,8 +108,8 @@ public class UpdateChannelManager {
      * @param config 插件更新配置
      * @return 选中的渠道配置
      */
-    private ChannelConfig selectChannel(PluginUpdateConfig config) {
-        List<ChannelConfig> channels = config.getChannels();
+    private ChannelConfig selectChannel(UpdateConfig config) {
+        List<ChannelConfig> channels = config.channels();
         if (channels == null || channels.isEmpty()) {
             return null;
         }
@@ -120,11 +120,11 @@ public class UpdateChannelManager {
         }
 
         // 多个渠道的情况
-        String selectedChannel = config.getSelectedChannel();
+        String selectedChannel = config.selectedChannel();
         if (selectedChannel != null && !selectedChannel.isEmpty()) {
             // 用户选择了特定的渠道
             for (ChannelConfig channel : channels) {
-                if (selectedChannel.equalsIgnoreCase(channel.getType())) {
+                if (selectedChannel.equalsIgnoreCase(channel.type())) {
                     return channel;
                 }
             }
@@ -142,8 +142,8 @@ public class UpdateChannelManager {
      * @return AbstractUpdate实现实例
      */
     private AbstractUpdate createUpdateInstance(String pluginId, ChannelConfig channelConfig) {
-        String type = channelConfig.getType();
-        Object config = channelConfig.getConfig();
+        String type = channelConfig.type();
+        Object config = channelConfig.config();
 
         if (type == null || config == null) {
             return null;
@@ -152,16 +152,12 @@ public class UpdateChannelManager {
         try {
             switch (type.toLowerCase()) {
                 case "url" -> {
-                    UrlChannelInfo urlInfo = gson.fromJson(gson.toJsonTree(config), UrlChannelInfo.class);
-                    if (urlInfo.getUrl() != null) {
-                        return new URLUpdate(pluginId, urlInfo.getUrl(), platform);
-                    }
+                    UrlChannelInfo info = gson.fromJson(gson.toJsonTree(config), UrlChannelInfo.class);
+                    return new URLUpdate(pluginId, info, platform);
                 }
                 case "modrinth" -> {
-                    ModrinthChannelInfo modrinthInfo = gson.fromJson(gson.toJsonTree(config), ModrinthChannelInfo.class);
-                    if (modrinthInfo.getProjectId() != null) {
-                        return new ModrinthUpdate(pluginId, modrinthInfo.getProjectId(), platform);
-                    }
+                    ModrinthChannelInfo info = gson.fromJson(gson.toJsonTree(config), ModrinthChannelInfo.class);
+                    return new ModrinthUpdate(pluginId, info, platform);
                 }
                 default -> logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", type));
             }

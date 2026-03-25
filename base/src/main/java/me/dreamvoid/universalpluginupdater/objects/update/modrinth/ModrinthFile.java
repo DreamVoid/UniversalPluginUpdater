@@ -1,39 +1,26 @@
-package me.dreamvoid.universalpluginupdater.update.modrinth;
+package me.dreamvoid.universalpluginupdater.objects.update.modrinth;
 
 import com.google.gson.annotations.SerializedName;
-import lombok.Getter;
 
 import java.util.Map;
 
 /**
  * Modrinth API返回的文件信息
  */
-@Getter
-public class ModrinthFile {
-    @SerializedName("id")
-    private String id;
-
-    @SerializedName("url")
-    private String url;
-
-    @SerializedName("filename")
-    private String filename;
-
-    @SerializedName("primary")
-    private boolean primary;
-
-    @SerializedName("size")
-    private long size;
-
-    @SerializedName("hashes")
-    private Map<String, String> hashes;  // 哈希值映射，如 {"sha1": "...", "sha512": "..."}
-
+public record ModrinthFile (
+    @SerializedName("id") String id,
+    @SerializedName("url") String url,
+    @SerializedName("filename") String filename,
+    @SerializedName("primary") boolean primary,
+    @SerializedName("size") long size,
+    @SerializedName("hashes") Map<String, String> hashes  // 哈希值映射，如 {"sha1": "...", "sha512": "..."}
+) {
     /**
      * 获取文件哈希值
      * 优先级：sha256 > sha1 > sha512 > md5
      * @return 哈希值，如果不存在返回null
      */
-    public String getPreferredHash() {
+    public String getHash() {
         if (hashes == null || hashes.isEmpty()) {
             return null;
         }
@@ -52,7 +39,7 @@ public class ModrinthFile {
     /**
      * 获取文件哈希算法
      */
-    public String getPreferredHashAlgorithm() {
+    public String getHashAlgorithm() {
         if (hashes == null || hashes.isEmpty()) {
             return null;
         }

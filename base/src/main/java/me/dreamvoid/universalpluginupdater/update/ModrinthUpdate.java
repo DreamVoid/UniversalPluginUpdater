@@ -2,11 +2,12 @@ package me.dreamvoid.universalpluginupdater.update;
 
 import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
-import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthFile;
-import me.dreamvoid.universalpluginupdater.update.modrinth.ModrinthVersion;
+import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
+import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,17 +22,21 @@ public class ModrinthUpdate extends AbstractUpdate {
     private static final Logger logger = Utils.getLogger();
 
     private final String pluginId;
-    private final String projectId;
+    private final ModrinthChannelInfo info;
     private final IPlatformProvider platform;
     private ModrinthVersion selectedVersion;
     private String lastModified;
     private Path downloadedFilePath;
 
-    public ModrinthUpdate(String pluginId, String projectId, IPlatformProvider platform) {
+    public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, IPlatformProvider platform) {
         this.updateType = UpdateType.Modrinth;
         this.pluginId = pluginId;
-        this.projectId = projectId;
+        this.info = info;
         this.platform = platform;
+
+        if(info.projectId() == null || info.projectId().isEmpty()){
+            throw new IllegalArgumentException("projectId 不存在或为空");
+        }
     }
 
     /**
@@ -91,7 +96,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         StringBuilder url = new StringBuilder();
         url.append(MODRINTH_API)
                 .append("/project/")
-                .append(projectId)
+                .append(info.projectId())
                 .append("/version");
 
         // 构建查询参数
@@ -101,7 +106,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         queries.add("include_changelog=false");
 
         // 添加featured参数（默认true，优先选择推荐版本）
-        if (true) { // TODO: 由用户控制是否featured
+        if (info.featured()) {
             queries.add("featured=true");
         }
 
@@ -127,7 +132,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         // 原因：本地插件版本号暂无法获取，且Modrinth版本号通常非纯数字
         // 仅当版本号为纯数字时才适合直接比较大小
         // 其他平台的更新渠道实现时应注意此点
-        return selectedVersion != null ? selectedVersion.getName() : null;
+        return selectedVersion != null ? selectedVersion.name() : null;
     }
 
     @Override
@@ -169,15 +174,15 @@ public class ModrinthUpdate extends AbstractUpdate {
         }
 
         ModrinthFile file = selectedVersion.getPrimaryFile();
-        if (file == null || file.getUrl() == null) {
+        if (file == null || file.url() == null) {
             logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-primary-file"));
             return false;
         }
 
-        String downloadUrl = file.getUrl();
-        String originFilename = file.getFilename();
-        String preferredHash = file.getPreferredHash();
-        String hashAlgorithm = file.getPreferredHashAlgorithm();
+        String downloadUrl = file.url();
+        String originFilename = file.filename();
+        String preferredHash = file.getHash();
+        String hashAlgorithm = file.getHashAlgorithm();
 
         try {
             String desiredFilename = Utils.resolveUpdaterDesiredFilename(pluginId, updateType);
