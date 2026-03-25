@@ -98,15 +98,13 @@ public class URLUpdate extends AbstractUpdate {
         String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
 
         try {
-            // TODO: 从配置文件中读取自定义文件名配置
+            String desiredFilename = Utils.resolveUpdaterDesiredFilename(pluginId, updateType);
 
             // 获取数据目录下的downloads文件夹
             Path downloadDir = platform.getDataPath().resolve("downloads");
 
-            // 首先尝试获取文件名（从URL或其他地方）
-            // 此处我们让Utils自动从Content-Disposition或URL路径提取
-            // 第一次下载时，我们不知道最终的文件名，所以先执行一次下载获取文件名
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, null);
+            // 若配置包含 ${originName}，desiredFilename 会被解析为 null，交给 Http 层按服务器原始文件名处理
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
 
             if (!result.success()) {
                 logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));

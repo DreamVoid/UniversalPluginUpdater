@@ -4,6 +4,7 @@ language: system
 updater:
   strategy: native
   allow-upgrade-now: true
+  filename: ${originName}
   proxy:
     uri: ~
     username: ~

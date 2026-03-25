@@ -25,6 +25,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     private final IPlatformProvider platform;
     private ModrinthVersion selectedVersion;
     private String lastModified;
+    private Path downloadedFilePath;
 
     public ModrinthUpdate(String pluginId, String projectId, IPlatformProvider platform) {
         this.updateType = UpdateType.Modrinth;
@@ -145,9 +146,9 @@ public class ModrinthUpdate extends AbstractUpdate {
             Path currentPluginFile = platform.getPluginFile(pluginId);
 
             // 获取下载的新文件路径
-            Path newPluginFile = platform.getDataPath().resolve("downloads").resolve(selectedVersion.getPrimaryFile().getFilename());
+            Path newPluginFile = downloadedFilePath;
 
-            if (!Files.exists(newPluginFile)) {
+            if (newPluginFile == null || !Files.exists(newPluginFile)) {
                 logger.warning(LanguageService.instance().tr("message.update.error.downloaded-file-missing", newPluginFile));
                 return false;
             }
@@ -174,21 +175,23 @@ public class ModrinthUpdate extends AbstractUpdate {
         }
 
         String downloadUrl = file.getUrl();
-        String filename = file.getFilename();
+        String originFilename = file.getFilename();
         String preferredHash = file.getPreferredHash();
         String hashAlgorithm = file.getPreferredHashAlgorithm();
 
         try {
-            // TODO: 从配置文件中读取自定义文件名配置
+            String desiredFilename = Utils.resolveUpdaterDesiredFilename(pluginId, updateType);
+            String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
             // 获取数据目录下的downloads文件夹
             Path downloadDir = platform.getDataPath().resolve("downloads");
-            Path filePath = downloadDir.resolve(filename);
+            Path filePath = downloadDir.resolve(expectedFilename);
 
             // 检查文件是否已存在且完整
             if (filePath.toFile().exists()) {
                 if (preferredHash != null && hashAlgorithm != null
                         && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                    this.downloadedFilePath = filePath;
                     logger.info(LanguageService.instance().tr("message.update.hit", downloadUrl));
                     return true;  // 文件完整，不必重新下载
                 } else {
@@ -197,24 +200,29 @@ public class ModrinthUpdate extends AbstractUpdate {
             }
 
             // 执行下载
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, filename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
 
             if (!result.success()) {
                 logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));
                 return false;
             }
 
+            Path downloadedPath = downloadDir.resolve(result.filename());
+
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
-                if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                if (Utils.File.verifyHash(downloadedPath, hashAlgorithm, preferredHash)) {
+                    this.downloadedFilePath = downloadedPath;
                     logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
                     return true;
                 } else {
                     logger.warning(LanguageService.instance().tr("message.update.error.checksum", downloadUrl));
-                    Files.delete(filePath);  // 删除不完整的文件
+                    Files.delete(downloadedPath);  // 删除不完整的文件
+                    this.downloadedFilePath = null;
                     return false;
                 }
             } else {
+                this.downloadedFilePath = downloadedPath;
                 logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
                 return true;
             }

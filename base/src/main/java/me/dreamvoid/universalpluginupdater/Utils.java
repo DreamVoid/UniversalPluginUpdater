@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.dreamvoid.universalpluginupdater.update.UpdateType;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -16,6 +17,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.logging.Logger;
 
@@ -28,6 +30,35 @@ public final class Utils {
     @Getter
     @Setter
     private static Logger logger;
+
+    @Nullable
+    public static String resolveUpdaterDesiredFilename(String pluginId, @Nullable UpdateType channel) {
+        String template = Config.Updater_Filename;
+        if (template == null) {
+            return null;
+        }
+
+        String filename = template.trim();
+        if (filename.isEmpty()) {
+            return null;
+        }
+
+        if (filename.contains("${originName}")) {
+            return null;
+        }
+
+        String channelValue = channel == null ? "" : channel.name().toLowerCase(Locale.ROOT);
+        String timestamp = String.valueOf(System.currentTimeMillis());
+
+        filename = filename
+                .replace("${pluginId}", pluginId == null ? "" : pluginId)
+                .replace("${channel}", channelValue)
+                .replace("{$timestamp}", timestamp)
+                .replace("${timestamp}", timestamp)
+                .trim();
+
+        return filename.isEmpty() ? null : filename;
+    }
 
     public static class Http {
         private static final OkHttpClient defaultClient = new OkHttpClient.Builder()
@@ -121,10 +152,10 @@ public final class Utils {
          * 下载文件到指定目录
          * @param url 文件URL
          * @param saveDir 目标目录
-         * @param desiredFilename 期望的文件名，如果为null则尝试从服务器获取文件名
+         * @param filename 期望的文件名，如果为null则尝试从服务器获取文件名
          * @return {@link DownloadResult}对象
          */
-        public static DownloadResult download(String url, Path saveDir, @Nullable String desiredFilename) throws IOException {
+        public static DownloadResult download(String url, Path saveDir, @Nullable String filename) throws IOException {
             // 确保目标目录存在
             Files.createDirectories(saveDir);
             OkHttpClient httpClient = getClient();
@@ -139,7 +170,6 @@ public final class Utils {
                 }
 
                 // 确定文件名
-                String filename = desiredFilename;
                 if (filename == null || filename.isEmpty()) {
                     // 尝试从Content-Disposition头获取文件名
                     String contentDisposition = response.header("Content-Disposition");
@@ -152,11 +182,13 @@ public final class Utils {
                         filename = extractFilenameFromUrl(url);
                     }
 
-                    // 如果仍然无法获取文件名，使用默认名称
+                    // 如果仍然无法获取文件名，使用兜底名称
                     if (filename == null || filename.isEmpty()) {
-                        filename = desiredFilename;
+                        filename = "download-" + System.currentTimeMillis();
                     }
                 }
+
+                filename = filename.trim();
 
                 // 构建完整的文件路径
                 Path filePath = saveDir.resolve(filename);
