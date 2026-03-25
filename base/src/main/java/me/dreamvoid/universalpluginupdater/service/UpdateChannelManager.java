@@ -47,17 +47,50 @@ public class UpdateChannelManager {
      * 这样可以保留HTTP缓存信息（lastModified）供后续请求使用
      */
     private final Map<String, AbstractUpdate> updateInstanceCache = new HashMap<>();
+    private final Map<String, Long> pluginConfigFingerprints = new HashMap<>();
+    private Long globalConfigFingerprint = null;
 
     public UpdateChannelManager(IPlatformProvider platform) {
         this.platform = platform;
     }
 
     /**
-     * 清空更新实例缓存<br>
-     * 应当仅在 update 操作时调用
+     * 验证缓存，并移除失效的缓存
      */
-    public void clearCache() {
-        updateInstanceCache.clear();
+    public synchronized void validateCache() {
+        Path channelsDir = platform.getDataPath().resolve("channels");
+        Path globalFile = platform.getDataPath().resolve("global.json");
+
+        Map<String, Long> currentPluginFingerprints = collectPluginConfigFingerprints(channelsDir);
+        Long globalFingerprint = getFileFingerprint(globalFile);
+
+        if (!Objects.equals(globalConfigFingerprint, globalFingerprint)) {
+            updateInstanceCache.clear(); // 全局配置更改
+        } else {
+            Set<String> changedPlugins = new HashSet<>();
+
+            for (Map.Entry<String, Long> entry : currentPluginFingerprints.entrySet()) {
+                String pluginId = entry.getKey();
+                Long oldFingerprint = pluginConfigFingerprints.get(pluginId);
+                if (!Objects.equals(oldFingerprint, entry.getValue())) {
+                    changedPlugins.add(pluginId);
+                }
+            }
+
+            for (String pluginId : pluginConfigFingerprints.keySet()) {
+                if (!currentPluginFingerprints.containsKey(pluginId)) {
+                    changedPlugins.add(pluginId);
+                }
+            }
+
+            for (String pluginId : changedPlugins) {
+                removePluginCache(pluginId);
+            }
+        }
+
+        pluginConfigFingerprints.clear();
+        pluginConfigFingerprints.putAll(currentPluginFingerprints);
+        globalConfigFingerprint = globalFingerprint;
     }
 
     /**
@@ -311,6 +344,50 @@ public class UpdateChannelManager {
             return null;
         }
         return CHANNEL_DESCRIPTORS.get(channelType.toLowerCase());
+    }
+
+    private Map<String, Long> collectPluginConfigFingerprints(Path channelsDir) {
+        Map<String, Long> result = new HashMap<>();
+        if (!Files.isDirectory(channelsDir)) {
+            return result;
+        }
+
+        try (var paths = Files.list(channelsDir)) {
+            paths.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".json"))
+                    .forEach(path -> {
+                        String filename = path.getFileName().toString();
+                        int dotIndex = filename.lastIndexOf('.');
+                        if (dotIndex <= 0) {
+                            return;
+                        }
+                        String pluginId = filename.substring(0, dotIndex).toLowerCase();
+                        Long fingerprint = getFileFingerprint(path);
+                        if (fingerprint != null) {
+                            result.put(pluginId, fingerprint);
+                        }
+                    });
+        } catch (IOException ignored) {}
+
+        return result;
+    }
+
+    private Long getFileFingerprint(Path file) {
+        if (!Files.isRegularFile(file)) {
+            return null;
+        }
+        try {
+            long size = Files.size(file);
+            long modified = Files.getLastModifiedTime(file).toMillis();
+            return (long) Objects.hash(size, modified);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private void removePluginCache(String pluginId) {
+        String prefix = pluginId + ":";
+        updateInstanceCache.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
     private <T> Object normalizeWithDescriptor(ChannelDescriptor<T> descriptor, Object source) {

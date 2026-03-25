@@ -50,7 +50,7 @@ public class UpdateManager {
             throw new IllegalStateException(LanguageService.instance().tr("message.service.error.check-update-service-not-initialized"));
         }
         if (updateChannelManager != null) {
-            updateChannelManager.clearCache();
+            updateChannelManager.validateCache();
         }
         // 执行检查并缓存结果
         cachedUpdateInfos = checkUpdateService.checkAllPluginUpdates();
