@@ -50,8 +50,8 @@ public final class UpgradeCommand implements ISubCommand {
                 context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.upgrade.start"));
 
                 // 获取缓存的更新信息
-                UpdateManager updateManager = UpdateManager.getInstance();
-                List<UpdateInfo> updateInfos = updateManager.getCachedUpdateInfos();
+                UpdateManager updateManager = UpdateManager.instance();
+                List<UpdateInfo> updateInfos = updateManager.getUpdateInfoList();
 
                 // 检查是否有可升级的更新
                 if (updateInfos.isEmpty()) {
@@ -75,7 +75,7 @@ public final class UpgradeCommand implements ISubCommand {
 
                     try {
                         // 获取该插件的更新实例
-                        AbstractUpdate updateInstance = updateManager.getUpdateChannelForPlugin(pluginId);
+                        AbstractUpdate updateInstance = updateManager.getUpdateChannel(pluginId);
                         if (updateInstance == null) {
                             logger.warning(LanguageService.instance().tr("message.command.upgrade.error.no-channel", pluginId));
                             failureCount++;

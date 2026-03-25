@@ -1,4 +1,4 @@
-package me.dreamvoid.universalpluginupdater.objects.update;
+package me.dreamvoid.universalpluginupdater.objects.channel;
 
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;

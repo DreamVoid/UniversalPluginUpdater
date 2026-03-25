@@ -33,8 +33,8 @@ public final class UpdateCommand implements ISubCommand {
                 context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.update.start"));
 
                 // 获取待更新的插件列表
-                UpdateManager updateManager = UpdateManager.getInstance();
-                List<UpdateInfo> updateInfos = updateManager.checkAllPluginUpdates();
+                UpdateManager updateManager = UpdateManager.instance();
+                List<UpdateInfo> updateInfos = updateManager.checkUpdate();
 
                 if (updateInfos.isEmpty()) {
                     context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.update.none"));

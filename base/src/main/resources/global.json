@@ -1,0 +1,18 @@
+{
+  "selectedChannel": null,
+  "channels": [
+    {
+      "type": "modrinth",
+      "config": {
+        "projectId": null,
+        "featured": false
+      }
+    },
+    {
+      "type": "url",
+      "config": {
+        "url": null
+      }
+    }
+  ]
+}

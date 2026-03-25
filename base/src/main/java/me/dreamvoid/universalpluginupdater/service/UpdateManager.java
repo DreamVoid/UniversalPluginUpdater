@@ -17,8 +17,7 @@ public class UpdateManager {
     private UpdateChannelManager updateChannelManager;
     private List<UpdateInfo> cachedUpdateInfos = new ArrayList<>();  // 缓存最后一次的检查结果
 
-    private UpdateManager() {
-    }
+    private UpdateManager() {}
 
     /**
      * 初始化UpdateManager
@@ -35,7 +34,7 @@ public class UpdateManager {
     /**
      * 获取UpdateManager实例
      */
-    public static UpdateManager getInstance() {
+    public static UpdateManager instance() {
         if (instance == null) {
             throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-manager-not-initialized"));
         }
@@ -46,9 +45,12 @@ public class UpdateManager {
      * 检查所有插件的更新
      * @return 待更新的插件列表
      */
-    public List<UpdateInfo> checkAllPluginUpdates() {
+    public List<UpdateInfo> checkUpdate() {
         if (checkUpdateService == null) {
             throw new IllegalStateException(LanguageService.instance().tr("message.service.error.check-update-service-not-initialized"));
+        }
+        if (updateChannelManager != null) {
+            updateChannelManager.clearCache();
         }
         // 执行检查并缓存结果
         cachedUpdateInfos = checkUpdateService.checkAllPluginUpdates();
@@ -59,7 +61,7 @@ public class UpdateManager {
      * 获取缓存的更新信息列表
      * @return 最后一次检查的结果
      */
-    public List<UpdateInfo> getCachedUpdateInfos() {
+    public List<UpdateInfo> getUpdateInfoList() {
         return new ArrayList<>(cachedUpdateInfos);  // 返回副本以防外部修改
     }
 
@@ -68,7 +70,7 @@ public class UpdateManager {
      * @param pluginId 插件ID
      * @return 对应的AbstractUpdate实例，若无法获取返回null
      */
-    public AbstractUpdate getUpdateChannelForPlugin(String pluginId) {
+    public AbstractUpdate getUpdateChannel(String pluginId) {
         if (updateChannelManager == null) {
             throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-channel-manager-not-initialized"));
         }
