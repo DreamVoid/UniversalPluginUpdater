@@ -6,7 +6,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
@@ -40,12 +39,6 @@ public class BukkitCommandSender implements ICommandSender {
     @Override
     public String getName() {
         return sender.getName();
-    }
-
-    @Override
-    @Nullable
-    public Object getHandle() {
-        return sender;
     }
 
     @Override

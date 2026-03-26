@@ -1,7 +1,5 @@
 package me.dreamvoid.universalpluginupdater.platform;
 
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Locale;
 
 /**
@@ -28,14 +26,6 @@ public interface ICommandSender {
      * 获取发送者的名称
      */
     String getName();
-
-    /**
-     * 获取底层平台对象
-     * 平台实现可以通过该对象判断发送者是否为玩家，并获取其客户端语言
-     * @return 底层对象，如果不存在返回null
-     */
-    @Nullable
-    Object getHandle();
 
     /**
      * 获取命令发送者的Locale

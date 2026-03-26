@@ -60,6 +60,7 @@ public final class LanguageService {
     }
 
     /**
+     * 获取语言键对应的文本<br>
      * 参数使用 {@link MessageFormat#format(String, Object...)} 格式化
      * @param key 语言键
      * @param args 参数
@@ -70,6 +71,8 @@ public final class LanguageService {
     }
 
     /**
+     * 获取语言键对应的文本<br>
+     * 参数使用 {@link MessageFormat#format(String, Object...)} 格式化
      * @param locale 语言环境
      * @param key 语言键
      * @param args 参数
