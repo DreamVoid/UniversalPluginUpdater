@@ -29,7 +29,7 @@ public final class UpgradeCommand implements ISubCommand {
     @Override
     public void execute(CommandContext context) {
         Locale locale = context.getSender().getLocale();
-        if(AsyncLock.tryAcquire()) {
+        if(AsyncLock.acquire()) {
             try {
                 String[] subArgs = context.getSubCommandArgs();
                 boolean executeNow = false;

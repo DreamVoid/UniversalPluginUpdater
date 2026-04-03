@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater;
 
+import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
 import me.dreamvoid.universalpluginupdater.update.UpdateType;
@@ -29,10 +30,13 @@ public final class Utils {
 
     @Getter
     @Setter
-    private static Logger logger;
+    private static Logger logger = Logger.getLogger("UPU");
+
+    @Getter
+    private static final Gson gson = new Gson();
 
     @Nullable
-    public static String resolveUpdaterDesiredFilename(String pluginId, @Nullable UpdateType channel) {
+    public static String parseFileName(String pluginId, @Nullable UpdateType channel) {
         String template = Config.Updater_Filename;
         if (template == null) {
             return null;

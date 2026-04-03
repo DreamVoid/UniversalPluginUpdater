@@ -1,13 +1,12 @@
 package me.dreamvoid.universalpluginupdater.update;
 
-import com.google.gson.Gson;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
+import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
-import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
-import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,9 +17,8 @@ import java.util.logging.Logger;
 
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
-    private static final Gson gson = new Gson();
-    private static final Logger logger = Utils.getLogger();
 
+    private final Logger logger ;
     private final String pluginId;
     private final ModrinthChannelInfo info;
     private final IPlatformProvider platform;
@@ -33,6 +31,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
+        this.logger = platform.getPlatformLogger();
 
         if(info.projectId() == null || info.projectId().isEmpty()){
             throw new IllegalArgumentException("projectId 不存在或为空");
@@ -68,7 +67,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 }
 
                 // 解析JSON数组
-                ModrinthVersion[] versions = gson.fromJson(content, ModrinthVersion[].class);
+                ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
                     logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-versions", url));
                     return false;
@@ -185,7 +184,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         String hashAlgorithm = file.getHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.resolveUpdaterDesiredFilename(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, updateType);
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
             // 获取数据目录下的downloads文件夹

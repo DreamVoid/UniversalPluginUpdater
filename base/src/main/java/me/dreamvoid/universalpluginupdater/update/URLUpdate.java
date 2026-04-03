@@ -1,6 +1,5 @@
 package me.dreamvoid.universalpluginupdater.update;
 
-import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
@@ -16,8 +15,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class URLUpdate extends AbstractUpdate {
-    private static final Gson gson = new Gson();
-
     private final String pluginId;
     private final UrlChannelInfo info;
     private final IPlatformProvider platform;
@@ -70,7 +67,7 @@ public class URLUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                this.updateInfo = gson.fromJson(jsonResponse, UpdateInfo.class);
+                this.updateInfo = Utils.getGson().fromJson(jsonResponse, UpdateInfo.class);
                 this.lastModified = response.lastModified;
 
                 if (updateInfo == null || updateInfo.version == null || updateInfo.downloadUrl == null) {
@@ -104,7 +101,7 @@ public class URLUpdate extends AbstractUpdate {
         String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.resolveUpdaterDesiredFilename(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, updateType);
 
             // 获取数据目录下的downloads文件夹
             Path downloadDir = platform.getDataPath().resolve("downloads");

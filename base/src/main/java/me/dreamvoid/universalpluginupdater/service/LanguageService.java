@@ -1,10 +1,10 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 import me.dreamvoid.universalpluginupdater.Config;
+import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 
 import java.io.InputStream;
@@ -16,13 +16,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 /**
  * 主代码语言服务
@@ -33,16 +33,14 @@ public final class LanguageService {
     private static final String LOCALE_PROPERTY = "upu.locale";
     private static final String LANG_RESOURCE_DIR = "lang";
     private static final LanguageService INSTANCE = new LanguageService();
-    private static final Logger logger = Logger.getLogger(LanguageService.class.getName());
-    private static final Gson gson = new Gson();
+    private static Logger logger = Logger.getLogger(LanguageService.class.getName());
     private static final Type MAP_TYPE = new TypeToken<Map<String, JsonElement>>() {}.getType();
 
     private final Map<String, Map<String, JsonElement>> cache = new ConcurrentHashMap<>();
     private final Map<String, String> localeResolveCache = new ConcurrentHashMap<>();
     private volatile IPlatformProvider platform;
 
-    private LanguageService() {
-    }
+    private LanguageService() {}
 
     /**
      * 获取语言服务实例
@@ -56,6 +54,7 @@ public final class LanguageService {
 
     public void setPlatform(IPlatformProvider platform) {
         this.platform = platform;
+        logger = platform.getPlatformLogger();
         localeResolveCache.clear();
     }
 
@@ -182,7 +181,7 @@ public final class LanguageService {
             }
 
             try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-                Map<String, JsonElement> bundle = gson.fromJson(reader, MAP_TYPE);
+                Map<String, JsonElement> bundle = Utils.getGson().fromJson(reader, MAP_TYPE);
                 return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {
@@ -207,7 +206,7 @@ public final class LanguageService {
             configuredLanguage = "system";
         }
 
-        if (!"system".equalsIgnoreCase(configuredLanguage)) {
+        if (!configuredLanguage.equalsIgnoreCase("system")) {
             return parseLocale(configuredLanguage);
         }
 
@@ -347,13 +346,13 @@ public final class LanguageService {
 
     private Set<String> collectAvailableLocales() {
         Set<String> locales = new HashSet<>();
-        collectLocalesFromExternal(locales);
-        collectLocalesFromClasspath(locales);
+        loadLocalesExternal(locales);
+        loadLocales(locales);
         locales.add(FALLBACK_LOCALE);
         return locales;
     }
 
-    private void collectLocalesFromExternal(Set<String> locales) {
+    private void loadLocalesExternal(Set<String> locales) {
         if (platform == null) {
             return;
         }
@@ -373,7 +372,7 @@ public final class LanguageService {
         }
     }
 
-    private void collectLocalesFromClasspath(Set<String> locales) {
+    private void loadLocales(Set<String> locales) {
         try {
             var resources = LanguageService.class.getClassLoader().getResources(LANG_RESOURCE_DIR);
             while (resources.hasMoreElements()) {
@@ -424,12 +423,7 @@ public final class LanguageService {
         }
 
         String locale = sanitizedFileName.substring(0, sanitizedFileName.length() - 5);
-        if (sanitizedFileName.endsWith(".json")) {
-            locales.add(normalizeLocaleTag(locale));
-            return;
-        }
-
-        if (sanitizedFileName.endsWith(".link")) {
+        if (sanitizedFileName.endsWith(".json") || sanitizedFileName.endsWith(".link")) {
             locales.add(normalizeLocaleTag(locale));
         }
     }
@@ -464,7 +458,7 @@ public final class LanguageService {
             }
 
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-                Map<String, JsonElement> bundle = gson.fromJson(reader, MAP_TYPE);
+                Map<String, JsonElement> bundle = Utils.getGson().fromJson(reader, MAP_TYPE);
                 return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {

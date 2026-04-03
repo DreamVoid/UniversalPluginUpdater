@@ -1,8 +1,7 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ public class CheckUpdateService {
     public CheckUpdateService(IPlatformProvider platform, UpdateChannelManager channelManager) {
         this.platform = platform;
         this.channelManager = channelManager;
-        this.logger = Utils.getLogger();
+        this.logger = platform.getPlatformLogger();
     }
 
     /**

@@ -45,8 +45,7 @@ public class UpgradeService {
             return false;
         }
 
-        boolean shouldExecuteNow = canUpgradeNow(executeNow, strategy);
-        if (shouldExecuteNow) {
+        if (canUpgradeNow(executeNow, strategy)) {
             return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
         } else {
             pendingOperations.add(new PendingUpgradeOperation(pluginId, newPluginFile, currentPluginFile, strategyId));
@@ -64,12 +63,8 @@ public class UpgradeService {
     }
 
     private boolean canUpgradeNow(boolean executeNow, IUpgradeStrategy strategy) {
-        if (strategy == null) {
-            return false;
-        }
-        if (strategy.supportSaveUpgrade()) {
-            return true;
-        }
+        if (strategy == null) return false;
+        if (strategy.supportSaveUpgrade()) return true;
         return executeNow && Config.Updater_AllowUpgradeNow;
     }
 
@@ -77,16 +72,14 @@ public class UpgradeService {
      * 在插件卸载阶段执行所有排队升级任务
      */
     public ExecutionResult executePendingUpgrades() {
-        int successCount = 0;
-        int failureCount = 0;
+        int successCount = 0, failureCount = 0;
 
         PendingUpgradeOperation operation;
         while ((operation = pendingOperations.poll()) != null) {
-            boolean ok = executeUpgrade(operation.pluginId, operation.newPluginFile, operation.currentPluginFile, operation.strategyId);
-            if (ok) {
-                successCount++;
+            if (executeUpgrade(operation.pluginId, operation.newPluginFile, operation.currentPluginFile, operation.strategyId)) {
+                successCount += 1;
             } else {
-                failureCount++;
+                failureCount += 1;
             }
         }
 

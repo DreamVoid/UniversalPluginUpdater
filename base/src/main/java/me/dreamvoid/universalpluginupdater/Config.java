@@ -1,5 +1,7 @@
 package me.dreamvoid.universalpluginupdater;
 
+import java.util.logging.Logger;
+
 /**
  * 主代码配置缓存
  *
@@ -19,7 +21,7 @@ public abstract class Config {
      * 加载/重载配置项
      */
     public void reloadConfig(){
-        Utils.getLogger().info("正在加载配置文件...");
+        getLogger().info("正在加载配置文件...");
         loadConfig();
 
         Verbose = getBoolean("verbose", Verbose);
@@ -37,6 +39,8 @@ public abstract class Config {
      * 在 Bukkit 上，类似 saveDefaultConfig() + reloadConfig()
      */
     public abstract void loadConfig();
+
+    public abstract Logger getLogger();
 
     public abstract String getString(String path, String def);
 

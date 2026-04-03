@@ -20,8 +20,7 @@ public final class UpgradeStrategyRegistry {
     
     private final Logger logger = Utils.getLogger();
 
-    private UpgradeStrategyRegistry() {
-    }
+    private UpgradeStrategyRegistry() {}
 
     public static UpgradeStrategyRegistry getInstance() {
         return INSTANCE;

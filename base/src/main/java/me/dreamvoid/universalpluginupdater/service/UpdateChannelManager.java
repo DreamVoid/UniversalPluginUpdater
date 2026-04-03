@@ -1,6 +1,5 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Utils;
@@ -25,8 +24,9 @@ import java.util.logging.Logger;
  * 负责读取配置文件并选择合适的更新渠道
  */
 public class UpdateChannelManager {
-    private static final Gson gson = new Gson();
-    private static final Logger logger = Utils.getLogger();
+    /**
+     * 可用更新渠道注册
+     */
     private static final Map<String, ChannelDescriptor<?>> CHANNEL_DESCRIPTORS = Map.of(
             // 增加新的更新渠道时，在这里注册
             "url", new ChannelDescriptor<>(
@@ -42,6 +42,7 @@ public class UpdateChannelManager {
     );
 
     private final IPlatformProvider platform;
+    private final Logger logger;
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
      * 这样可以保留HTTP缓存信息（lastModified）供后续请求使用
@@ -52,6 +53,7 @@ public class UpdateChannelManager {
 
     public UpdateChannelManager(IPlatformProvider platform) {
         this.platform = platform;
+        this.logger = platform.getPlatformLogger();
     }
 
     /**
@@ -143,16 +145,14 @@ public class UpdateChannelManager {
     private UpdateConfig getPluginConfig(String pluginId) {
         try {
             Path configPath = getChannelConfigPath(pluginId);
-            if (!Files.exists(configPath)) {
-                return null;
+            if (Files.exists(configPath)) {
+                String jsonContent = new String(Files.readAllBytes(configPath));
+                return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
             }
-
-            String jsonContent = new String(Files.readAllBytes(configPath));
-            return gson.fromJson(jsonContent, UpdateConfig.class);
         } catch (IOException e) {
             logger.warning(LanguageService.instance().tr("message.service.channel.error.config.failed", pluginId));
-            return null;
         }
+        return null;
     }
 
     /**
@@ -200,18 +200,14 @@ public class UpdateChannelManager {
         String type = channelConfig.type();
         Object config = channelConfig.config();
 
-        if (type == null) {
-            return null;
-        }
-
-        try {
+        if (type != null) try {
             ChannelDescriptor<?> descriptor = getChannelDescriptor(type);
-            if (descriptor == null) {
+            if (descriptor != null) {
+                return createWithDescriptor(descriptor, pluginId, config);
+            } else {
                 logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", type));
                 return null;
             }
-
-            return createWithDescriptor(descriptor, pluginId, config);
         } catch (Exception e) {
             logger.warning(LanguageService.instance().tr("message.service.channel.error.exception", type, e));
         }
@@ -230,10 +226,7 @@ public class UpdateChannelManager {
     }
 
     private UpdateConfig merge(UpdateConfig pluginConfig) {
-        if (pluginConfig == null) {
-            return null;
-        }
-        return mergeUpdateConfig(pluginConfig, getGlobalConfig());
+        return pluginConfig != null ? mergeUpdateConfig(pluginConfig, getGlobalConfig()) : null;
     }
 
     private UpdateConfig getGlobalConfig() {
@@ -251,7 +244,7 @@ public class UpdateChannelManager {
             }
 
             String jsonContent = Files.readString(globalPath);
-            return gson.fromJson(jsonContent, UpdateConfig.class);
+            return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
         } catch (IOException e) {
             logger.warning(LanguageService.instance().tr("message.service.channel.error.config.exception", "global", e));
             return null;
@@ -305,8 +298,8 @@ public class UpdateChannelManager {
             return pluginConfig;
         }
 
-        JsonElement pluginTree = gson.toJsonTree(pluginConfig);
-        JsonElement globalTree = gson.toJsonTree(globalConfig);
+        JsonElement pluginTree = Utils.getGson().toJsonTree(pluginConfig);
+        JsonElement globalTree = Utils.getGson().toJsonTree(globalConfig);
         if (!pluginTree.isJsonObject() || !globalTree.isJsonObject()) {
             return pluginConfig;
         }
@@ -322,72 +315,53 @@ public class UpdateChannelManager {
     }
 
     private ChannelConfig normalizeChannelConfig(ChannelConfig channel) {
-        if (channel == null || channel.type() == null) {
-            return channel;
-        }
+        return ((channel == null) || (channel.type() == null)) ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(channel.type(), channel.config()));
 
-        Object normalizedConfig = normalizeConfigObject(channel.type(), channel.config());
-        return new ChannelConfig(channel.type(), normalizedConfig);
     }
 
     private Object normalizeConfigObject(String channelType, Object source) {
         ChannelDescriptor<?> descriptor = getChannelDescriptor(channelType);
-        if (descriptor == null) {
-            return source;
-        }
-
-        return normalizeWithDescriptor(descriptor, source);
+        return descriptor != null ? normalizeWithDescriptor(descriptor, source) : source;
     }
 
     private static ChannelDescriptor<?> getChannelDescriptor(String channelType) {
-        if (channelType == null) {
-            return null;
-        }
-        return CHANNEL_DESCRIPTORS.get(channelType.toLowerCase());
+        return channelType != null ? CHANNEL_DESCRIPTORS.get(channelType.toLowerCase()) : null;
     }
 
     private Map<String, Long> collectPluginConfigFingerprints(Path channelsDir) {
         Map<String, Long> result = new HashMap<>();
-        if (!Files.isDirectory(channelsDir)) {
-            return result;
+        if (Files.isDirectory(channelsDir)) {
+            try (var paths = Files.list(channelsDir)) {
+                paths.filter(Files::isRegularFile)
+                        .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".json"))
+                        .forEach(path -> {
+                            String filename = path.getFileName().toString();
+                            int dotIndex = filename.lastIndexOf('.');
+                            if (dotIndex <= 0) {
+                                return;
+                            }
+                            String pluginId = filename.substring(0, dotIndex).toLowerCase();
+                            Long fingerprint = getFileFingerprint(path);
+                            if (fingerprint != null) {
+                                result.put(pluginId, fingerprint);
+                            }
+                        });
+            } catch (IOException ignored) {}
         }
-
-        try (var paths = Files.list(channelsDir)) {
-            paths.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".json"))
-                    .forEach(path -> {
-                        String filename = path.getFileName().toString();
-                        int dotIndex = filename.lastIndexOf('.');
-                        if (dotIndex <= 0) {
-                            return;
-                        }
-                        String pluginId = filename.substring(0, dotIndex).toLowerCase();
-                        Long fingerprint = getFileFingerprint(path);
-                        if (fingerprint != null) {
-                            result.put(pluginId, fingerprint);
-                        }
-                    });
-        } catch (IOException ignored) {}
-
         return result;
     }
 
     private Long getFileFingerprint(Path file) {
-        if (!Files.isRegularFile(file)) {
-            return null;
-        }
-        try {
+        if (Files.isRegularFile(file)) try {
             long size = Files.size(file);
             long modified = Files.getLastModifiedTime(file).toMillis();
             return (long) Objects.hash(size, modified);
-        } catch (IOException ignored) {
-            return null;
-        }
+        } catch (IOException ignored) {}
+        return null;
     }
 
     private void removePluginCache(String pluginId) {
-        String prefix = pluginId + ":";
-        updateInstanceCache.keySet().removeIf(key -> key.startsWith(prefix));
+        updateInstanceCache.keySet().removeIf(key -> key.startsWith(pluginId + ":"));
     }
 
     private <T> Object normalizeWithDescriptor(ChannelDescriptor<T> descriptor, Object source) {
@@ -400,23 +374,22 @@ public class UpdateChannelManager {
     }
 
     private <T> T parseWithDefaults(Object source, Class<T> clazz, T defaults) {
-        JsonElement defaultTree = gson.toJsonTree(defaults);
-        if (!defaultTree.isJsonObject()) {
-            return defaults;
-        }
-
-        JsonObject merged = defaultTree.getAsJsonObject().deepCopy();
-        JsonElement sourceTree = gson.toJsonTree(source);
-        if (sourceTree != null && sourceTree.isJsonObject()) {
-            for (Map.Entry<String, JsonElement> entry : sourceTree.getAsJsonObject().entrySet()) {
-                JsonElement value = entry.getValue();
-                if (value != null && !value.isJsonNull()) {
-                    merged.add(entry.getKey(), value);
+        JsonElement defaultTree = Utils.getGson().toJsonTree(defaults);
+        if (defaultTree.isJsonObject()) {
+            JsonObject merged = defaultTree.getAsJsonObject().deepCopy();
+            JsonElement sourceTree = Utils.getGson().toJsonTree(source);
+            if (sourceTree != null && sourceTree.isJsonObject()) {
+                for (Map.Entry<String, JsonElement> entry : sourceTree.getAsJsonObject().entrySet()) {
+                    JsonElement value = entry.getValue();
+                    if (value != null && !value.isJsonNull()) {
+                        merged.add(entry.getKey(), value);
+                    }
                 }
             }
+            return Utils.getGson().fromJson(merged, clazz);
+        } else {
+            return defaults;
         }
-
-        return gson.fromJson(merged, clazz);
     }
 
     private static String firstNonBlank(String first, String second) {

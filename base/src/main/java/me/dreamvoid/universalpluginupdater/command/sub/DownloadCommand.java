@@ -28,7 +28,7 @@ public final class DownloadCommand implements ISubCommand {
     @Override
     public void execute(CommandContext context) {
         Locale locale = context.getSender().getLocale();
-        if(AsyncLock.tryAcquire()) {
+        if(AsyncLock.acquire()) {
             try {
                 context.getSender().broadcastMessage(LanguageService.instance().tr(locale, "message.command.download.start"));
 
