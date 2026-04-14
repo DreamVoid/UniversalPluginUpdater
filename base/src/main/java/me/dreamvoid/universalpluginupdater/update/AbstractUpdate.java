@@ -54,7 +54,7 @@ public abstract class AbstractUpdate {
      * 获取更新渠道类型
      * @return {@link UpdateType}
      */
-    public UpdateType getUpdateType() {
+    public final UpdateType getUpdateType() {
         return updateType;
     }
 }

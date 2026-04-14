@@ -50,6 +50,8 @@ public class UpdateChannelManager {
         if (pluginId == null || pluginId.isBlank() || updateInstance == null) {
             throw new IllegalArgumentException("Invalid external update registration arguments");
         }
+
+        validateExternalUpdateInstance(updateInstance);
         EXTERNAL_UPDATE_INSTANCES.put(pluginId.toLowerCase(), updateInstance);
     }
 
@@ -60,7 +62,40 @@ public class UpdateChannelManager {
         if (updateInstance == null || updateInstance.getPluginId() == null || updateInstance.getPluginId().isBlank()) {
             throw new IllegalArgumentException("Invalid external update registration arguments");
         }
+
+        validateExternalUpdateInstance(updateInstance);
         registerUpdateInstance(updateInstance.getPluginId(), updateInstance);
+    }
+
+    private static void validateExternalUpdateInstance(AbstractUpdate updateInstance) {
+        UpdateType updateType = updateInstance.getUpdateType();
+        if (updateType != UpdateType.Plugin) {
+            // 获取来源
+            String callerSource = null;
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            boolean foundThisClass = false;
+            for (StackTraceElement element : stackTrace) {
+                String className = element.getClassName();
+                String methodName = element.getMethodName();
+
+                if (UpdateChannelManager.class.getName().equals(className)) {
+                    foundThisClass = true;
+                    continue;
+                }
+
+                if (foundThisClass && !"java.lang.Thread".equals(className) && !"getStackTrace".equals(methodName)) {
+                    callerSource = className + "#" + methodName + ":" + element.getLineNumber();
+                    break;
+                }
+            }
+            if (callerSource == null) {
+                callerSource = "unknown";
+            }
+
+            // 获取来源
+            Utils.getLogger().warning(LanguageService.instance().tr("message.service.channel.warning.illegal-type", callerSource, updateType, UpdateType.Plugin));
+            throw new IllegalArgumentException("Except update type \"" + UpdateType.Plugin + "\", but got \"" + updateType + "\"");
+        }
     }
 
     /**

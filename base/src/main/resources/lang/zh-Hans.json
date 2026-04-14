@@ -68,6 +68,7 @@
     "message.service.channel.error.config.exception": "加载 {0} 的更新配置时出现异常: {1}",
     "message.service.channel.error.exception": "为更新渠道 {0} 创建实例时出现异常: {1}",
     "message.service.channel.error.unknown": "未知更新渠道: {0}",
+    "message.service.channel.warning.illegal-type": "某个插件 ({0}) 尝试注册类型为 {1} 的更新对象，期望类型为 {2}",
     "message.service.check-update.error.exception": "检查插件 {0} 的更新时出错: {1}",
     "message.service.check-update.error.no-local-version": "无法获取插件 {0} 的本地版本信息！",
     "message.service.check-update.error.no-remote-version": "无法获取插件 {0} 的远程版本信息！",
