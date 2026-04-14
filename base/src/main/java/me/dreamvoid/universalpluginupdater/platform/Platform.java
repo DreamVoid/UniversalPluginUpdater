@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  * 平台提供者接口，由各个服务端的插件实现
  * 提供平台特定的数据访问功能
  */
-public interface IPlatformProvider {
+public interface Platform {
     // 平台自身相关
 
     /**

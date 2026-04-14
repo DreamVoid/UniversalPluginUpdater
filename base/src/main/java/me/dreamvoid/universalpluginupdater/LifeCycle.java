@@ -1,6 +1,6 @@
 package me.dreamvoid.universalpluginupdater;
 
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
@@ -12,11 +12,11 @@ import java.util.logging.Logger;
 import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 public class LifeCycle {
-    private static IPlatformProvider platform;
+    private final Platform platform;
     private Logger logger;
     private Config config;
 
-    public LifeCycle(IPlatformProvider plugin) {
+    public LifeCycle(Platform plugin) {
         platform = plugin;
     }
 
@@ -34,7 +34,7 @@ public class LifeCycle {
 
     public void preLoad(){
         logger = platform.getPlatformLogger();
-        LanguageService.instance().setPlatform(platform);
+        LanguageService.setPlatform(platform);
 
         logger.info(tr("message.lifecycle.preload.start"));
 

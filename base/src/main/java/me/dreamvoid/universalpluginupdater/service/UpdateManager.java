@@ -1,6 +1,6 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
@@ -25,7 +25,7 @@ public class UpdateManager {
      * 初始化UpdateManager
      * 应该在插件启动时由LifeCycle调用
      */
-    public static synchronized void initialize(IPlatformProvider platform) {
+    public static synchronized void initialize(Platform platform) {
         if (instance == null) {
             instance = new UpdateManager();
             instance.updateChannelManager = new UpdateChannelManager(platform);

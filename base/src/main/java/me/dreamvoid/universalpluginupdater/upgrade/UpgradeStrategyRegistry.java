@@ -16,7 +16,7 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 public final class UpgradeStrategyRegistry {
     private static final UpgradeStrategyRegistry INSTANCE = new UpgradeStrategyRegistry();
     
-    private final Map<String, IUpgradeStrategy> strategies = new HashMap<>();
+    private final Map<String, UpgradeStrategy> strategies = new HashMap<>();
     private String activeStrategy = "native"; // 默认使用 native 策略
     
     private final Logger logger = Utils.getLogger();
@@ -32,7 +32,7 @@ public final class UpgradeStrategyRegistry {
      * @param strategyId 策略标识符
      * @param strategy 策略实现
      */
-    public void registerStrategy(String strategyId, IUpgradeStrategy strategy) {
+    public void registerStrategy(String strategyId, UpgradeStrategy strategy) {
         if (strategyId == null || strategy == null) {
             return;
         }
@@ -50,7 +50,7 @@ public final class UpgradeStrategyRegistry {
      * @return 策略实现，如果不存在返回null
      */
     @Nullable
-    public IUpgradeStrategy getStrategy(String strategyId) {
+    public UpgradeStrategy getStrategy(String strategyId) {
         return strategies.get(strategyId);
     }
 
@@ -68,7 +68,7 @@ public final class UpgradeStrategyRegistry {
         
         if (logger != null) {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
-            IUpgradeStrategy strategy = strategies.get(strategyId);
+            UpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
                 logger.info(tr("message.service.strategy.active", strategyId, strategy.getDisplayName()));
             } else {
@@ -83,9 +83,9 @@ public final class UpgradeStrategyRegistry {
      * @return 当前活跃的升级策略（保证不为 null）
      */
     @Nullable
-    public IUpgradeStrategy getActiveStrategy() {
+    public UpgradeStrategy getActiveStrategy() {
         // 检查当前活跃策略是否存在
-        IUpgradeStrategy strategy = strategies.get(activeStrategy);
+        UpgradeStrategy strategy = strategies.get(activeStrategy);
         
         // 如果不存在且不是 native，则回退到 native
         if (strategy == null && !activeStrategy.equals("native")) {

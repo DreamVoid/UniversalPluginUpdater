@@ -1,9 +1,9 @@
 package me.dreamvoid.universalpluginupdater.command.action;
 
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
-import me.dreamvoid.universalpluginupdater.command.ICommandHandler;
+import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 
@@ -19,10 +19,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  * update 子命令处理器
  * 检查所有插件的更新
  */
-public final class UpdateCommand implements ICommandHandler {
+public final class UpdateCommand extends CommandHandler {
     private final Logger logger;
 
-    public UpdateCommand(IPlatformProvider platform) {
+    public UpdateCommand(Platform platform) {
+        super(platform);
         logger = platform.getPlatformLogger();
     }
 

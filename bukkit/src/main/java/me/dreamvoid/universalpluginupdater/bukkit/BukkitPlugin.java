@@ -6,7 +6,7 @@ import me.dreamvoid.universalpluginupdater.bukkit.update.BukkitPluginUpdate;
 import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 import org.bukkit.Bukkit;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * Bukkit 平台主类
  * @author DreamVoid
  */
-public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
+public class BukkitPlugin extends JavaPlugin implements Platform {
     protected final CommandHandler commandHandler;
     protected final LifeCycle lifeCycle;
 

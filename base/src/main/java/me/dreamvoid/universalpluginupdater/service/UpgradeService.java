@@ -2,7 +2,7 @@ package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
 import java.nio.file.Path;
@@ -34,7 +34,7 @@ public class UpgradeService {
     public boolean upgrade(String pluginId, Path newPluginFile, Path currentPluginFile, boolean executeNow) {
         UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
         String strategyId = registry.getActiveStrategyId();
-        IUpgradeStrategy strategy = registry.getActiveStrategy();
+        UpgradeStrategy strategy = registry.getActiveStrategy();
 
         if (strategy == null) {
             logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
@@ -60,11 +60,11 @@ public class UpgradeService {
      * 判断在当前策略下此次升级是否会立刻执行
      */
     public boolean canUpgradeNow(boolean executeNow) {
-        IUpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
+        UpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
         return canUpgradeNow(executeNow, strategy);
     }
 
-    private boolean canUpgradeNow(boolean executeNow, IUpgradeStrategy strategy) {
+    private boolean canUpgradeNow(boolean executeNow, UpgradeStrategy strategy) {
         if (strategy == null) return false;
         if (strategy.supportSaveUpgrade()) return true;
         return executeNow && Config.Updater_AllowUpgradeNow;
@@ -96,7 +96,7 @@ public class UpgradeService {
         try {
             UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
             String strategyId = preferredStrategyId;
-            IUpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
+            UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
 
             if (strategy == null) {
                 strategyId = registry.getActiveStrategyId();

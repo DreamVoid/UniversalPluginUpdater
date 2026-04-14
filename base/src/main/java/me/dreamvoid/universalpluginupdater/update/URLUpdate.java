@@ -3,7 +3,7 @@ package me.dreamvoid.universalpluginupdater.update;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.net.URI;
@@ -18,14 +18,14 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 public class URLUpdate extends AbstractUpdate {
     private final String pluginId;
     private final UrlChannelInfo info;
-    private final IPlatformProvider platform;
+    private final Platform platform;
     private final Logger logger;
 
     private UpdateInfo updateInfo;
     private String lastModified;
     private Path downloadedFilePath;
 
-    public URLUpdate(String pluginId, UrlChannelInfo info, IPlatformProvider platform) {
+    public URLUpdate(String pluginId, UrlChannelInfo info, Platform platform) {
         this.updateType = UpdateType.URL;
         this.pluginId = pluginId;
         this.info = info;

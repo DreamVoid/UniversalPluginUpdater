@@ -1,9 +1,9 @@
 package me.dreamvoid.universalpluginupdater.command.action;
 
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
-import me.dreamvoid.universalpluginupdater.command.ICommandHandler;
+import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
@@ -19,10 +19,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  * download 子命令处理器
  * 仅下载插件更新
  */
-public final class DownloadCommand implements ICommandHandler {
+public final class DownloadCommand extends CommandHandler {
     private final Logger logger;
 
-    public DownloadCommand(IPlatformProvider platform) {
+    public DownloadCommand(Platform platform) {
+        super(platform);
         logger = platform.getPlatformLogger();
     }
 

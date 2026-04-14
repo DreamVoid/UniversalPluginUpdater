@@ -4,7 +4,7 @@ import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.nio.file.Files;
@@ -22,12 +22,12 @@ public class ModrinthUpdate extends AbstractUpdate {
     private final Logger logger ;
     private final String pluginId;
     private final ModrinthChannelInfo info;
-    private final IPlatformProvider platform;
+    private final Platform platform;
     private ModrinthVersion selectedVersion;
     private String lastModified;
     private Path downloadedFilePath;
 
-    public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, IPlatformProvider platform) {
+    public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
         this.updateType = UpdateType.Modrinth;
         this.pluginId = pluginId;
         this.info = info;

@@ -1,9 +1,9 @@
 package me.dreamvoid.universalpluginupdater.command.action;
 
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
-import me.dreamvoid.universalpluginupdater.command.ICommandHandler;
-import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.command.CommandHandler;
+import me.dreamvoid.universalpluginupdater.platform.CommandSender;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.RepositorySyncService;
 
@@ -16,18 +16,19 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  * repo 子命令处理器
  * 从远程仓库下载/更新插件更新配置
  */
-public final class RepoCommand implements ICommandHandler {
+public final class RepoCommand extends CommandHandler {
     private final Logger logger;
     private final RepositorySyncService repositorySyncService;
 
-    public RepoCommand(IPlatformProvider platform) {
+    public RepoCommand(Platform platform) {
+        super(platform);
         this.logger = platform.getPlatformLogger();
         this.repositorySyncService = new RepositorySyncService(platform);
     }
 
     @Override
     public void execute(CommandContext context) {
-        ICommandSender sender = context.sender();
+        CommandSender sender = context.sender();
         Locale locale = sender.getLocale();
         String[] args = context.args();
         if (args.length == 0) {

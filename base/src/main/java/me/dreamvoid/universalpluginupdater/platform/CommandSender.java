@@ -6,7 +6,7 @@ import java.util.Locale;
  * 抽象的命令发送者接口
  * 用于屏蔽不同平台的发送者差异
  */
-public interface ICommandSender {
+public interface CommandSender {
     /**
      * 发送消息到命令发送者
      */

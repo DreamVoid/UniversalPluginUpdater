@@ -7,7 +7,7 @@ import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
 import me.dreamvoid.universalpluginupdater.update.URLUpdate;
@@ -109,7 +109,7 @@ public class UpdateChannelManager {
         EXTERNAL_UPDATE_INSTANCES.remove(pluginId.toLowerCase());
     }
 
-    private final IPlatformProvider platform;
+    private final Platform platform;
     private final Logger logger;
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
@@ -119,7 +119,7 @@ public class UpdateChannelManager {
     private final Map<String, Long> pluginConfigFingerprints = new HashMap<>();
     private Long globalConfigFingerprint = null;
 
-    public UpdateChannelManager(IPlatformProvider platform) {
+    public UpdateChannelManager(Platform platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
 

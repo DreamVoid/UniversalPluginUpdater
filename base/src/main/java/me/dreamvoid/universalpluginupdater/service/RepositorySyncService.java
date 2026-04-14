@@ -3,11 +3,10 @@ package me.dreamvoid.universalpluginupdater.service;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
-import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 
 import java.io.InputStream;
 import java.lang.reflect.Type;
@@ -15,8 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.Utils.debug;
 
 /**
  * 仓库同步服务
@@ -27,27 +27,27 @@ public class RepositorySyncService {
     public static final int STATUS_AVAILABLE = 0b01;
     public static final int STATUS_UPDATABLE = 0b10;
 
-    private final IPlatformProvider platform;
+    private final Platform platform;
     private final Logger logger;
     private final Map<String, RepoDownloadCandidate> cachedCandidates = new LinkedHashMap<>();
     private final List<RepoCheckEntry> cachedCheckEntries = new ArrayList<>();
     private final List<String> cachedFailedList = new ArrayList<>();
 
-    public RepositorySyncService(IPlatformProvider platform) {
+    public RepositorySyncService(Platform platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
     }
 
     public RepositoryCheckResult check() {
         List<String> repositories = loadRepositories();
-        logger.log(Config.Verbose ? Level.INFO : Level.FINE, "仓库列表加载完成，数量: " + repositories.size());
+        debug("仓库列表加载完成，数量: " + repositories.size());
 
         String platformName = platform.getPlatformName() == null ? "" : platform.getPlatformName().toLowerCase(Locale.ROOT);
         List<String> plugins = platform.getPlugins();
         if (plugins == null) {
             plugins = new ArrayList<>();
         }
-        logger.log(Config.Verbose ? Level.INFO : Level.FINE, "开始同步，平台: " + platformName + "，插件数量: " + plugins.size());
+        debug("开始同步，平台: " + platformName + "，插件数量: " + plugins.size());
 
         List<String> failedList = new ArrayList<>();
         cachedCandidates.clear();
@@ -56,53 +56,52 @@ public class RepositorySyncService {
 
         for (String pluginIdRaw : plugins) {
             if (pluginIdRaw == null || pluginIdRaw.isBlank()) {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, "跳过空插件ID");
+                debug("跳过空插件ID");
                 continue;
             }
 
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 开始检查更新配置", pluginIdRaw));
+            debug(MessageFormat.format("{0}: 开始检查更新配置", pluginIdRaw));
 
             String pluginId = pluginIdRaw.toLowerCase(Locale.ROOT);
             PluginRepoConfigResult result = resolvePluginConfig(pluginId, platformName, repositories);
             if (!result.foundInRepository()) {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 未在任何仓库中找到插件配置索引", pluginId));
+                debug(MessageFormat.format("{0}: 未在任何仓库中找到插件配置索引", pluginId));
                 continue;
             }
 
             if (!result.success()) {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 仓库中存在插件索引但解析/下载失败", pluginId));
+                debug(MessageFormat.format("{0}: 仓库中存在插件索引但解析/下载失败", pluginId));
                 failedList.add(pluginId);
                 continue;
             }
 
             long remoteLastUpdate = extractLastUpdate(result.configText());
             Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{2}: 远程 last_update: {0}，本地路径: {1}", remoteLastUpdate, localConfigPath, pluginId));
+            debug(MessageFormat.format("{2}: 远程 last_update: {0}，本地路径: {1}", remoteLastUpdate, localConfigPath, pluginId));
 
             if (Files.exists(localConfigPath)) {
                 long localLastUpdate = extractLastUpdateFromLocal(localConfigPath);
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{1}: 本地 last_update: {0}", localLastUpdate, pluginId));
+                debug(MessageFormat.format("{1}: 本地 last_update: {0}", localLastUpdate, pluginId));
                 if (remoteLastUpdate > localLastUpdate) {
-                    logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 检测到可更新配置，加入待下载列表", pluginId));
+                    debug(MessageFormat.format("{0}: 检测到可更新配置，加入待下载列表", pluginId));
                     cachedCheckEntries.add(new RepoCheckEntry(pluginId, STATUS_UPDATABLE));
                     cachedCandidates.put(pluginId, new RepoDownloadCandidate(pluginId, result.configText(), localConfigPath));
                 } else {
-                    logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 本地配置已是最新，跳过写入", pluginId));
+                    debug(MessageFormat.format("{0}: 本地配置已是最新，跳过写入", pluginId));
                     cachedCheckEntries.add(new RepoCheckEntry(pluginId, 0));
                 }
             } else {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 本地无配置，加入待下载列表", pluginId));
+                debug(MessageFormat.format("{0}: 本地无配置，加入待下载列表", pluginId));
                 cachedCheckEntries.add(new RepoCheckEntry(pluginId, STATUS_AVAILABLE));
                 cachedCandidates.put(pluginId, new RepoDownloadCandidate(pluginId, result.configText(), localConfigPath));
             }
         }
 
-        logger.log(Config.Verbose ? Level.INFO : Level.FINE,
-            MessageFormat.format("同步结束，可获取: {0}，可更新: {1}，已最新: {2}，失败: {3}",
-                    cachedCheckEntries.stream().filter(entry -> isAvailable(entry.statusCode())).count(),
-                    cachedCheckEntries.stream().filter(entry -> isUpdatable(entry.statusCode())).count(),
-                    cachedCheckEntries.stream().filter(entry -> entry.statusCode() == 0).count(),
-                    failedList.size()));
+        debug(MessageFormat.format("同步结束，可获取: {0}，可更新: {1}，已最新: {2}，失败: {3}",
+                cachedCheckEntries.stream().filter(entry -> isAvailable(entry.statusCode())).count(),
+                cachedCheckEntries.stream().filter(entry -> isUpdatable(entry.statusCode())).count(),
+                cachedCheckEntries.stream().filter(entry -> entry.statusCode() == 0).count(),
+                failedList.size()));
 
         cachedFailedList.addAll(failedList);
 
@@ -158,7 +157,7 @@ public class RepositorySyncService {
 
             if (writeConfig(candidate.localConfigPath(), candidate.configText())) {
                 successList.add(pluginId);
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 配置下载并写入成功", pluginId));
+                debug(MessageFormat.format("{0}: 配置下载并写入成功", pluginId));
             } else {
                 failedList.add(pluginId);
             }
@@ -171,15 +170,15 @@ public class RepositorySyncService {
         Path repositoriesPath = platform.getDataPath().resolve("repositories.json");
         try {
             if (!Files.exists(repositoriesPath)) {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, "repositories.json 不存在，尝试从资源释放: " + repositoriesPath);
+                debug("repositories.json 不存在，尝试从资源释放: " + repositoriesPath);
                 Files.createDirectories(platform.getDataPath());
                 try (InputStream inputStream = RepositorySyncService.class.getClassLoader().getResourceAsStream(REPOSITORIES_RESOURCE)) {
                     if (inputStream != null) {
                         Files.copy(inputStream, repositoriesPath);
-                        logger.log(Config.Verbose ? Level.INFO : Level.FINE, "已从资源释放 repositories.json");
+                        debug("已从资源释放 repositories.json");
                     } else {
                         Files.writeString(repositoriesPath, Utils.getGson().toJson(List.of(DEFAULT_REPOSITORY)));
-                        logger.log(Config.Verbose ? Level.INFO : Level.FINE, "资源不存在，写入默认仓库配置");
+                        debug("资源不存在，写入默认仓库配置");
                     }
                 }
             }
@@ -188,7 +187,7 @@ public class RepositorySyncService {
             Type listType = new TypeToken<List<String>>() {}.getType();
             List<String> list = Utils.getGson().fromJson(json, listType);
             if (list == null) {
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, "repositories.json 解析结果为 null，视为无仓库");
+                debug("repositories.json 解析结果为 null，视为无仓库");
                 return new ArrayList<>();
             }
 
@@ -198,7 +197,7 @@ public class RepositorySyncService {
                     normalized.add(item.trim());
                 }
             }
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, "repositories.json 解析成功，仓库数量: " + normalized.size());
+            debug("repositories.json 解析成功，仓库数量: " + normalized.size());
             return normalized;
         } catch (Exception e) {
             logger.warning("加载 repositories.json 失败，使用默认仓库。原因: " + e.getMessage());
@@ -210,7 +209,7 @@ public class RepositorySyncService {
         for (String repository : repositories) {
             String baseUrl = trimRepositoryBase(repository);
             String indexUrl = baseUrl + "/channels/" + pluginId + "/index.json";
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 尝试仓库索引: {1}", pluginId, indexUrl));
+            debug(MessageFormat.format("{0}: 尝试仓库索引: {1}", pluginId, indexUrl));
 
             Utils.Http.Response indexResponse;
             try {
@@ -220,7 +219,7 @@ public class RepositorySyncService {
                 continue;
             }
 
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 索引响应状态: {1}，URL: {2}", pluginId, indexResponse.statusCode, indexUrl));
+            debug(MessageFormat.format("{0}: 索引响应状态: {1}，URL: {2}", pluginId, indexResponse.statusCode, indexUrl));
 
             if (!(indexResponse.statusCode == 200 || indexResponse.statusCode == 304)) {
                 continue;
@@ -247,7 +246,7 @@ public class RepositorySyncService {
             String configFile = index.platform.get(platformName);
             if (configFile == null || configFile.isBlank()) {
                 configFile = index.platform.get("universal");
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 未命中平台配置，回退 universal", pluginId));
+                debug(MessageFormat.format("{0}: 未命中平台配置，回退 universal", pluginId));
             }
 
             if (configFile == null || configFile.isBlank()) {
@@ -256,22 +255,22 @@ public class RepositorySyncService {
             }
 
             String configUrl = baseUrl + "/channels/" + pluginId + "/" + configFile;
-            logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 尝试下载配置: {1}", pluginId, configUrl));
+            debug(MessageFormat.format("{0}: 尝试下载配置: {1}", pluginId, configUrl));
             try {
                 Utils.Http.Response configResponse = Utils.Http.get(configUrl, null);
-                logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 响应代码: {1}，URL: {2}", pluginId, configResponse.statusCode, configUrl));
+                debug(MessageFormat.format("{0}: 响应代码: {1}，URL: {2}", pluginId, configResponse.statusCode, configUrl));
                 if (configResponse.statusCode == 200 && configResponse.content != null && !configResponse.content.isBlank()) {
-                    logger.log(Config.Verbose ? Level.INFO : Level.FINE, "配置下载成功: " + pluginId + " @ " + configUrl);
+                    debug("配置下载成功: " + pluginId + " @ " + configUrl);
                     return new PluginRepoConfigResult(true, true, configResponse.content);
                 }
 
                 if (configResponse.statusCode == 304) {
                     Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
                     if (Files.exists(localConfigPath)) {
-                        logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 远程304，使用本地配置: {1}", pluginId, localConfigPath));
+                        debug(MessageFormat.format("{0}: 远程304，使用本地配置: {1}", pluginId, localConfigPath));
                         return new PluginRepoConfigResult(true, true, Files.readString(localConfigPath));
                     }
-                    logger.log(Config.Verbose ? Level.INFO : Level.FINE, MessageFormat.format("{0}: 远程304但本地配置不存在: {1}", pluginId, localConfigPath));
+                    debug(MessageFormat.format("{0}: 远程304但本地配置不存在: {1}", pluginId, localConfigPath));
                 }
 
                 logger.warning("下载配置失败: " + configUrl + "，状态码: " + configResponse.statusCode);
@@ -342,10 +341,8 @@ public class RepositorySyncService {
     }
 
     private static class RepoIndex {
-        @SerializedName("name")
-        String name;
-        @SerializedName("platform")
-        Map<String, String> platform;
+        @SerializedName("name") String name;
+        @SerializedName("platform") Map<String, String> platform;
     }
 
     private record PluginRepoConfigResult(boolean foundInRepository, boolean success, String configText) {}
@@ -360,31 +357,31 @@ public class RepositorySyncService {
 
     public record RepoCheckEntry(String pluginId, int statusCode) {}
 
-        private record RepoDownloadCandidate(
+    private record RepoDownloadCandidate(
             String pluginId,
             String configText,
             Path localConfigPath
-        ) {}
+    ) {}
 
-        public record RepositoryCheckResult(List<RepoCheckEntry> entries, List<String> failedList) {
-            public long availableCount() {
-                return entries.stream().filter(entry -> isAvailable(entry.statusCode())).count();
-            }
-
-            public long updatableCount() {
-                return entries.stream().filter(entry -> isUpdatable(entry.statusCode())).count();
-            }
-
-            public long latestCount() {
-                return entries.stream().filter(entry -> entry.statusCode() == 0).count();
-            }
+    public record RepositoryCheckResult(List<RepoCheckEntry> entries, List<String> failedList) {
+        public long availableCount() {
+            return entries.stream().filter(entry -> isAvailable(entry.statusCode())).count();
         }
 
-        public record RepositoryDownloadResult(
+        public long updatableCount() {
+            return entries.stream().filter(entry -> isUpdatable(entry.statusCode())).count();
+        }
+
+        public long latestCount() {
+            return entries.stream().filter(entry -> entry.statusCode() == 0).count();
+        }
+    }
+
+    public record RepositoryDownloadResult(
             List<String> successList,
             List<String> failedList,
             List<String> skippedList,
             boolean emptyCache
-        ) {}
+    ) {}
 
 }

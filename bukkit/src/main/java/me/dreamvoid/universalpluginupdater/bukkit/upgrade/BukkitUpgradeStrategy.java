@@ -1,6 +1,6 @@
 package me.dreamvoid.universalpluginupdater.bukkit.upgrade;
 
-import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
 import org.bukkit.Bukkit;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -17,7 +17,7 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  * 使用 Bukkit 服务器的 update 文件夹来管理插件更新
  * @author DreamVoid
  */
-public final class BukkitUpgradeStrategy implements IUpgradeStrategy {
+public final class BukkitUpgradeStrategy implements UpgradeStrategy {
     private final Logger logger;
 
     public BukkitUpgradeStrategy(Logger logger) {

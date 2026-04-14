@@ -5,7 +5,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -38,14 +38,14 @@ public final class LanguageService {
 
     private final Map<String, Map<String, JsonElement>> cache = new ConcurrentHashMap<>();
     private final Map<String, String> localeResolveCache = new ConcurrentHashMap<>();
-    private volatile IPlatformProvider platform;
+    private volatile Platform platform;
 
     private LanguageService() {}
 
-    public void setPlatform(IPlatformProvider platform) {
-        this.platform = platform;
+    public static void setPlatform(Platform platform) {
+        INSTANCE.platform = platform;
         logger = platform.getPlatformLogger();
-        localeResolveCache.clear();
+        INSTANCE.localeResolveCache.clear();
     }
 
     /**

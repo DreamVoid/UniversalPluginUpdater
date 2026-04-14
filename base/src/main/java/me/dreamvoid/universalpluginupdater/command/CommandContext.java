@@ -1,6 +1,6 @@
 package me.dreamvoid.universalpluginupdater.command;
 
-import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
+import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 
 /**
  * 命令执行上下文
@@ -10,6 +10,6 @@ import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
  * @param sender 发送者
  */
 public record CommandContext(
-        ICommandSender sender,
+        CommandSender sender,
         String[] args
 ) { }

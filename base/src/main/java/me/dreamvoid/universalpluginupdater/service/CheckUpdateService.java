@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
 import java.util.ArrayList;
@@ -16,11 +16,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
  * 负责检查所有已安装插件的更新
  */
 public class CheckUpdateService {
-    private final IPlatformProvider platform;
+    private final Platform platform;
     private final UpdateChannelManager channelManager;
     private final Logger logger;
 
-    public CheckUpdateService(IPlatformProvider platform, UpdateChannelManager channelManager) {
+    public CheckUpdateService(Platform platform, UpdateChannelManager channelManager) {
         this.platform = platform;
         this.channelManager = channelManager;
         this.logger = platform.getPlatformLogger();

@@ -1,6 +1,6 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
-import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,11 +16,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  * 卸载现有插件并删除旧插件文件，将新文件移动到插件目录
  * @author DreamVoid
  */
-public final class NativeUpgradeStrategy implements IUpgradeStrategy {
-    private final IPlatformProvider platform;
+public class NativeUpgradeStrategy implements UpgradeStrategy {
+    private final Platform platform;
     private final Logger logger;
 
-    public NativeUpgradeStrategy(IPlatformProvider platform) {
+    public NativeUpgradeStrategy(Platform platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
     }

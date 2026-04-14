@@ -1,10 +1,9 @@
 package me.dreamvoid.universalpluginupdater.bukkit;
 
-import me.dreamvoid.universalpluginupdater.platform.ICommandSender;
+import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
@@ -12,10 +11,10 @@ import java.util.Locale;
 /**
  * Bukkit平台的命令发送者适配器
  */
-public class BukkitCommandSender implements ICommandSender {
-    protected final CommandSender sender;
+public class BukkitCommandSender implements CommandSender {
+    protected final org.bukkit.command.CommandSender sender;
 
-    public BukkitCommandSender(CommandSender sender) {
+    public BukkitCommandSender(org.bukkit.command.CommandSender sender) {
         this.sender = sender;
     }
 
