@@ -40,7 +40,7 @@ public final class UpgradeStrategyRegistry {
         strategies.put(strategyId, strategy);
         
         if (logger != null) {
-            logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getDisplayName()));
+            logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getName()));
         }
     }
 
@@ -70,7 +70,7 @@ public final class UpgradeStrategyRegistry {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
             UpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
-                logger.info(tr("message.service.strategy.active", strategyId, strategy.getDisplayName()));
+                logger.info(tr("message.service.strategy.active", strategyId, strategy.getName()));
             } else {
                 logger.info(tr("message.service.strategy.active.unregistered", strategyId));
             }

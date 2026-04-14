@@ -92,7 +92,7 @@ public class CheckUpdateService {
 
             // 比较版本
             if (hasUpdate(localVersion, remoteVersion)) {
-                String channelType = updateInstance.getUpdateType().getIdentifier();
+                String channelType = updateInstance.getType().getIdentifier();
                 debug("找到插件 {0} 的更新，使用渠道 {1}", pluginId, channelType);
                 return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
             }

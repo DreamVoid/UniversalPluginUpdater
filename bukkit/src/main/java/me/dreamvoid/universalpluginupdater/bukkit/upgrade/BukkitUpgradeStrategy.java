@@ -30,7 +30,7 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public String getDisplayName() {
+    public String getName() {
         return "Bukkit 更新文件夹";
     }
 

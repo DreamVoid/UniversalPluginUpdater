@@ -22,7 +22,9 @@ public interface UpgradeStrategy {
      * @return 显示名称
      */
     @Nullable
-    String getDisplayName();
+    default String getName() {
+        return null;
+    }
 
     /**
      * 执行升级操作

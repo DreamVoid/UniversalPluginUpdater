@@ -2,9 +2,10 @@ package me.dreamvoid.universalpluginupdater.update;
 
 public abstract class AbstractUpdate {
     /**
-     * 更新渠道类型
+     * 更新渠道类型<br>
+     * 非 UPU 插件只能注册 {@link UpdateType#Plugin} 类型的更新实例
      */
-    protected UpdateType updateType = UpdateType.Plugin;
+    UpdateType updateType = UpdateType.Plugin;
 
     /**
      * 执行更新检查，联网获取最新版本信息<br>
@@ -54,7 +55,7 @@ public abstract class AbstractUpdate {
      * 获取更新渠道类型
      * @return {@link UpdateType}
      */
-    public final UpdateType getUpdateType() {
+    public final UpdateType getType() {
         return updateType;
     }
 }

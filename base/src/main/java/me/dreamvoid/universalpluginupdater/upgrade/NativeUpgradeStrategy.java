@@ -32,7 +32,7 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public String getDisplayName() {
+    public String getName() {
         return "原生";
     }
 
