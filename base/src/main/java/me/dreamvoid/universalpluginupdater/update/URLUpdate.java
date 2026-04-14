@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.net.URI;
@@ -13,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 public class URLUpdate extends AbstractUpdate {
     private final String pluginId;
@@ -110,7 +111,7 @@ public class URLUpdate extends AbstractUpdate {
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
 
             if (!result.success()) {
-                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));
+                logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
                 return false;
             }
 
@@ -120,22 +121,22 @@ public class URLUpdate extends AbstractUpdate {
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = filePath;
-                    logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
+                    logger.info(tr("message.update.get", downloadUrl));
                     return true;
                 } else {
                     // 删除不完整的文件
                     Files.delete(filePath);
                     this.downloadedFilePath = null;
-                    logger.warning(LanguageService.instance().tr("message.update.error.checksum", downloadUrl));
+                    logger.warning(tr("message.update.error.checksum", downloadUrl));
                     return false;
                 }
             } else {
                 this.downloadedFilePath = filePath;
-                logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
+                logger.info(tr("message.update.get", downloadUrl));
                 return true;
             }
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, e));
+            logger.warning(tr("message.update.error", downloadUrl, e));
             return false;
         }
     }
@@ -159,13 +160,13 @@ public class URLUpdate extends AbstractUpdate {
             Path newPluginFile = downloadedFilePath;
 
             if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(LanguageService.instance().tr("message.update.error.downloaded-file-missing", newPluginFile));
+                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
                 return false;
             }
 
             return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.update.error.upgrade-failed", e));
+            logger.warning(tr("message.update.error.upgrade-failed", e));
             return false;
         }
     }

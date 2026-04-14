@@ -7,5 +7,6 @@ import com.google.gson.annotations.SerializedName;
  */
 public record ChannelConfig(
         @SerializedName("type") String type,
-        @SerializedName("config") Object config
+        @SerializedName("config") Object config,
+        @SerializedName("last_update") Long lastUpdate
 ) { }

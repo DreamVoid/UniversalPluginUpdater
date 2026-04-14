@@ -3,19 +3,22 @@ package me.dreamvoid.universalpluginupdater.command;
 import java.util.List;
 
 /**
- * 子命令处理器的抽象基类
+ * 命令处理程序接口
+ * 各个平台都通过这个接口处理命令
  */
-public interface ISubCommand {
+public interface ICommandHandler {
     /**
-     * 执行子命令
+     * 处理命令
+     *
      * @param context 命令上下文
      */
     void execute(CommandContext context);
 
     /**
      * 获取命令补全列表
+     *
      * @param context 命令上下文
-     * @return 补全选项数组
+     * @return 可用的补全选项列表
      */
-    List<String> getTabCompletion(CommandContext context);
+    List<String> suggest(CommandContext context);
 }

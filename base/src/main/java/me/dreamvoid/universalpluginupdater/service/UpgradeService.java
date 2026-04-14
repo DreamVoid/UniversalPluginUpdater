@@ -10,6 +10,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+
 /**
  * 升级执行服务
  * 支持立即升级与延迟到插件卸载阶段执行
@@ -35,13 +37,13 @@ public class UpgradeService {
         IUpgradeStrategy strategy = registry.getActiveStrategy();
 
         if (strategy == null) {
-            logger.warning(LanguageService.instance().tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
+            logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
             strategyId = "native";
             strategy = registry.getStrategy("native");
         }
 
         if (strategy == null) {
-            logger.severe(LanguageService.instance().tr("message.service.upgrade.error.native-unavailable", pluginId));
+            logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
             return false;
         }
 
@@ -49,7 +51,7 @@ public class UpgradeService {
             return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
         } else {
             pendingOperations.add(new PendingUpgradeOperation(pluginId, newPluginFile, currentPluginFile, strategyId));
-            logger.info(LanguageService.instance().tr("message.service.upgrade.queued", pluginId, strategyId));
+            logger.info(tr("message.service.upgrade.queued", pluginId, strategyId));
             return true;
         }
     }
@@ -102,18 +104,18 @@ public class UpgradeService {
             }
 
             if (strategy == null) {
-                logger.warning(LanguageService.instance().tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
+                logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
                 strategy = registry.getStrategy("native");
             }
 
             if (strategy == null) {
-                logger.severe(LanguageService.instance().tr("message.service.upgrade.error.native-unavailable", pluginId));
+                logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
                 return false;
             }
 
             return strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.service.upgrade.execute.error.exception", pluginId, e));
+            logger.warning(tr("message.service.upgrade.execute.error.exception", pluginId, e));
             return false;
         }
     }

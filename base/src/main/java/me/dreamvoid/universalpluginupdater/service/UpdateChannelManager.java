@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
 
 /**
  * 更新渠道管理器
@@ -93,7 +94,7 @@ public class UpdateChannelManager {
             }
 
             // 获取来源
-            Utils.getLogger().warning(LanguageService.instance().tr("message.service.channel.warning.illegal-type", callerSource, updateType, UpdateType.Plugin));
+            Utils.getLogger().warning(tr("message.service.channel.warning.illegal-type", callerSource, updateType, UpdateType.Plugin));
             throw new IllegalArgumentException("Except update type \"" + UpdateType.Plugin + "\", but got \"" + updateType + "\"");
         }
     }
@@ -222,7 +223,7 @@ public class UpdateChannelManager {
             }
             debug("渠道配置文件不存在: {0}", configPath);
         } catch (IOException e) {
-            logger.warning(LanguageService.instance().tr("message.service.channel.error.config.failed", pluginId));
+            logger.warning(tr("message.service.channel.error.config.failed", pluginId));
         }
         return null;
     }
@@ -241,7 +242,7 @@ public class UpdateChannelManager {
 
         AbstractUpdate externalUpdate = EXTERNAL_UPDATE_INSTANCES.get(pluginId.toLowerCase());
         if (externalUpdate != null && externalUpdate.getUpdateType() != null) {
-            channels.add(new ChannelConfig(externalUpdate.getUpdateType().getIdentifier(), new JsonObject()));
+            channels.add(new ChannelConfig(externalUpdate.getUpdateType().getIdentifier(), new JsonObject(), null));
         }
 
         if (config != null && config.channels() != null) {
@@ -317,10 +318,10 @@ public class UpdateChannelManager {
             if (descriptor != null) {
                 return createWithDescriptor(descriptor, pluginId, config);
             }
-            logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", channelConfig.type()));
+            logger.warning(tr("message.service.channel.error.unknown", channelConfig.type()));
             return null;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.service.channel.error.exception", channelConfig.type(), e));
+            logger.warning(tr("message.service.channel.error.exception", channelConfig.type(), e));
         }
         return null;
     }
@@ -357,7 +358,7 @@ public class UpdateChannelManager {
             String jsonContent = Files.readString(globalPath);
             return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
         } catch (IOException e) {
-            logger.warning(LanguageService.instance().tr("message.service.channel.error.config.exception", "global", e));
+            logger.warning(tr("message.service.channel.error.config.exception", "global", e));
             return null;
         }
     }
@@ -395,7 +396,7 @@ public class UpdateChannelManager {
                 }
                 ChannelConfig globalChannel = globalByType.get(pluginChannelType);
                 Object mergedConfig = mergeConfigObject(pluginChannel.config(), globalChannel == null ? null : globalChannel.config());
-                merged.add(normalizeChannelConfig(new ChannelConfig(pluginChannel.type(), mergedConfig)));
+                merged.add(normalizeChannelConfig(new ChannelConfig(pluginChannel.type(), mergedConfig, pluginChannel.lastUpdate())));
             }
         }
 
@@ -428,7 +429,7 @@ public class UpdateChannelManager {
 
     private ChannelConfig normalizeChannelConfig(ChannelConfig channel) {
         UpdateType type = UpdateType.fromIdentifier(channel == null ? null : channel.type());
-        return type == null ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(type, channel.config()));
+        return type == null ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(type, channel.config()), channel.lastUpdate());
     }
 
     private Object normalizeConfigObject(UpdateType channelType, Object source) {

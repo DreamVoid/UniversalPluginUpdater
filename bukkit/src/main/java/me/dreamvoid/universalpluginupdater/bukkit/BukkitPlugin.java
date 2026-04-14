@@ -66,7 +66,7 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command cmd, @NonNull String label, String @NonNull [] args) {
         BukkitCommandSender commandSender = new BukkitCommandSender(sender);
         CommandContext context = new CommandContext(commandSender, args);
-        commandHandler.executeCommand(context);
+        commandHandler.execute(context);
         return true;
     }
 
@@ -74,7 +74,7 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command cmd, @NonNull String alias, String @NonNull [] args) {
         BukkitCommandSender commandSender = new BukkitCommandSender(sender);
         CommandContext context = new CommandContext(commandSender, args);
-        return commandHandler.getTabCompletion(context);
+        return commandHandler.suggest(context);
     }
 
     // 平台实现接口

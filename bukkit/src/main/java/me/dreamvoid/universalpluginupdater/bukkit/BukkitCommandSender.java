@@ -44,6 +44,6 @@ public class BukkitCommandSender implements ICommandSender {
     @Override
     public Locale getLocale() {
         //noinspection deprecation
-        return sender instanceof Player ? Locale.forLanguageTag(((Player) sender).getLocale().replace('_', '-')) : LanguageService.instance().getLocale();
+        return sender instanceof Player ? Locale.forLanguageTag(((Player) sender).getLocale().replace('_', '-')) : LanguageService.getLocale();
     }
 }

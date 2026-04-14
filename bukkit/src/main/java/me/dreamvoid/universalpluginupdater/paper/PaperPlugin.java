@@ -4,7 +4,6 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -14,6 +13,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 /**
  * Paper平台主类
@@ -30,13 +31,13 @@ public class PaperPlugin extends BukkitPlugin {
     public void onEnable() {
         super.onEnable();
 
-        getLogger().info(LanguageService.instance().tr("message.lifecycle.paper.postload.register-command"));
+        getLogger().info(tr("message.lifecycle.paper.postload.register-command"));
         registerCommand("universalpluginupdater", "UniversalPluginUpdater 主命令", Collections.singleton("upu"), new BasicCommand() {
             @Override
             public void execute(@NonNull CommandSourceStack stack, String @NonNull [] args) {
                 PaperCommandSender sender = new PaperCommandSender(stack.getSender());
                 CommandContext context = new CommandContext(sender, args);
-                commandHandler.executeCommand(context);
+                commandHandler.execute(context);
             }
 
             @Override
@@ -48,7 +49,7 @@ public class PaperPlugin extends BukkitPlugin {
             public @NonNull Collection<String> suggest(@NonNull CommandSourceStack stack, String @NonNull [] args) {
                 PaperCommandSender sender = new PaperCommandSender(stack.getSender());
                 CommandContext context = new CommandContext(sender, args);
-                return commandHandler.getTabCompletion(context);
+                return commandHandler.suggest(context);
             }
         });
     }

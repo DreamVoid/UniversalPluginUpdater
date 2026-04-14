@@ -5,7 +5,6 @@ import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 
 import java.nio.file.Files;
@@ -14,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
@@ -51,39 +52,39 @@ public class ModrinthUpdate extends AbstractUpdate {
             if (response.isNotModified()) {
                 // 返回304 Not Modified，使用缓存
                 if (selectedVersion == null) {
-                    logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-cache-304", url));
+                    logger.warning(tr("message.update.modrinth.error.no-cache-304", url));
                     return false;
                 }
                 this.lastModified = response.lastModified;
-                logger.info(LanguageService.instance().tr("message.update.hit", url));
+                logger.info(tr("message.update.hit", url));
                 return true;
             }
 
             if (response.isSuccess()) {
                 String content = response.content;
                 if (content == null) {
-                    logger.warning(LanguageService.instance().tr("message.update.modrinth.error.response-null", url));
+                    logger.warning(tr("message.update.modrinth.error.response-null", url));
                     return false;
                 }
 
                 // 解析JSON数组
                 ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
-                    logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-versions", url));
+                    logger.warning(tr("message.update.modrinth.error.no-versions", url));
                     return false;
                 }
 
                 // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
                 this.selectedVersion = versions[0];
                 this.lastModified = response.lastModified;
-                logger.info(LanguageService.instance().tr("message.update.get", url));
+                logger.info(tr("message.update.get", url));
                 return true;
             }
 
-            logger.warning(LanguageService.instance().tr("message.update.error.status-code", url, response.statusCode));
+            logger.warning(tr("message.update.error.status-code", url, response.statusCode));
             return false;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.update.error", url, e));
+            logger.warning(tr("message.update.error", url, e));
             return false;
         }
     }
@@ -153,13 +154,13 @@ public class ModrinthUpdate extends AbstractUpdate {
             Path newPluginFile = downloadedFilePath;
 
             if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(LanguageService.instance().tr("message.update.error.downloaded-file-missing", newPluginFile));
+                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
                 return false;
             }
 
             return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.update.error.upgrade-failed", e));
+            logger.warning(tr("message.update.error.upgrade-failed", e));
             return false;
         }
     }
@@ -168,13 +169,13 @@ public class ModrinthUpdate extends AbstractUpdate {
     public boolean download() {
         // 从缓存的版本信息中获取下载链接
         if (selectedVersion == null) {
-            logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-selected-version"));
+            logger.warning(tr("message.update.modrinth.error.no-selected-version"));
             return false;
         }
 
         ModrinthFile file = selectedVersion.getPrimaryFile();
         if (file == null || file.url() == null) {
-            logger.warning(LanguageService.instance().tr("message.update.modrinth.error.no-primary-file"));
+            logger.warning(tr("message.update.modrinth.error.no-primary-file"));
             return false;
         }
 
@@ -196,7 +197,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 if (preferredHash != null && hashAlgorithm != null
                         && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = filePath;
-                    logger.info(LanguageService.instance().tr("message.update.hit", downloadUrl));
+                    logger.info(tr("message.update.hit", downloadUrl));
                     return true;  // 文件完整，不必重新下载
                 } else {
                     Files.delete(filePath);
@@ -207,7 +208,7 @@ public class ModrinthUpdate extends AbstractUpdate {
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
 
             if (!result.success()) {
-                logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, result.errorMessage()));
+                logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
                 return false;
             }
 
@@ -217,21 +218,21 @@ public class ModrinthUpdate extends AbstractUpdate {
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(downloadedPath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = downloadedPath;
-                    logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
+                    logger.info(tr("message.update.get", downloadUrl));
                     return true;
                 } else {
-                    logger.warning(LanguageService.instance().tr("message.update.error.checksum", downloadUrl));
+                    logger.warning(tr("message.update.error.checksum", downloadUrl));
                     Files.delete(downloadedPath);  // 删除不完整的文件
                     this.downloadedFilePath = null;
                     return false;
                 }
             } else {
                 this.downloadedFilePath = downloadedPath;
-                logger.info(LanguageService.instance().tr("message.update.get", downloadUrl));
+                logger.info(tr("message.update.get", downloadUrl));
                 return true;
             }
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.update.error", downloadUrl, e));
+            logger.warning(tr("message.update.error", downloadUrl, e));
             return false;
         }
     }

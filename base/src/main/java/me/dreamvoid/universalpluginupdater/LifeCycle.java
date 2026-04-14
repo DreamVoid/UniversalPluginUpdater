@@ -9,6 +9,8 @@ import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
 import java.util.logging.Logger;
 
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+
 public class LifeCycle {
     private static IPlatformProvider platform;
     private Logger logger;
@@ -23,54 +25,54 @@ public class LifeCycle {
      * @param logger {@link java.util.logging.Logger} 实例。由于各平台初始化 Logger 的时机不一，因此需要一个 Logger 来辅助。
      */
     public void startUp(Logger logger){
-        logger.info(LanguageService.instance().tr("message.lifecycle.startup.start"));
+        logger.info(tr("message.lifecycle.startup.start"));
 
         Utils.setLogger(logger);
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.startup.finish"));
+        logger.info(tr("message.lifecycle.startup.finish"));
     }
 
     public void preLoad(){
         logger = platform.getPlatformLogger();
         LanguageService.instance().setPlatform(platform);
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.preload.start"));
+        logger.info(tr("message.lifecycle.preload.start"));
 
         config = platform.getPlatformConfig();
         config.reloadConfig();
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.preload.loaders", String.join(", ", platform.getLoaders())));
-        logger.info(LanguageService.instance().tr("message.lifecycle.preload.gameversions", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
+        logger.info(tr("message.lifecycle.preload.loaders", String.join(", ", platform.getLoaders())));
+        logger.info(tr("message.lifecycle.preload.gameversions", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
         UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.preload.finish"));
+        logger.info(tr("message.lifecycle.preload.finish"));
     }
 
     public void postLoad(){
-        logger.info(LanguageService.instance().tr("message.lifecycle.postload.start"));
+        logger.info(tr("message.lifecycle.postload.start"));
 
         UpgradeStrategyRegistry.getInstance().setActiveStrategy(Config.Updater_Strategy);
 
         // 初始化更新管理器
         UpdateManager.initialize(platform);
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.postload.moretasks"));
-        logger.info(LanguageService.instance().tr("message.lifecycle.postload.finish"));
+        logger.info(tr("message.lifecycle.postload.moretasks"));
+        logger.info(tr("message.lifecycle.postload.finish"));
     }
 
     public void unload(){
-        logger.info(LanguageService.instance().tr("message.lifecycle.unload.start"));
+        logger.info(tr("message.lifecycle.unload.start"));
 
         UpgradeService.ExecutionResult result = UpgradeService.getInstance().executePendingUpgrades();
         if (result.totalCount() > 0) {
-            logger.info(LanguageService.instance().tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
+            logger.info(tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ignored) {}
         }
 
-        logger.info(LanguageService.instance().tr("message.lifecycle.unload.finish"));
+        logger.info(tr("message.lifecycle.unload.finish"));
     }
 
     public void reload(){

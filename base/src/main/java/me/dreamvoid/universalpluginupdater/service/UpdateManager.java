@@ -7,6 +7,8 @@ import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+
 /**
  * 更新管理器
  * 提供统一的插件更新检查接口
@@ -36,7 +38,7 @@ public class UpdateManager {
      */
     public static UpdateManager instance() {
         if (instance == null) {
-            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-manager-not-initialized"));
+            throw new IllegalStateException(tr("message.service.error.update-manager-not-initialized"));
         }
         return instance;
     }
@@ -47,7 +49,7 @@ public class UpdateManager {
      */
     public List<UpdateInfo> checkUpdate() {
         if (checkUpdateService == null) {
-            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.check-update-service-not-initialized"));
+            throw new IllegalStateException(tr("message.service.error.check-update-service-not-initialized"));
         }
         if (updateChannelManager != null) {
             updateChannelManager.validateCache();
@@ -72,7 +74,7 @@ public class UpdateManager {
      */
     public AbstractUpdate getUpdateChannel(String pluginId) {
         if (updateChannelManager == null) {
-            throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-channel-manager-not-initialized"));
+            throw new IllegalStateException(tr("message.service.error.update-channel-manager-not-initialized"));
         }
         return updateChannelManager.getUpdateChannelForPlugin(pluginId);
     }

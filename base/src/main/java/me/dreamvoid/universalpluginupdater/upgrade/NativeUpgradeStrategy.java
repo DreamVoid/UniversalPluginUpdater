@@ -1,7 +1,6 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 /**
  * Native 升级策略<br>
@@ -42,25 +43,25 @@ public final class NativeUpgradeStrategy implements IUpgradeStrategy {
             Path pluginDirectory = oldFilePath != null ? oldFilePath.getParent() : null;
 
             if (pluginDirectory == null || !Files.exists(pluginDirectory)) {
-                logger.warning(LanguageService.instance().tr("message.strategy.native.error.plugin-directory-missing"));
+                logger.warning(tr("message.strategy.native.error.plugin-directory-missing"));
                 return false;
             }
 
             if (platform.unloadPlugin(pluginId)) {
-                logger.info(LanguageService.instance().tr("message.strategy.native.unload", pluginId));
+                logger.info(tr("message.strategy.native.unload", pluginId));
             } else {
-                logger.warning(LanguageService.instance().tr("message.strategy.native.error.unload-failed", pluginId));
+                logger.warning(tr("message.strategy.native.error.unload-failed", pluginId));
             }
 
             // 将新文件移动到插件目录
             Path targetPath = pluginDirectory.resolve(newFilePath.getFileName());
-            logger.info(LanguageService.instance().tr("message.strategy.native.move-new-file", targetPath));
+            logger.info(tr("message.strategy.native.move-new-file", targetPath));
             Files.move(newFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            logger.info(LanguageService.instance().tr("message.strategy.native.updated", pluginId));
+            logger.info(tr("message.strategy.native.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.strategy.native.error.exception", pluginId, e));
+            logger.warning(tr("message.strategy.native.error.exception", pluginId, e));
             return false;
         }
     }

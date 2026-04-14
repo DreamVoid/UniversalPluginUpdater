@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
 
 /**
  * 检查更新服务
@@ -69,21 +70,21 @@ public class CheckUpdateService {
 
             // 执行更新检查，联网获取最新版本信息
             if (!updateInstance.update()) {
-                logger.warning(LanguageService.instance().tr("message.service.check-update.error", pluginId));
+                logger.warning(tr("message.service.check-update.error", pluginId));
                 return null;
             }
 
             // 获取缓存的远程版本信息
             String remoteVersion = updateInstance.getVersion();
             if (remoteVersion == null) {
-                logger.warning(LanguageService.instance().tr("message.service.check-update.error.no-remote-version", pluginId));
+                logger.warning(tr("message.service.check-update.error.no-remote-version", pluginId));
                 return null;
             }
 
             // 获取本地版本信息
             String localVersion = getLocalPluginVersion(pluginId);
             if (localVersion == null) {
-                logger.warning(LanguageService.instance().tr("message.service.check-update.error.no-local-version", pluginId));
+                logger.warning(tr("message.service.check-update.error.no-local-version", pluginId));
                 return null;
             }
 
@@ -100,7 +101,7 @@ public class CheckUpdateService {
 
             return null;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.service.check-update.error.exception", pluginId, e));
+            logger.warning(tr("message.service.check-update.error.exception", pluginId, e));
             return null;
         }
     }

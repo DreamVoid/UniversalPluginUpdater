@@ -29,6 +29,6 @@ public class PaperCommandSender extends BukkitCommandSender {
 
     @Override
     public Locale getLocale() {
-        return sender instanceof Player ? ((Player) sender).locale() : LanguageService.instance().getLocale();
+        return sender instanceof Player ? ((Player) sender).locale() : LanguageService.getLocale();
     }
 }

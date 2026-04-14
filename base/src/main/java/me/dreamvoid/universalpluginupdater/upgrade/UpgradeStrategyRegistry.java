@@ -1,12 +1,13 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 /**
  * 升级策略全局注册表<br>
@@ -39,7 +40,7 @@ public final class UpgradeStrategyRegistry {
         strategies.put(strategyId, strategy);
         
         if (logger != null) {
-            logger.info(LanguageService.instance().tr("message.service.strategy.registered", strategy.getId(), strategy.getDisplayName()));
+            logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getDisplayName()));
         }
     }
 
@@ -69,9 +70,9 @@ public final class UpgradeStrategyRegistry {
             // 如果策略已注册，可以获取显示名，否则仅显示标识符
             IUpgradeStrategy strategy = strategies.get(strategyId);
             if (strategy != null) {
-                logger.info(LanguageService.instance().tr("message.service.strategy.active", strategyId, strategy.getDisplayName()));
+                logger.info(tr("message.service.strategy.active", strategyId, strategy.getDisplayName()));
             } else {
-                logger.info(LanguageService.instance().tr("message.service.strategy.active.unregistered", strategyId));
+                logger.info(tr("message.service.strategy.active.unregistered", strategyId));
             }
         }
     }
@@ -89,7 +90,7 @@ public final class UpgradeStrategyRegistry {
         // 如果不存在且不是 native，则回退到 native
         if (strategy == null && !activeStrategy.equals("native")) {
             if (logger != null) {
-                logger.warning(LanguageService.instance().tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
+                logger.warning(tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
             }
             this.activeStrategy = "native";
             strategy = strategies.get("native");

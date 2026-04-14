@@ -42,16 +42,6 @@ public final class LanguageService {
 
     private LanguageService() {}
 
-    /**
-     * 获取语言服务实例
-     * @return 语言服务实例
-     * @see #tr(String, Object...)
-     * @see #tr(Locale, String, Object...)
-     */
-    public static LanguageService instance() {
-        return INSTANCE;
-    }
-
     public void setPlatform(IPlatformProvider platform) {
         this.platform = platform;
         logger = platform.getPlatformLogger();
@@ -65,8 +55,8 @@ public final class LanguageService {
      * @param args 参数
      * @return 翻译后的文本
      */
-    public String tr(String key, Object... args) {
-        return formatMessage(getLocale(), key, args);
+    public static String tr(String key, Object... args) {
+        return INSTANCE.formatMessage(getLocale(), key, args);
     }
 
     /**
@@ -77,8 +67,32 @@ public final class LanguageService {
      * @param args 参数
      * @return 翻译后的文本
      */
-    public String tr(Locale locale, String key, Object... args) {
-        return formatMessage(locale, key, args);
+    public static String tr(Locale locale, String key, Object... args) {
+        return INSTANCE.formatMessage(locale, key, args);
+    }
+
+    /**
+     * 获取当前平台的 Locale<br>
+     * 优先级：JVM 参数 upu.locale > 配置文件 > 运行环境 > zh-Hans
+     * @return 当前平台的 Locale
+     */
+    public static Locale getLocale() {
+        String requested = System.getProperty(LOCALE_PROPERTY);
+        if (requested != null && !requested.isBlank()) {
+            return INSTANCE.parseLocale(requested);
+        }
+
+        String configuredLanguage = Config.Language;
+        if (configuredLanguage == null || configuredLanguage.isBlank()) {
+            configuredLanguage = "system";
+        }
+
+        if (!configuredLanguage.equalsIgnoreCase("system")) {
+            return INSTANCE.parseLocale(configuredLanguage);
+        }
+
+        Locale systemLocale = Locale.getDefault();
+        return systemLocale == null ? Locale.forLanguageTag(FALLBACK_LOCALE) : systemLocale;
     }
 
     private String formatMessage(Locale requestedLocale, String key, Object... args) {
@@ -127,12 +141,10 @@ public final class LanguageService {
         }
         return !normalizeLocaleTag(left).equalsIgnoreCase(normalizeLocaleTag(right));
     }
-
     private Map<String, JsonElement> getBundle(String localeName) {
         String effectiveLocale = localeName == null || localeName.isBlank() ? FALLBACK_LOCALE : localeName;
         return cache.computeIfAbsent(effectiveLocale, this::loadBundleSafely);
     }
-
     private Map<String, JsonElement> loadBundleSafely(String locale) {
         Map<String, JsonElement> bundle = loadBundle(locale);
         if (bundle != null) {
@@ -146,7 +158,6 @@ public final class LanguageService {
         Map<String, JsonElement> fallback = loadBundle(FALLBACK_LOCALE);
         return fallback != null ? fallback : Collections.emptyMap();
     }
-
     private String loadLink(String locale) {
         String externalPath = readExternalLangFile(locale + ".link");
         if (externalPath != null) {
@@ -167,7 +178,6 @@ public final class LanguageService {
             return null;
         }
     }
-
     private Map<String, JsonElement> loadBundle(String locale) {
         Map<String, JsonElement> externalBundle = loadExternalBundle(locale);
         if (externalBundle != null) {
@@ -189,31 +199,6 @@ public final class LanguageService {
             return null;
         }
     }
-
-    /**
-     * 获取当前平台的 Locale<br>
-     * 优先级：JVM 参数 upu.locale > 配置文件 > 运行环境 > zh-Hans
-     * @return 当前平台的 Locale
-     */
-    public Locale getLocale() {
-        String requested = System.getProperty(LOCALE_PROPERTY);
-        if (requested != null && !requested.isBlank()) {
-            return parseLocale(requested);
-        }
-
-        String configuredLanguage = Config.Language;
-        if (configuredLanguage == null || configuredLanguage.isBlank()) {
-            configuredLanguage = "system";
-        }
-
-        if (!configuredLanguage.equalsIgnoreCase("system")) {
-            return parseLocale(configuredLanguage);
-        }
-
-        Locale systemLocale = Locale.getDefault();
-        return systemLocale == null ? Locale.forLanguageTag(FALLBACK_LOCALE) : systemLocale;
-    }
-
     private Locale parseLocale(String locale) {
         String value = normalizeLocaleTag(locale);
         if (value.isEmpty()) {
@@ -227,8 +212,6 @@ public final class LanguageService {
 
         return parsed;
     }
-
-
     private String resolveLocaleName(String candidate) {
         String normalized = normalizeLocaleTag(candidate);
         if (normalized.isBlank()) {
@@ -244,7 +227,6 @@ public final class LanguageService {
         localeResolveCache.put(normalized, resolved);
         return resolved;
     }
-
     private String resolveLocaleName(String candidate, Set<String> visited) {
         String normalized = normalizeLocaleTag(candidate);
         if (normalized.isBlank()) {
@@ -301,7 +283,6 @@ public final class LanguageService {
 
         return FALLBACK_LOCALE;
     }
-
     private String findStartsWithLocale(String localePrefix) {
         String prefix = localePrefix.toLowerCase(Locale.ROOT);
         List<String> candidates = new ArrayList<>(collectAvailableLocales());
@@ -315,7 +296,6 @@ public final class LanguageService {
 
         return null;
     }
-
     private String extractBaseSegment(String locale) {
         int dashIndex = locale.indexOf('-');
         int underscoreIndex = locale.indexOf('_');
@@ -335,15 +315,12 @@ public final class LanguageService {
 
         return locale.substring(0, splitIndex);
     }
-
     private boolean hasJsonLocale(String locale) {
         return loadBundle(locale) != null;
     }
-
     private boolean hasLinkLocale(String locale) {
         return loadLink(locale) != null;
     }
-
     private Set<String> collectAvailableLocales() {
         Set<String> locales = new HashSet<>();
         loadLocalesExternal(locales);
@@ -351,7 +328,6 @@ public final class LanguageService {
         locales.add(FALLBACK_LOCALE);
         return locales;
     }
-
     private void loadLocalesExternal(Set<String> locales) {
         if (platform == null) {
             return;
@@ -371,7 +347,6 @@ public final class LanguageService {
             logger.warning("扫描外部语言目录失败: " + e);
         }
     }
-
     private void loadLocales(Set<String> locales) {
         try {
             var resources = LanguageService.class.getClassLoader().getResources(LANG_RESOURCE_DIR);
@@ -415,7 +390,6 @@ public final class LanguageService {
             logger.warning("扫描类路径语言目录失败: " + e);
         }
     }
-
     private void addLocaleFromFileName(Set<String> locales, String fileName) {
         String sanitizedFileName = sanitizeRawText(fileName).trim();
         if (sanitizedFileName.isBlank()) {
@@ -427,7 +401,6 @@ public final class LanguageService {
             locales.add(normalizeLocaleTag(locale));
         }
     }
-
     private String readExternalLangFile(String fileName) {
         if (platform == null) {
             return null;
@@ -445,7 +418,6 @@ public final class LanguageService {
             return null;
         }
     }
-
     private Map<String, JsonElement> loadExternalBundle(String locale) {
         if (platform == null) {
             return null;
@@ -466,7 +438,6 @@ public final class LanguageService {
             return null;
         }
     }
-
     private static Map<String, JsonElement> sanitizeBundle(Map<String, JsonElement> source) {
         LinkedHashMap<String, JsonElement> sanitized = new LinkedHashMap<>();
         for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
@@ -489,14 +460,12 @@ public final class LanguageService {
         }
         return sanitized;
     }
-
     private static String sanitizeKey(String key) {
         if (key == null) {
             return "";
         }
         return sanitizeRawText(key).trim();
     }
-
     private static String sanitizeRawText(String text) {
         if (text == null || text.isEmpty()) {
             return "";
@@ -506,7 +475,6 @@ public final class LanguageService {
         }
         return text;
     }
-
     private static String getLocalTag(Locale locale) {
         if (locale == null) {
             return FALLBACK_LOCALE;
@@ -523,7 +491,6 @@ public final class LanguageService {
 
         return tag;
     }
-
     private static String normalizeLocaleTag(String locale) {
         if (locale == null) {
             return "";

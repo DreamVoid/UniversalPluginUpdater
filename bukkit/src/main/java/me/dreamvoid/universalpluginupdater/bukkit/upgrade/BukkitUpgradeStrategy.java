@@ -1,6 +1,5 @@
 package me.dreamvoid.universalpluginupdater.bukkit.upgrade;
 
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
 import me.dreamvoid.universalpluginupdater.upgrade.IUpgradeStrategy;
 import org.bukkit.Bukkit;
 import org.jspecify.annotations.NonNull;
@@ -10,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 /**
  * Bukkit 更新文件夹升级策略<br>
@@ -54,13 +55,13 @@ public final class BukkitUpgradeStrategy implements IUpgradeStrategy {
             Path targetPath = updateFolder.resolve(filename);
 
             // 复制新文件
-            logger.info(LanguageService.instance().tr("message.strategy.bukkit.move-new-file", targetPath));
+            logger.info(tr("message.strategy.bukkit.move-new-file", targetPath));
             Files.move(newFilePath, targetPath,  StandardCopyOption.REPLACE_EXISTING);
 
-            logger.info(LanguageService.instance().tr("message.strategy.bukkit.updated", pluginId));
+            logger.info(tr("message.strategy.bukkit.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.strategy.bukkit.error.exception", pluginId, e));
+            logger.warning(tr("message.strategy.bukkit.error.exception", pluginId, e));
             return false;
         }
     }
