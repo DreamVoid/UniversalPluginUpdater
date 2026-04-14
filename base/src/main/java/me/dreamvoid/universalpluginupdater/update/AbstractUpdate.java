@@ -1,7 +1,10 @@
 package me.dreamvoid.universalpluginupdater.update;
 
 public abstract class AbstractUpdate {
-    public UpdateType updateType;
+    /**
+     * 更新渠道类型
+     */
+    protected UpdateType updateType = UpdateType.Plugin;
 
     /**
      * 执行更新检查，联网获取最新版本信息<br>
@@ -19,7 +22,8 @@ public abstract class AbstractUpdate {
 
     /**
      * 升级现有插件<br>
-     * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑
+     * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑<br>
+     * 如果继承此类，建议重写 {@link #upgrade(boolean)} 方法而不是此方法
      * @return 升级是否成功
      */
     public boolean upgrade(){
@@ -27,23 +31,30 @@ public abstract class AbstractUpdate {
     }
 
     /**
-     * 升级现有插件，可指定是否立刻执行
+     * 升级现有插件，可指定是否立刻执行<br>
+     * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑
      * @param now true 立刻执行，false 延迟到插件卸载阶段执行
      * @return 升级是否成功
      */
     public abstract boolean upgrade(boolean now);
 
     /**
-     * 获取缓存的版本号
-     * 此方法应在 update() 执行成功后调用，返回缓存的版本信息
-     * @return 版本号字符串，若无缓存则返回null
-     */
-    public abstract String getCachedVersion();
-
-    /**
-     * 获取该更新渠道对应的插件 ID
-     * 用于升级时获取插件文件
+     * 获取当前更新实例对应的插件 ID
      * @return 插件 ID
      */
     public abstract String getPluginId();
+
+    /**
+     * 获取更新的版本名
+     * @return 新版本
+     */
+    public abstract String getVersion();
+
+    /**
+     * 获取更新渠道类型
+     * @return {@link UpdateType}
+     */
+    public UpdateType getUpdateType() {
+        return updateType;
+    }
 }

@@ -11,6 +11,7 @@ import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
 import me.dreamvoid.universalpluginupdater.update.URLUpdate;
+import me.dreamvoid.universalpluginupdater.update.UpdateType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
+
+import static me.dreamvoid.universalpluginupdater.Utils.debug;
 
 /**
  * 更新渠道管理器
@@ -27,19 +30,48 @@ public class UpdateChannelManager {
     /**
      * 可用更新渠道注册
      */
-    private static final Map<String, ChannelDescriptor<?>> CHANNEL_DESCRIPTORS = Map.of(
-            // 增加新的更新渠道时，在这里注册
-            "url", new ChannelDescriptor<>(
-                    UrlChannelInfo.class,
-                    new UrlChannelInfo(null),
-                    URLUpdate::new
-            ),
-            "modrinth", new ChannelDescriptor<>(
-                    ModrinthChannelInfo.class,
-                    new ModrinthChannelInfo(null, false),
-                    ModrinthUpdate::new
-            )
-    );
+    private static final Map<UpdateType, ChannelDescriptor<?>> CHANNEL_DESCRIPTORS = new HashMap<>();
+    private static final Map<String, AbstractUpdate> EXTERNAL_UPDATE_INSTANCES = new HashMap<>();
+
+    /**
+     * 注册更新渠道（供扩展调用）
+     */
+    public static synchronized <T> void registerChannel(UpdateType type, Class<T> infoClass, T defaults, ChannelFactory<T> factory) {
+        if (type == null || infoClass == null || defaults == null || factory == null) {
+            throw new IllegalArgumentException("Invalid update channel registration arguments");
+        }
+        CHANNEL_DESCRIPTORS.put(type, new ChannelDescriptor<>(infoClass, defaults, factory));
+    }
+
+    /**
+     * 注册外部更新实例（作为可用渠道之一参与选择）
+     */
+    public static synchronized void registerUpdateInstance(String pluginId, AbstractUpdate updateInstance) {
+        if (pluginId == null || pluginId.isBlank() || updateInstance == null) {
+            throw new IllegalArgumentException("Invalid external update registration arguments");
+        }
+        EXTERNAL_UPDATE_INSTANCES.put(pluginId.toLowerCase(), updateInstance);
+    }
+
+    /**
+     * 注册外部更新实例（使用实例内的插件ID）
+     */
+    public static synchronized void registerUpdateInstance(AbstractUpdate updateInstance) {
+        if (updateInstance == null || updateInstance.getPluginId() == null || updateInstance.getPluginId().isBlank()) {
+            throw new IllegalArgumentException("Invalid external update registration arguments");
+        }
+        registerUpdateInstance(updateInstance.getPluginId(), updateInstance);
+    }
+
+    /**
+     * 注销外部更新实例
+     */
+    public static synchronized void unregisterUpdateInstance(String pluginId) {
+        if (pluginId == null || pluginId.isBlank()) {
+            return;
+        }
+        EXTERNAL_UPDATE_INSTANCES.remove(pluginId.toLowerCase());
+    }
 
     private final IPlatformProvider platform;
     private final Logger logger;
@@ -54,6 +86,9 @@ public class UpdateChannelManager {
     public UpdateChannelManager(IPlatformProvider platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
+
+        registerChannel(UpdateType.URL, UrlChannelInfo.class, new UrlChannelInfo(null), (pluginId, info) -> new URLUpdate(pluginId, info, platform));
+        registerChannel(UpdateType.Modrinth, ModrinthChannelInfo.class, new ModrinthChannelInfo(null, false), (pluginId, info) -> new ModrinthUpdate(pluginId, info, platform));
     }
 
     /**
@@ -68,6 +103,7 @@ public class UpdateChannelManager {
 
         if (!Objects.equals(globalConfigFingerprint, globalFingerprint)) {
             updateInstanceCache.clear(); // 全局配置更改
+            debug("全局配置更改，清除缓存");
         } else {
             Set<String> changedPlugins = new HashSet<>();
 
@@ -87,6 +123,7 @@ public class UpdateChannelManager {
 
             for (String pluginId : changedPlugins) {
                 removePluginCache(pluginId);
+                debug("插件 {0} 更新配置更改，清除缓存", pluginId);
             }
         }
 
@@ -110,31 +147,30 @@ public class UpdateChannelManager {
 
         // 读取并合并配置文件
         UpdateConfig config = merge(getPluginConfig(pluginId));
-        if (config == null || config.channels() == null || config.channels().isEmpty()) {
-            return null;
+
+        // 按原有配置逻辑选择渠道并创建实例（保留缓存行为）
+        ChannelConfig selectedChannelConfig = selectChannel(pluginId, config);
+        if (selectedChannelConfig != null) {
+            String channelType = selectedChannelConfig.type();
+            String cacheKey = (channelType == null || channelType.isBlank()) ? null : pluginId + ":" + channelType.toLowerCase(Locale.ROOT);
+
+            if (cacheKey != null && updateInstanceCache.containsKey(cacheKey)) {
+                debug("使用缓存更新实例: 插件 {0}, 渠道 {1}", pluginId, channelType);
+                return updateInstanceCache.get(cacheKey);
+            }
+
+            AbstractUpdate configUpdate = createUpdateInstance(pluginId, selectedChannelConfig);
+            if (configUpdate != null) {
+                if (cacheKey != null) {
+                    updateInstanceCache.put(cacheKey, configUpdate);
+                    debug("创建更新实例: 插件 {0}, 渠道 {1}", pluginId, channelType);
+                }
+                return configUpdate;
+            }
         }
 
-        // 获取选择的渠道
-        ChannelConfig selectedChannelConfig = selectChannel(config);
-        if (selectedChannelConfig == null) {
-            return null;
-        }
-
-        // 生成缓存键
-        String cacheKey = pluginId + ":" + selectedChannelConfig.type();
-        
-        // 检查缓存中是否已存在该实例
-        if (updateInstanceCache.containsKey(cacheKey)) {
-            return updateInstanceCache.get(cacheKey);
-        }
-
-        // 缓存中不存在，创建新实例
-        AbstractUpdate updateInstance = createUpdateInstance(pluginId, selectedChannelConfig);
-        if (updateInstance != null) {
-            updateInstanceCache.put(cacheKey, updateInstance);
-        }
-        
-        return updateInstance;
+        debug("未找到可用更新渠道: {0}", pluginId);
+        return null;
     }
 
     /**
@@ -149,6 +185,7 @@ public class UpdateChannelManager {
                 String jsonContent = new String(Files.readAllBytes(configPath));
                 return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
             }
+            debug("渠道配置文件不存在: {0}", configPath);
         } catch (IOException e) {
             logger.warning(LanguageService.instance().tr("message.service.channel.error.config.failed", pluginId));
         }
@@ -159,13 +196,37 @@ public class UpdateChannelManager {
      * 根据配置和用户选择确定使用哪个渠道
      * 优先级：
      * 1. 用户显式选择的渠道
-     * 2. 第一个可用的渠道
+     * 2. 第一个可用的渠道（插件注册的渠道作为第一个可用候选）
+     * @param pluginId 插件标识符
      * @param config 插件更新配置
      * @return 选中的渠道配置
      */
-    private ChannelConfig selectChannel(UpdateConfig config) {
-        List<ChannelConfig> channels = config.channels();
-        if (channels == null || channels.isEmpty()) {
+    private ChannelConfig selectChannel(String pluginId, UpdateConfig config) {
+        List<ChannelConfig> channels = new ArrayList<>();
+
+        AbstractUpdate externalUpdate = EXTERNAL_UPDATE_INSTANCES.get(pluginId.toLowerCase());
+        if (externalUpdate != null && externalUpdate.getUpdateType() != null) {
+            channels.add(new ChannelConfig(externalUpdate.getUpdateType().getIdentifier(), new JsonObject()));
+        }
+
+        if (config != null && config.channels() != null) {
+            for (ChannelConfig c : config.channels()) {
+                if (c == null) continue;
+                boolean exists = false;
+                for (int i = 0; i < channels.size(); i++) {
+                    if (channels.get(i).type().equalsIgnoreCase(c.type())) {
+                        channels.set(i, c); // 使用用户配置覆盖默认配置
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    channels.add(c);
+                }
+            }
+        }
+
+        if (channels.isEmpty()) {
             return null;
         }
 
@@ -174,19 +235,27 @@ public class UpdateChannelManager {
             return channels.getFirst();
         }
 
-        // 多个渠道的情况
-        String selectedChannel = config.selectedChannel();
-        if (selectedChannel != null && !selectedChannel.isEmpty()) {
-            // 用户选择了特定的渠道
+        // 多个渠道的情况，优先使用用户选择
+        String selectedChannel = config != null ? config.selectedChannel() : null;
+        UpdateType selectedType = UpdateType.fromIdentifier(selectedChannel);
+        if (selectedType != null) {
             for (ChannelConfig channel : channels) {
-                if (selectedChannel.equalsIgnoreCase(channel.type())) {
+                UpdateType channelType = UpdateType.fromIdentifier(channel.type());
+                if (selectedType.equals(channelType)) {
                     return channel;
                 }
             }
         }
 
-        // 用户选择的渠道不存在或没有选择，返回第一个可用渠道
-        return channels.getFirst();
+        // 返回第一个可用渠道
+        for (ChannelConfig channel : channels) {
+            UpdateType type = UpdateType.fromIdentifier(channel.type());
+            if (type != null) {
+                return channel;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -197,19 +266,26 @@ public class UpdateChannelManager {
      * @return AbstractUpdate实现实例
      */
     private AbstractUpdate createUpdateInstance(String pluginId, ChannelConfig channelConfig) {
-        String type = channelConfig.type();
-        Object config = channelConfig.config();
+        UpdateType type = UpdateType.fromIdentifier(channelConfig == null ? null : channelConfig.type());
+        if (type == null) {
+            return null;
+        }
 
-        if (type != null) try {
+        AbstractUpdate externalUpdate = EXTERNAL_UPDATE_INSTANCES.get(pluginId.toLowerCase());
+        if (externalUpdate != null && externalUpdate.getUpdateType() == type) {
+            return externalUpdate;
+        }
+
+        try {
+            Object config = channelConfig.config();
             ChannelDescriptor<?> descriptor = getChannelDescriptor(type);
             if (descriptor != null) {
                 return createWithDescriptor(descriptor, pluginId, config);
-            } else {
-                logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", type));
-                return null;
             }
+            logger.warning(LanguageService.instance().tr("message.service.channel.error.unknown", channelConfig.type()));
+            return null;
         } catch (Exception e) {
-            logger.warning(LanguageService.instance().tr("message.service.channel.error.exception", type, e));
+            logger.warning(LanguageService.instance().tr("message.service.channel.error.exception", channelConfig.type(), e));
         }
         return null;
     }
@@ -265,11 +341,12 @@ public class UpdateChannelManager {
     }
 
     private List<ChannelConfig> mergeChannels(List<ChannelConfig> pluginChannels, List<ChannelConfig> globalChannels) {
-        Map<String, ChannelConfig> globalByType = new LinkedHashMap<>();
+        Map<UpdateType, ChannelConfig> globalByType = new LinkedHashMap<>();
         if (globalChannels != null) {
             for (ChannelConfig channel : globalChannels) {
-                if (channel != null && channel.type() != null && !channel.type().isBlank()) {
-                    globalByType.put(channel.type().toLowerCase(), normalizeChannelConfig(channel));
+                UpdateType channelType = UpdateType.fromIdentifier(channel == null ? null : channel.type());
+                if (channelType != null) {
+                    globalByType.put(channelType, normalizeChannelConfig(channel));
                 }
             }
         }
@@ -277,11 +354,11 @@ public class UpdateChannelManager {
         List<ChannelConfig> merged = new ArrayList<>();
         if (pluginChannels != null) {
             for (ChannelConfig pluginChannel : pluginChannels) {
-                if (pluginChannel == null || pluginChannel.type() == null || pluginChannel.type().isBlank()) {
+                UpdateType pluginChannelType = UpdateType.fromIdentifier(pluginChannel == null ? null : pluginChannel.type());
+                if (pluginChannelType == null) {
                     continue;
                 }
-                String typeKey = pluginChannel.type().toLowerCase();
-                ChannelConfig globalChannel = globalByType.get(typeKey);
+                ChannelConfig globalChannel = globalByType.get(pluginChannelType);
                 Object mergedConfig = mergeConfigObject(pluginChannel.config(), globalChannel == null ? null : globalChannel.config());
                 merged.add(normalizeChannelConfig(new ChannelConfig(pluginChannel.type(), mergedConfig)));
             }
@@ -315,17 +392,17 @@ public class UpdateChannelManager {
     }
 
     private ChannelConfig normalizeChannelConfig(ChannelConfig channel) {
-        return ((channel == null) || (channel.type() == null)) ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(channel.type(), channel.config()));
-
+        UpdateType type = UpdateType.fromIdentifier(channel == null ? null : channel.type());
+        return type == null ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(type, channel.config()));
     }
 
-    private Object normalizeConfigObject(String channelType, Object source) {
+    private Object normalizeConfigObject(UpdateType channelType, Object source) {
         ChannelDescriptor<?> descriptor = getChannelDescriptor(channelType);
         return descriptor != null ? normalizeWithDescriptor(descriptor, source) : source;
     }
 
-    private static ChannelDescriptor<?> getChannelDescriptor(String channelType) {
-        return channelType != null ? CHANNEL_DESCRIPTORS.get(channelType.toLowerCase()) : null;
+    private static ChannelDescriptor<?> getChannelDescriptor(UpdateType channelType) {
+        return channelType != null ? CHANNEL_DESCRIPTORS.get(channelType) : null;
     }
 
     private Map<String, Long> collectPluginConfigFingerprints(Path channelsDir) {
@@ -370,7 +447,7 @@ public class UpdateChannelManager {
 
     private <T> AbstractUpdate createWithDescriptor(ChannelDescriptor<T> descriptor, String pluginId, Object source) {
         T info = parseWithDefaults(source, descriptor.infoClass(), descriptor.defaults());
-        return descriptor.factory().create(pluginId, info, platform);
+        return descriptor.factory().create(pluginId, info);
     }
 
     private <T> T parseWithDefaults(Object source, Class<T> clazz, T defaults) {
@@ -403,10 +480,9 @@ public class UpdateChannelManager {
     }
 
     @FunctionalInterface
-    private interface ChannelFactory<T> {
-        AbstractUpdate create(String pluginId, T info, IPlatformProvider platform);
+    public interface ChannelFactory<T> {
+        AbstractUpdate create(String pluginId, T info);
     }
 
     private record ChannelDescriptor<T>(Class<T> infoClass, T defaults, ChannelFactory<T> factory) { }
-
 }

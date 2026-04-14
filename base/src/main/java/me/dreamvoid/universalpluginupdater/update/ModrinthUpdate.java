@@ -126,7 +126,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getCachedVersion() {
+    public String getVersion() {
         // 返回版本名而不是版本号
         // 原因：本地插件版本号暂无法获取，且Modrinth版本号通常非纯数字
         // 仅当版本号为纯数字时才适合直接比较大小

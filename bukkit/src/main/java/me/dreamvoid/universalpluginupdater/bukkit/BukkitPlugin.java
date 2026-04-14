@@ -2,10 +2,12 @@ package me.dreamvoid.universalpluginupdater.bukkit;
 
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
+import me.dreamvoid.universalpluginupdater.bukkit.update.BukkitPluginUpdate;
 import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.IPlatformProvider;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -43,6 +45,8 @@ public class BukkitPlugin extends JavaPlugin implements IPlatformProvider {
     @Override
     public void onLoad() {
         lifeCycle.preLoad();
+
+        UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getName().toLowerCase()));
 
         // 注册 Bukkit 特定的升级策略
         UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));

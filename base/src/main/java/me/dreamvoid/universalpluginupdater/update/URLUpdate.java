@@ -85,7 +85,7 @@ public class URLUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getCachedVersion() {
+    public String getVersion() {
         return updateInfo != null ? updateInfo.version : null;
     }
 

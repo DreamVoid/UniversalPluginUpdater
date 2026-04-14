@@ -18,8 +18,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -453,5 +455,9 @@ public final class Utils {
                 return false;
             }
         }
+    }
+
+    public static void debug(String message, Object... args) {
+        logger.log((Config.Verbose ? Level.INFO : Level.FINE), MessageFormat.format(message, args));
     }
 }

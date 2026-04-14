@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static me.dreamvoid.universalpluginupdater.Utils.debug;
+
 /**
  * 检查更新服务
  * 负责检查所有已安装插件的更新
@@ -27,14 +29,17 @@ public class CheckUpdateService {
      * 检查所有已安装插件的更新
      * @return 待更新的插件列表
      */
-    public List<UpdateInfo> checkAllPluginUpdates() {
+    public List<UpdateInfo> checkUpdates() {
         List<UpdateInfo> updateInfos = new ArrayList<>();
         
         // 获取所有已安装的插件ID
         List<String> installedPlugins = platform.getPlugins();
         if (installedPlugins == null || installedPlugins.isEmpty()) {
+            debug("平台返回的插件列表为空");
             return updateInfos;
         }
+
+        debug("检查 {0} 个插件的更新", installedPlugins.size());
 
         // 遍历每个已安装的插件
         for (String pluginId : installedPlugins) {
@@ -58,6 +63,7 @@ public class CheckUpdateService {
             AbstractUpdate updateInstance = channelManager.getUpdateChannelForPlugin(pluginId);
             if (updateInstance == null) {
                 // 该插件没有配置更新渠道
+                debug("插件 {0} 无更新渠道", pluginId);
                 return null;
             }
 
@@ -68,7 +74,7 @@ public class CheckUpdateService {
             }
 
             // 获取缓存的远程版本信息
-            String remoteVersion = updateInstance.getCachedVersion();
+            String remoteVersion = updateInstance.getVersion();
             if (remoteVersion == null) {
                 logger.warning(LanguageService.instance().tr("message.service.check-update.error.no-remote-version", pluginId));
                 return null;
@@ -81,11 +87,16 @@ public class CheckUpdateService {
                 return null;
             }
 
+            debug("插件 {0} 版本比较: 本地={1}, 远程={2}", pluginId, localVersion, remoteVersion);
+
             // 比较版本
             if (hasUpdate(localVersion, remoteVersion)) {
-                String channelType = updateInstance.updateType.getIdentifier();
+                String channelType = updateInstance.getUpdateType().getIdentifier();
+                debug("找到插件 {0} 的更新，使用渠道 {1}", pluginId, channelType);
                 return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
             }
+
+            debug("插件 {0} 已是最新.", pluginId);
 
             return null;
         } catch (Exception e) {

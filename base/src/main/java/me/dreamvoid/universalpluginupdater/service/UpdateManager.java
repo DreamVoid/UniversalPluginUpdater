@@ -53,7 +53,7 @@ public class UpdateManager {
             updateChannelManager.validateCache();
         }
         // 执行检查并缓存结果
-        cachedUpdateInfos = checkUpdateService.checkAllPluginUpdates();
+        cachedUpdateInfos = checkUpdateService.checkUpdates();
         return cachedUpdateInfos;
     }
 
@@ -75,5 +75,26 @@ public class UpdateManager {
             throw new IllegalStateException(LanguageService.instance().tr("message.service.error.update-channel-manager-not-initialized"));
         }
         return updateChannelManager.getUpdateChannelForPlugin(pluginId);
+    }
+
+    /**
+     * 注册外部更新实例（可在任意时机调用）
+     */
+    public static void registerUpdateInstance(String pluginId, AbstractUpdate updateInstance) {
+        UpdateChannelManager.registerUpdateInstance(pluginId, updateInstance);
+    }
+
+    /**
+     * 注册外部更新实例（使用实例内的插件ID）
+     */
+    public static void registerUpdateInstance(AbstractUpdate updateInstance) {
+        UpdateChannelManager.registerUpdateInstance(updateInstance);
+    }
+
+    /**
+     * 注销外部更新实例
+     */
+    public static void unregisterUpdateInstance(String pluginId) {
+        UpdateChannelManager.unregisterUpdateInstance(pluginId);
     }
 }
