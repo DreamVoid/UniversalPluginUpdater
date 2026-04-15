@@ -57,17 +57,17 @@ public class PaperPlugin extends BukkitPlugin {
     // 平台实现接口
 
     @Override
-    public String getPlatformName() {
+    public @NotNull String getName() {
         return "Paper";
     }
 
     @Override
-    public List<String> getGameVersions() {
+    public @NonNull List<String> getGameVersions() {
         return Collections.singletonList(getServer().getMinecraftVersion());
     }
 
     @Override
-    public List<String> getLoaders() {
+    public @NonNull List<String> getLoaders() {
         return Arrays.asList("bukkit", "paper");
     }
 

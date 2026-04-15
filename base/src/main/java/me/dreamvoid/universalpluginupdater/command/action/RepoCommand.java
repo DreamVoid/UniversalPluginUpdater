@@ -5,7 +5,7 @@ import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
-import me.dreamvoid.universalpluginupdater.service.RepositorySyncService;
+import me.dreamvoid.universalpluginupdater.service.RepositoryService;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -18,12 +18,12 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  */
 public final class RepoCommand extends CommandHandler {
     private final Logger logger;
-    private final RepositorySyncService repositorySyncService;
+    private final RepositoryService repositoryService;
 
     public RepoCommand(Platform platform) {
         super(platform);
         this.logger = platform.getPlatformLogger();
-        this.repositorySyncService = new RepositorySyncService(platform);
+        this.repositoryService = new RepositoryService(platform);
     }
 
     @Override
@@ -32,48 +32,42 @@ public final class RepoCommand extends CommandHandler {
         Locale locale = sender.getLocale();
         String[] args = context.args();
         if (args.length == 0) {
-            sender.sendMessage("&7用法: /upu repo <update|list|get>");
-            sender.sendMessage("&7  /upu repo update - 检查仓库更新配置");
-            sender.sendMessage("&7  /upu repo list [--available] [--updatable] - 查看仓库检查结果");
-            sender.sendMessage("&7  /upu repo get [all|插件ID...] - 获取仓库更新配置到本地");
+            sender.broadcastMessage(tr(locale, "message.command.repo.help"));
             return;
         }
 
         try (AsyncLock ignored = AsyncLock.acquire()) {
             switch (args[0].toLowerCase()) {
                 case "get" -> {
-                    boolean downloadAll = args.length <= 1;
-                    List<String> pluginIds = new ArrayList<>();
-
-                    for (int i = 1; i < args.length; i++) {
-                        String arg = args[i];
-                        if (arg == null || arg.isBlank()) {
-                            continue;
-                        }
-                        if ("all".equalsIgnoreCase(arg)) {
-                            downloadAll = true;
-                            pluginIds.clear();
-                            break;
-                        }
-                        pluginIds.add(arg.toLowerCase(Locale.ROOT));
+                    if (args.length == 1) {
+                        sender.sendMessage(tr(locale, "message.command.repo.get.error.no-argument"));
+                        return;
                     }
 
-                    sender.broadcastMessage("&7从远程仓库获取更新配置...");
+                    Set<String> pluginIds = new HashSet<>();
 
-                    RepositorySyncService.RepositoryDownloadResult result = repositorySyncService.download(pluginIds, downloadAll);
+                    for (int i = 1; i < args.length; i++) {
+                        String arg = args[i].toLowerCase();
+                        switch (arg) {
+                            case "all" -> repositoryService.getCachedCheckEntries().stream()
+                                    .filter(RepositoryService.RepoCheckEntry::available)
+                                    .map(RepositoryService.RepoCheckEntry::pluginId)
+                                    .forEach(pluginIds::add);
+                            case "updatable" -> repositoryService.getCachedCheckEntries().stream()
+                                    .filter(RepositoryService.RepoCheckEntry::updatable)
+                                    .map(RepositoryService.RepoCheckEntry::pluginId)
+                                    .forEach(pluginIds::add);
+                            default -> pluginIds.add(arg);
+                        }
+                    }
+
+                    sender.broadcastMessage(tr(locale, "message.command.repo.get.start"));
+
+                    RepositoryService.RepositoryDownloadResult result = repositoryService.download(pluginIds);
                     if (result.emptyCache()) {
-                        sender.sendMessage("&e没有可获取的仓库更新配置。请先执行 /upu repo update 进行检查。");
+                        sender.sendMessage(tr(locale, "message.command.repo.get.none"));
                     } else {
-                        sender.broadcastMessage("&7仓库获取完成。成功: " + result.successList().size() + "，失败: " + result.failedList().size() + "，跳过: " + result.skippedList().size());
-                        if (!result.successList().isEmpty()) {
-                            sender.sendMessage("&a获取成功: " + String.join(", ", result.successList()));
-                        }
-                        if (!result.failedList().isEmpty()) {
-                            sender.sendMessage("&c获取失败: " + String.join(", ", result.failedList()));
-                        }
-                        if (!result.skippedList().isEmpty()) {
-                            sender.sendMessage("&e未命中可获取缓存(已跳过): " + String.join(", ", result.skippedList()));
-                        }
+                        sender.broadcastMessage(tr(locale, "message.command.repo.get.summary", result.successList().size(), result.failedList().size(), result.skippedList().size()));
                     }
 
                 }
@@ -88,47 +82,43 @@ public final class RepoCommand extends CommandHandler {
                         } else if ("--updatable".equalsIgnoreCase(arg)) {
                             filterUpdatable = true;
                         } else if (arg != null && !arg.isBlank()) {
-                            sender.sendMessage("&e忽略未知参数: " + arg);
+                            sender.sendMessage(tr(locale, "message.command.error.unknown-argument", arg));
                         }
                     }
 
-                    List<RepositorySyncService.RepoCheckEntry> entries = repositorySyncService.getCachedCheckEntries();
+                    List<RepositoryService.RepoCheckEntry> entries = repositoryService.getCachedCheckEntries();
 
-                    sender.broadcastMessage("&7仓库列表结果:");
-                    for (RepositorySyncService.RepoCheckEntry entry : entries) {
-                        int statusCode = entry.statusCode();
-                        boolean available = RepositorySyncService.isAvailable(statusCode);
-                        boolean updatable = RepositorySyncService.isUpdatable(statusCode);
+                    sender.broadcastMessage(tr(locale, "message.command.repo.list.header"));
+                    for (RepositoryService.RepoCheckEntry entry : entries) {
+                        boolean needOutput = !filterAvailable && !filterUpdatable || !filterAvailable && entry.updatable() || entry.available() && (!filterUpdatable || entry.updatable());
 
-                        boolean shouldOutput = (!filterAvailable || available) && (!filterUpdatable || updatable);
-
-                        if (shouldOutput) {
+                        if (needOutput) {
                             Set<String> label = new HashSet<>();
-                            if (available) label.add("可获取");
-                            if (updatable) label.add("可更新");
+                            if (entry.available()) label.add("可获取");
+                            if (entry.updatable()) label.add("可更新");
                             sender.sendMessage("  &7- &b" + entry.pluginId() + (label.isEmpty() ? "" : " &7[" + String.join(", ", label) + "]"));
                         }
                     }
                 }
                 case "update" -> {
-                    sender.broadcastMessage("&7开始检查仓库更新配置...");
+                    sender.broadcastMessage(tr(locale, "message.command.repo.update.start"));
 
-                    RepositorySyncService.RepositoryCheckResult result = repositorySyncService.check();
+                    RepositoryService.RepositoryCheckResult result = repositoryService.update();
 
-                    sender.broadcastMessage("&7仓库检查完成。可获取: " + result.availableCount() + "，可更新: " + result.updatableCount() + "，已最新: " + result.latestCount() + "，失败: " + result.failedList().size());
-                    sender.sendMessage("&7使用 /upu repo list --available 查看可获取/可更新列表。");
+                    sender.broadcastMessage(tr(locale, "message.command.repo.update.summary", result.availableCount(), result.updatableCount(), result.latestCount(), result.failedCount()));
+                    sender.sendMessage(tr(locale, "message.command.repo.update.next"));
                 }
                 default -> {
-                    sender.sendMessage("&c未知参数: " + args[0]);
-                    sender.sendMessage("&7用法: /upu repo <update|list|get>");
+                    sender.sendMessage(tr(locale, "message.command.error.unknown-argument", args[0]));
+                    sender.sendMessage(tr(locale, "message.command.repo.usage"));
                 }
             }
         } catch (IllegalStateException e) {
             sender.sendMessage(tr(locale, "message.command.lock.failed"));
             sender.sendMessage(tr(locale, "message.command.lock.warning"));
         } catch (Exception e) {
-            logger.severe("执行远程仓库操作时出现异常: " + e);
-            sender.sendMessage("&c执行远程仓库操作时出现异常，查看控制台了解更多信息！");
+            logger.severe(tr("message.command.repo.exception.log") + e);
+            sender.sendMessage(tr(locale, "message.command.repo.exception.game"));
         }
     }
 
@@ -153,10 +143,13 @@ public final class RepoCommand extends CommandHandler {
                     result.add("--updatable");
                 }
             } else if ("get".equalsIgnoreCase(args[1])) {
-                if (args.length == 3) {
-                    return "all".startsWith(args[2].toLowerCase())
-                            ? List.of("all")
-                            : Collections.emptyList();
+                Set<String> used = new HashSet<>(Arrays.asList(args).subList(2, args.length));
+                String input = args[args.length - 1].toLowerCase();
+                if ("all".startsWith(input) && !used.contains(input)) {
+                    result.add("all");
+                }
+                if ("updatable".startsWith(input) && !used.contains(input)) {
+                    result.add("updatable");
                 }
             }
         }

@@ -64,7 +64,7 @@ public class LifeCycle {
     public void unload(){
         logger.info(tr("message.lifecycle.unload.start"));
 
-        UpgradeService.ExecutionResult result = UpgradeService.getInstance().executePendingUpgrades();
+        UpgradeService.ExecutionResult result = UpgradeService.getInstance().executeScheduledUpgrades();
         if (result.totalCount() > 0) {
             logger.info(tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
             try {

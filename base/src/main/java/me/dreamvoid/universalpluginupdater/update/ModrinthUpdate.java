@@ -28,15 +28,15 @@ public class ModrinthUpdate extends AbstractUpdate {
     private Path downloadedFilePath;
 
     public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
+        if(info.projectId() == null || info.projectId().isEmpty()){
+            throw new IllegalArgumentException("projectId 不存在或为空");
+        }
+
         this.updateType = UpdateType.Modrinth;
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
-
-        if(info.projectId() == null || info.projectId().isEmpty()){
-            throw new IllegalArgumentException("projectId 不存在或为空");
-        }
     }
 
     /**
@@ -45,7 +45,7 @@ public class ModrinthUpdate extends AbstractUpdate {
      */
     @Override
     public boolean update() {
-        String url = buildApiUrl();
+        String url = buildUrl();
         try {
             Utils.Http.Response response = Utils.Http.get(url, lastModified);
 
@@ -92,12 +92,9 @@ public class ModrinthUpdate extends AbstractUpdate {
     /**
      * 构建Modrinth API URL
      */
-    private String buildApiUrl() {
+    private String buildUrl() {
         StringBuilder url = new StringBuilder();
-        url.append(MODRINTH_API)
-                .append("/project/")
-                .append(info.projectId())
-                .append("/version");
+        url.append(MODRINTH_API).append("/project/").append(info.projectId()).append("/version");
 
         // 构建查询参数
         Set<String> queries = new HashSet<>();
@@ -106,13 +103,11 @@ public class ModrinthUpdate extends AbstractUpdate {
         queries.add("include_changelog=false");
 
         // 添加featured参数（默认true，优先选择推荐版本）
-        if (info.featured()) {
-            queries.add("featured=true");
-        }
+        if (info.featured()) queries.add("featured=true");
 
         // 添加加载器参数
         List<String> loaders = platform.getLoaders();
-        if (loaders != null && !loaders.isEmpty()) {
+        if (!loaders.isEmpty()) {
             queries.add("loaders=[\"" + String.join("\",\"", loaders) + "\"]");
         }
 
@@ -160,7 +155,7 @@ public class ModrinthUpdate extends AbstractUpdate {
 
             return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning(tr("message.update.error.upgrade-failed", e));
+            logger.warning(tr("message.update.failed", e));
             return false;
         }
     }

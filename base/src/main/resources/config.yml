@@ -9,3 +9,7 @@ updater:
     uri: ~
     username: ~
     password: ~
+  repository:
+    check-mode: 1
+    check-list:
+      - DEFAULT_MODE_IS_BLACKLIST

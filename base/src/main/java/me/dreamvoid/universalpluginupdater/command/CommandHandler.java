@@ -1,6 +1,7 @@
 package me.dreamvoid.universalpluginupdater.command;
 
 import me.dreamvoid.universalpluginupdater.command.action.DownloadCommand;
+import me.dreamvoid.universalpluginupdater.command.action.ListCommand;
 import me.dreamvoid.universalpluginupdater.command.action.RepoCommand;
 import me.dreamvoid.universalpluginupdater.command.action.UpdateCommand;
 import me.dreamvoid.universalpluginupdater.command.action.UpgradeCommand;
@@ -27,6 +28,7 @@ public class CommandHandler {
             actions.put("download", new DownloadCommand(platform));
             actions.put("upgrade", new UpgradeCommand(platform));
             actions.put("repo", new RepoCommand(platform));
+            actions.put("list", new ListCommand(platform));
         }
     }
 
@@ -42,7 +44,7 @@ public class CommandHandler {
 
             // 如果没有子命令，显示帮助
             if (action == null) {
-                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platform.getPlatformName()));
+                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platform.getName()));
                 return;
             }
 

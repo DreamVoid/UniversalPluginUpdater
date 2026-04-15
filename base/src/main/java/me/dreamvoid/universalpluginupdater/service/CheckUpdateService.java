@@ -4,12 +4,13 @@ import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
 
 /**
  * 检查更新服务
@@ -31,26 +32,7 @@ public class CheckUpdateService {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdates() {
-        List<UpdateInfo> updateInfos = new ArrayList<>();
-        
-        // 获取所有已安装的插件ID
-        List<String> installedPlugins = platform.getPlugins();
-        if (installedPlugins == null || installedPlugins.isEmpty()) {
-            debug("平台返回的插件列表为空");
-            return updateInfos;
-        }
-
-        debug("检查 {0} 个插件的更新", installedPlugins.size());
-
-        // 遍历每个已安装的插件
-        for (String pluginId : installedPlugins) {
-            UpdateInfo update = checkPluginUpdate(pluginId);
-            if (update != null) {
-                updateInfos.add(update);
-            }
-        }
-
-        return updateInfos;
+        return platform.getPlugins().stream().map(this::checkPluginUpdate).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     /**
@@ -68,6 +50,13 @@ public class CheckUpdateService {
                 return null;
             }
 
+            // 获取本地版本信息
+            String localVersion = platform.getPluginVersion(pluginId);
+            if (localVersion == null) {
+                logger.warning(tr("message.service.check-update.error.no-local-version", pluginId));
+                return null;
+            }
+
             // 执行更新检查，联网获取最新版本信息
             if (!updateInstance.update()) {
                 logger.warning(tr("message.service.check-update.error", pluginId));
@@ -81,59 +70,12 @@ public class CheckUpdateService {
                 return null;
             }
 
-            // 获取本地版本信息
-            String localVersion = getLocalPluginVersion(pluginId);
-            if (localVersion == null) {
-                logger.warning(tr("message.service.check-update.error.no-local-version", pluginId));
-                return null;
-            }
-
-            debug("插件 {0} 版本比较: 本地={1}, 远程={2}", pluginId, localVersion, remoteVersion);
-
-            // 比较版本
-            if (hasUpdate(localVersion, remoteVersion)) {
-                String channelType = updateInstance.getType().getIdentifier();
-                debug("找到插件 {0} 的更新，使用渠道 {1}", pluginId, channelType);
-                return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
-            }
-
-            debug("插件 {0} 已是最新.", pluginId);
-
-            return null;
+            String channelType = updateInstance.getType().getIdentifier();
+            debug("插件 {0} 版本: 本地={1}, 远程={2}, 渠道={3}", pluginId, localVersion, remoteVersion, channelType);
+            return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
         } catch (Exception e) {
             logger.warning(tr("message.service.check-update.error.exception", pluginId, e));
             return null;
         }
-    }
-
-    /**
-     * 获取本地插件的版本号
-     * 默认实现返回null，由平台实现具体的版本获取逻辑
-     * @param pluginId 插件标识符
-     * @return 版本号，如果无法获取返回null
-     */
-    private String getLocalPluginVersion(String pluginId) {
-        return platform.getPluginVersion(pluginId);
-    }
-
-    /**
-     * 判断是否存在更新
-     * 比较本地版本和远程版本
-     * @param localVersion 本地版本
-     * @param remoteVersion 远程版本
-     * @return 如果存在更新返回true
-     */
-    private boolean hasUpdate(String localVersion, String remoteVersion) {
-        // 简单的版本比较：直接比较字符串
-        // 例如 "1.0" 和 "1.1"，如果它们不相同，认为有更新
-        // TODO: 如果需要更复杂的版本比较逻辑（如语义化版本），可以使用专门的版本比较工具
-        
-        // 如果两个版本不相同，则认为存在更新
-        // 这种简单的比较方式对大多数场景适用
-        if (localVersion.equals(remoteVersion)) {
-            return false; // 版本相同，没有更新
-        }
-
-        return true; // 版本不同，存在更新
     }
 }

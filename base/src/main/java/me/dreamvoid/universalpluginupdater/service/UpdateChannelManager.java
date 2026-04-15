@@ -94,7 +94,7 @@ public class UpdateChannelManager {
             }
 
             // 获取来源
-            Utils.getLogger().warning(tr("message.service.channel.warning.illegal-type", callerSource, updateType, UpdateType.Plugin));
+            Utils.getLogger().warning(tr("message.service.channel.warn.illegal-type", callerSource, updateType, UpdateType.Plugin));
             throw new IllegalArgumentException("Except update type \"" + UpdateType.Plugin + "\", but got \"" + updateType + "\"");
         }
     }
@@ -189,7 +189,7 @@ public class UpdateChannelManager {
         ChannelConfig selectedChannelConfig = selectChannel(pluginId, config);
         if (selectedChannelConfig != null) {
             String channelType = selectedChannelConfig.type();
-            String cacheKey = (channelType == null || channelType.isBlank()) ? null : pluginId + ":" + channelType.toLowerCase(Locale.ROOT);
+            String cacheKey = (channelType == null || channelType.isBlank()) ? null : pluginId + ":" + channelType.toLowerCase();
 
             if (cacheKey != null && updateInstanceCache.containsKey(cacheKey)) {
                 debug("使用缓存更新实例: 插件 {0}, 渠道 {1}", pluginId, channelType);

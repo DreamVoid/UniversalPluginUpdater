@@ -7,7 +7,6 @@ import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -37,30 +36,22 @@ public final class UpdateCommand extends CommandHandler {
             UpdateManager updateManager = UpdateManager.instance();
             List<UpdateInfo> updateInfos = updateManager.checkUpdate();
 
-            if (updateInfos.isEmpty()) {
+            long updatableCount = updateInfos.stream().filter(UpdateInfo::hasUpdate).count();
+
+            if (updatableCount == 0) {
                 context.sender().broadcastMessage(tr(locale, "message.command.update.none"));
-                return;
+            } else {
+                context.sender().broadcastMessage(tr(locale, "message.command.update.count", updatableCount));
             }
-
-            // 显示可更新的插件数量
-            context.sender().broadcastMessage(tr(locale,
-                    "message.command.update.count",
-                    updateInfos.size()));
-
-            // 详细列出每个可更新的插件
-            for (UpdateInfo update : updateInfos) {
-                String message = MessageFormat.format("  &7- &b{0} &f({1} &7-> &f{2}) &7[{3}]", update.pluginName(), update.currentVersion(), update.newVersion(), update.updateChannel());
-                context.sender().sendMessage(message);
-            }
-
+            
             context.sender().broadcastMessage(tr(locale, "message.command.update.next"));
 
         } catch (IllegalStateException e) {
             context.sender().sendMessage(tr(locale, "message.command.lock.failed"));
             context.sender().sendMessage(tr(locale, "message.command.lock.warning"));
         } catch (Exception e) {
-            logger.severe(tr("message.command.update.error.log", e));
-            context.sender().broadcastMessage(tr(locale, "message.command.update.error.game"));
+            logger.severe(tr("message.command.update.exception.log", e));
+            context.sender().broadcastMessage(tr(locale, "message.command.update.exception.game"));
         }
     }
 

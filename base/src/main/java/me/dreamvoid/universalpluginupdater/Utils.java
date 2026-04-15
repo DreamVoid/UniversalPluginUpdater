@@ -53,7 +53,7 @@ public final class Utils {
             return null;
         }
 
-        String channelValue = channel == null ? "" : channel.name().toLowerCase(Locale.ROOT);
+        String channelValue = channel == null ? "" : channel.name().toLowerCase();
         String timestamp = String.valueOf(System.currentTimeMillis());
 
         filename = filename

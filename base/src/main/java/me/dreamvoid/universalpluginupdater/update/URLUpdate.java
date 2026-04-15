@@ -166,7 +166,7 @@ public class URLUpdate extends AbstractUpdate {
 
             return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
-            logger.warning(tr("message.update.error.upgrade-failed", e));
+            logger.warning(tr("message.update.failed", e));
             return false;
         }
     }

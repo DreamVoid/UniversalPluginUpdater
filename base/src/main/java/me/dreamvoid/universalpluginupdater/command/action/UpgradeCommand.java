@@ -4,15 +4,14 @@ import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeService;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
@@ -31,31 +30,35 @@ public final class UpgradeCommand extends CommandHandler {
 
     @Override
     public void execute(CommandContext context) {
-        Locale locale = context.sender().getLocale();
+        CommandSender sender = context.sender();
+        Locale locale = sender.getLocale();
         try(AsyncLock ignored = AsyncLock.acquire()) {
-            String[] subArgs = context.args();
             boolean executeNow = false;
-            for (String arg : subArgs) {
+            List<String> targetPlugins = new java.util.ArrayList<>();
+            for (String arg : context.args()) {
                 if ("--now".equalsIgnoreCase(arg)) {
                     if (Config.Updater_AllowUpgradeNow) {
                         executeNow = true;
                     } else {
-                        context.sender().sendMessage(tr(locale, "message.command.upgrade.warn.upgrade-now-disabled"));
+                        sender.sendMessage(tr(locale, "message.command.upgrade.warn.upgrade-now-disabled"));
                     }
                 } else {
-                    context.sender().sendMessage(tr(locale, "message.command.upgrade.error.unknown-arg", arg));
+                    targetPlugins.add(arg.toLowerCase());
                 }
             }
 
-            context.sender().broadcastMessage(tr(locale, "message.command.upgrade.start"));
+            sender.broadcastMessage(tr(locale, "message.command.upgrade.start"));
 
-            // 获取缓存的更新信息
+            // 获取缓存的更新信息并提前过滤
             UpdateManager updateManager = UpdateManager.instance();
-            List<UpdateInfo> updateInfos = updateManager.getUpdateInfoList();
+            List<UpdateInfo> updateInfos = updateManager.getUpdateInfoList().stream()
+                    .filter(UpdateInfo::hasUpdate)
+                    .filter(info -> targetPlugins.isEmpty() || targetPlugins.contains(info.pluginName().toLowerCase()))
+                    .toList();
 
-            // 检查是否有可升级的更新
+            // 检查是否有可更新的插件
             if (updateInfos.isEmpty()) {
-                context.sender().broadcastMessage(tr(locale, "message.command.upgrade.none"));
+                sender.broadcastMessage(tr(locale, "message.command.upgrade.none"));
                 return;
             }
 
@@ -67,11 +70,8 @@ public final class UpgradeCommand extends CommandHandler {
             // 遍历每个待更新的插件，执行升级
             for (UpdateInfo updateInfo : updateInfos) {
                 String pluginId = updateInfo.pluginName();
-                if (scheduleUpgrade) {
-                    logger.info(tr("message.command.upgrade.executing", pluginId));
-                } else {
-                    logger.info(tr("message.command.upgrade.scheduling", pluginId));
-                }
+                
+                logger.info(tr(scheduleUpgrade ? "message.command.upgrade.executing" : "message.command.upgrade.scheduling", pluginId));
 
                 try {
                     // 获取该插件的更新实例
@@ -84,42 +84,53 @@ public final class UpgradeCommand extends CommandHandler {
 
                     // 执行升级
                     if (updateInstance.upgrade(executeNow)) {
-                        logger.info(scheduleUpgrade
-                                ? tr("message.command.upgrade.success.now", pluginId)
-                                : tr("message.command.upgrade.success.queued", pluginId));
+                        logger.info(tr(scheduleUpgrade ? 
+                                        "message.command.upgrade.success.now" : 
+                                        "message.command.upgrade.success.queued", pluginId));
                         successCount++;
                     } else {
                         logger.warning(tr("message.command.upgrade.error.failed", pluginId));
                         failureCount++;
                     }
                 } catch (Exception e) {
-                    logger.warning(tr("message.command.upgrade.error.exception", pluginId, e.getMessage()));
+                    logger.warning(tr("message.command.upgrade.error.failed.exception", pluginId, e.getMessage()));
                     failureCount++;
                 }
             }
 
-            context.sender().broadcastMessage(scheduleUpgrade
-                    ? tr(locale, "message.command.upgrade.summary.now", successCount, failureCount)
-                    : tr(locale, "message.command.upgrade.summary.queued", successCount, failureCount));
+            sender.broadcastMessage(tr(locale, scheduleUpgrade ? "message.command.upgrade.summary.now" : "message.command.upgrade.summary.queued", successCount, failureCount));
         } catch(IllegalStateException e) {
-            context.sender().sendMessage(tr(locale, "message.command.lock.failed"));
-            context.sender().sendMessage(tr(locale, "message.command.lock.warning"));
+            sender.sendMessage(tr(locale, "message.command.lock.failed"));
+            sender.sendMessage(tr(locale, "message.command.lock.warning"));
         } catch (Exception e) {
-            logger.severe(tr("message.command.upgrade.error.log", e));
-            context.sender().broadcastMessage(tr(locale, "message.command.upgrade.error.game"));
+            logger.severe(tr("message.command.upgrade.exception.log", e));
+            sender.broadcastMessage(tr(locale, "message.command.upgrade.exception.game"));
         }
     }
 
     @Override
     public List<String> suggest(CommandContext context) {
         List<String> result = new ArrayList<>();
-
         String[] args = context.args();
-        if (args.length == 2) {
-            if ("--now".startsWith(args[1]) && Config.Updater_AllowUpgradeNow) {
-                result.add("--now");
-            }
+
+        Set<String> used = new HashSet<>();
+        for (int i = 0; i < args.length - 1; i++) {
+            used.add(args[i].toLowerCase());
         }
+
+        String currentArg = args[args.length - 1].toLowerCase();
+
+        // 检查之前是否已经输入过 --now
+        if (!used.contains("--now") && "--now".startsWith(currentArg) && Config.Updater_AllowUpgradeNow) {
+            result.add("--now");
+        }
+
+        UpdateManager.instance().getUpdateInfoList().stream()
+                .filter(UpdateInfo::hasUpdate)
+                .map(UpdateInfo::pluginName)
+                .filter(name -> !used.contains(name.toLowerCase()))
+                .filter(name -> name.toLowerCase().startsWith(currentArg))
+                .forEach(result::add);
         return result;
     }
 }

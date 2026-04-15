@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater.bukkit;
 
 import me.dreamvoid.universalpluginupdater.Config;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 public class BukkitConfig extends Config {
@@ -40,5 +41,10 @@ public class BukkitConfig extends Config {
     @Override
     public boolean getBoolean(String path, boolean def) {
         return plugin.getConfig().getBoolean(path, def);
+    }
+
+    @Override
+    public List<String> getStringList(String path) {
+        return plugin.getConfig().getStringList(path);
     }
 }

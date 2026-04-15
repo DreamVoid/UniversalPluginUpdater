@@ -17,15 +17,18 @@ public interface Platform {
 
     /**
      * 获取当前平台名称
+     *
      * @return 平台名称（如 "Paper", "Bukkit", "BungeeCord"）
      */
-    String getPlatformName();
+    @NotNull
+    String getName();
 
     /**
      * 获取平台支持的游戏版本列表
      * 用于Modrinth等API的版本筛选
      * @return 游戏版本列表（如 "1.20.1", "1.21"），返回null或空列表表示不限制版本
      */
+    @Nullable
     List<String> getGameVersions();
 
     /**
@@ -33,12 +36,14 @@ public interface Platform {
      * 用于Modrinth等API的版本筛选
      * @return 加载器类型列表（如 "paper", "bukkit", "bungeecord"）
      */
+    @NotNull
     List<String> getLoaders();
 
     /**
      * 获取插件数据目录路径
      * @return 数据目录的Path对象
      */
+    @NotNull
     Path getDataPath();
 
     // 平台其他插件相关
@@ -48,6 +53,7 @@ public interface Platform {
      * 标识符应该为小写形式
      * @return 插件标识符列表
      */
+    @NotNull
     List<String> getPlugins();
 
     /**
@@ -71,12 +77,14 @@ public interface Platform {
      * 获取平台的Logger实例
      * @return 平台的Logger实例，供插件使用
      */
+    @NotNull
     Logger getPlatformLogger();
 
     /**
      * 获取平台实现的配置对象
      * @return 配置对象
      */
+    @NotNull
     Config getPlatformConfig();
 
     /**

@@ -80,7 +80,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     // 平台实现接口
 
     @Override
-    public String getPlatformName(){
+    public @NotNull String getName(){
         return "Bukkit";
     }
 
@@ -91,7 +91,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     }
 
     @Override
-    public List<String> getPlugins() {
+    public @NonNull List<String> getPlugins() {
         return Arrays.stream(getServer().getPluginManager().getPlugins()).map(p -> p.getName().toLowerCase()).collect(Collectors.toList());
     }
 
@@ -115,23 +115,23 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     }
 
     @Override
-    public List<String> getLoaders() {
+    public @NonNull List<String> getLoaders() {
         return Collections.singletonList("bukkit");
     }
 
     @Override
-    public List<String> getGameVersions() {
+    public @NonNull List<String> getGameVersions() {
         String version = Bukkit.getVersion();
         return Collections.singletonList(version.substring(version.lastIndexOf("MC: ") + 4, version.length() - 1));
     }
 
     @Override
-    public Logger getPlatformLogger() {
+    public @NonNull Logger getPlatformLogger() {
         return getLogger();
     }
 
     @Override
-    public Config getPlatformConfig() {
+    public @NonNull Config getPlatformConfig() {
         return new BukkitConfig(this);
     }
 

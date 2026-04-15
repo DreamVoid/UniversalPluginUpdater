@@ -3,6 +3,7 @@ package me.dreamvoid.universalpluginupdater.service;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,7 @@ public class UpdateManager {
      * 获取缓存的更新信息列表
      * @return 最后一次检查的结果
      */
+    @NotNull
     public List<UpdateInfo> getUpdateInfoList() {
         return new ArrayList<>(cachedUpdateInfos);  // 返回副本以防外部修改
     }

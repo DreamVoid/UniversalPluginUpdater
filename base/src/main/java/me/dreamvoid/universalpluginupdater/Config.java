@@ -1,5 +1,7 @@
 package me.dreamvoid.universalpluginupdater;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -16,6 +18,8 @@ public abstract class Config {
     public static String Updater_Proxy_Uri = null;
     public static String Updater_Proxy_Username = null;
     public static String Updater_Proxy_Password = null;
+    public static int Repository_CheckMode = 1;
+    public static List<String> Repository_CheckList = new ArrayList<>();
 
     /**
      * 加载/重载配置项
@@ -32,6 +36,8 @@ public abstract class Config {
         Updater_Proxy_Uri = getString("updater.proxy.uri", null);
         Updater_Proxy_Username = getString("updater.proxy.username", null);
         Updater_Proxy_Password = getString("updater.proxy.password", null);
+        Repository_CheckMode = getInt("repository.check-mode", Repository_CheckMode);
+        Repository_CheckList = getStringList("repository.check-list");
     }
 
     /**
@@ -50,19 +56,5 @@ public abstract class Config {
 
     public abstract boolean getBoolean(String path, boolean def);
 
-    public String getString(String path) {
-        return getString(path, null);
-    }
-
-    public int getInt(String path) {
-        return getInt(path, 0);
-    }
-
-    public long getLong(String path) {
-        return getLong(path, 0L);
-    }
-
-    public boolean getBoolean(String path) {
-        return getBoolean(path, false);
-    }
+    public abstract List<String> getStringList(String path);
 }

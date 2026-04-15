@@ -20,7 +20,7 @@ public class UpgradeService {
     private static final UpgradeService INSTANCE = new UpgradeService();
     private static final Logger logger = Utils.getLogger();
 
-    private final Queue<PendingUpgradeOperation> pendingOperations = new ConcurrentLinkedQueue<>();
+    private final Queue<ScheduledUpdate> scheduledUpdates = new ConcurrentLinkedQueue<>();
 
     private UpgradeService() {}
 
@@ -29,41 +29,45 @@ public class UpgradeService {
     }
 
     /**
-     * 立即执行或延迟执行升级
+     * 执行升级操作
      */
-    public boolean upgrade(String pluginId, Path newPluginFile, Path currentPluginFile, boolean executeNow) {
+    public boolean upgrade(String pluginId, Path newPluginPath, Path oldPluginPath, boolean executeNow) {
         UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
         String strategyId = registry.getActiveStrategyId();
         UpgradeStrategy strategy = registry.getActiveStrategy();
 
+        // 配置的更新策略不可用，回退native
         if (strategy == null) {
             logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
             strategyId = "native";
             strategy = registry.getStrategy("native");
         }
 
+        // native更新策略不可用
         if (strategy == null) {
             logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
             return false;
         }
 
         if (canUpgradeNow(executeNow, strategy)) {
-            return executeUpgrade(pluginId, newPluginFile, currentPluginFile, strategyId);
+            return executeUpgrade(pluginId, newPluginPath, oldPluginPath, strategyId);
         } else {
-            pendingOperations.add(new PendingUpgradeOperation(pluginId, newPluginFile, currentPluginFile, strategyId));
+            scheduledUpdates.add(new ScheduledUpdate(pluginId, newPluginPath, oldPluginPath, strategyId));
             logger.info(tr("message.service.upgrade.queued", pluginId, strategyId));
             return true;
         }
     }
 
     /**
-     * 判断在当前策略下此次升级是否会立刻执行
+     * 是否可以立即执行更新操作
      */
     public boolean canUpgradeNow(boolean executeNow) {
-        UpgradeStrategy strategy = UpgradeStrategyRegistry.getInstance().getActiveStrategy();
-        return canUpgradeNow(executeNow, strategy);
+        return canUpgradeNow(executeNow, UpgradeStrategyRegistry.getInstance().getActiveStrategy());
     }
 
+    /**
+     * 是否可以立即执行更新操作
+     */
     private boolean canUpgradeNow(boolean executeNow, UpgradeStrategy strategy) {
         if (strategy == null) return false;
         if (strategy.supportSaveUpgrade()) return true;
@@ -71,14 +75,14 @@ public class UpgradeService {
     }
 
     /**
-     * 在插件卸载阶段执行所有排队升级任务
+     * 执行所有队列升级任务
      */
-    public ExecutionResult executePendingUpgrades() {
+    public ExecutionResult executeScheduledUpgrades() {
         int successCount = 0, failureCount = 0;
 
-        PendingUpgradeOperation operation;
-        while ((operation = pendingOperations.poll()) != null) {
-            if (executeUpgrade(operation.pluginId, operation.newPluginFile, operation.currentPluginFile, operation.strategyId)) {
+        ScheduledUpdate operation;
+        while ((operation = scheduledUpdates.poll()) != null) {
+            if (executeUpgrade(operation.pluginId, operation.newPluginPath, operation.oldPluginPath, operation.strategyId)) {
                 successCount += 1;
             } else {
                 failureCount += 1;
@@ -88,14 +92,9 @@ public class UpgradeService {
         return new ExecutionResult(successCount, failureCount);
     }
 
-    public int getPendingCount() {
-        return pendingOperations.size();
-    }
-
-    private boolean executeUpgrade(String pluginId, Path newPluginFile, Path currentPluginFile, String preferredStrategyId) {
+    private boolean executeUpgrade(String pluginId, Path newPluginPath, Path oldPluginPath, String strategyId) {
         try {
             UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
-            String strategyId = preferredStrategyId;
             UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
 
             if (strategy == null) {
@@ -113,16 +112,24 @@ public class UpgradeService {
                 return false;
             }
 
-            return strategy.upgrade(pluginId, newPluginFile, currentPluginFile);
+            return strategy.upgrade(pluginId, newPluginPath, oldPluginPath);
         } catch (Exception e) {
             logger.warning(tr("message.service.upgrade.execute.error.exception", pluginId, e));
             return false;
         }
     }
 
-    private record PendingUpgradeOperation(String pluginId, Path newPluginFile, Path currentPluginFile, String strategyId) { }
+    private record ScheduledUpdate(
+            String pluginId,
+            Path newPluginPath,
+            Path oldPluginPath,
+            String strategyId
+    ) { }
 
-    public record ExecutionResult(int successCount, int failureCount) {
+    public record ExecutionResult(
+            int successCount,
+            int failureCount
+    ) {
         public int totalCount() {
             return successCount + failureCount;
         }
