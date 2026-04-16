@@ -29,7 +29,7 @@ public class RepositoryService {
 
 
     public enum StatusCode {
-        NORMAL(0b00), AVAILABLE(0b01), UPDATABLE(0b10), FAILED(0b100);
+        NORMAL(0b00), AVAILABLE(0b01), UPDATABLE(0b10), SKIPPED(0b100);
 
         private final int code;
 
@@ -44,8 +44,8 @@ public class RepositoryService {
 
     private final Platform platform;
     private final Logger logger;
-    private final Map<String, RepoDownloadCandidate> cachedCandidates = new LinkedHashMap<>();
-    private final List<RepoCheckEntry> cachedCheckEntries = new ArrayList<>();
+    private final List<ChannelUpdateResult> updateResults = new ArrayList<>();
+    private final Map<String, ChannelUpdateResult> remoteConfigCache = new HashMap<>();
 
     public RepositoryService(Platform platform) {
         this.platform = platform;
@@ -55,16 +55,15 @@ public class RepositoryService {
     /**
      * 从远程仓库检查更新配置
      */
-    public RepositoryCheckResult update() {
-        List<String> repositories = loadRepositories();
+    public List<ChannelUpdateResult> update() {
+        List<String> repositories = getRepositories();
         debug("仓库列表加载完成，数量: " + repositories.size());
 
         String platformName = platform.getPlatformName().toLowerCase();
         List<String> plugins = platform.getPlugins();
         debug("开始同步，平台: " + platformName + "，插件数量: " + plugins.size());
 
-        cachedCandidates.clear();
-        cachedCheckEntries.clear();
+        updateResults.clear();
 
         for (String pluginIdRaw : plugins) {
             if (pluginIdRaw == null || pluginIdRaw.isBlank()) {
@@ -81,59 +80,24 @@ public class RepositoryService {
             debug(format("{0}: 开始检查更新配置", pluginIdRaw));
 
             String pluginId = pluginIdRaw.toLowerCase();
-            PluginRepoConfigResult result = resolvePluginConfig(pluginId, platformName, repositories);
-            if (!result.found()) {
+            ChannelUpdateResult result = resolvePluginConfig(pluginId, platformName, repositories);
+            if (!result.available() && !result.skipped()) {
                 debug(format("{0}: 未在任何仓库中找到插件配置索引", pluginId));
                 continue;
             }
 
-            if (result.configText == null) {
+            if (result.skipped()) {
                 debug(format("{0}: 仓库中存在插件索引但解析/下载失败", pluginId));
-                cachedCheckEntries.add(new RepoCheckEntry(pluginId, StatusCode.FAILED.getCode()));
-                continue;
             }
 
-            long remoteLastUpdate = getLastUpdateFromJson(result.configText());
-            Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
-            debug(format("{2}: 远程 last_update: {0}，本地路径: {1}", remoteLastUpdate, localConfigPath, pluginId));
-
-            int pluginStatusCode = StatusCode.NORMAL.getCode();
-            pluginStatusCode |= StatusCode.AVAILABLE.getCode();
-
-            if (Files.exists(localConfigPath)) {
-                long localLastUpdate = 0L;
-
-                try {
-                    localLastUpdate = getLastUpdateFromJson(Files.readString(localConfigPath));
-                } catch (Exception e) {
-                    logger.warning(pluginIdRaw + ": 读取本地配置失败: " + localConfigPath + "，原因: " + e.getMessage());
-                }
-
-                debug(format("{0}: 本地 last_update: {1}", pluginIdRaw, localLastUpdate));
-                if (remoteLastUpdate > localLastUpdate) {
-                    debug(format("{0}: 检测到可更新配置，加入待下载列表", pluginIdRaw));
-                    pluginStatusCode |= StatusCode.UPDATABLE.getCode();
-                }
-            }
-
-            if((pluginStatusCode & StatusCode.AVAILABLE.getCode()) != 0) {
-                cachedCandidates.put(pluginId, new RepoDownloadCandidate(pluginId, result.configText(), localConfigPath));
-            }
-            
-            cachedCheckEntries.add(new RepoCheckEntry(pluginId, pluginStatusCode));
+            updateResults.add(result);
         }
 
-        debug(format("同步结束，可获取: {0}，可更新: {1}，已最新: {2}，失败: {3}",
-                cachedCheckEntries.stream().filter(RepoCheckEntry::available).count(),
-                cachedCheckEntries.stream().filter(RepoCheckEntry::updatable).count(),
-                cachedCheckEntries.stream().filter(RepoCheckEntry::latest).count(),
-                cachedCheckEntries.stream().filter(RepoCheckEntry::failed).count()));
-
-        return new RepositoryCheckResult(new ArrayList<>(cachedCheckEntries));
+        return new ArrayList<>(updateResults);
     }
 
-    public List<RepoCheckEntry> getCachedCheckEntries() {
-        return new ArrayList<>(cachedCheckEntries);
+    public List<ChannelUpdateResult> getUpdateResult() {
+        return new ArrayList<>(updateResults);
     }
 
     public RepositoryDownloadResult download(Set<String> pluginIds) {
@@ -141,15 +105,12 @@ public class RepositoryService {
         List<String> failedList = new ArrayList<>();
         List<String> skippedList = new ArrayList<>();
 
-        if (cachedCandidates.isEmpty()) {
+        if (updateResults.isEmpty()) {
             return new RepositoryDownloadResult(successList, failedList, skippedList, true);
         }
 
         List<String> targets = new ArrayList<>();
         for (String pluginId : pluginIds) {
-            if (pluginId == null || pluginId.isBlank()) {
-                continue;
-            }
             String normalized = pluginId.toLowerCase();
             if (!targets.contains(normalized)) {
                 targets.add(normalized);
@@ -157,21 +118,26 @@ public class RepositoryService {
         }
 
         for (String pluginId : targets) {
-            RepoDownloadCandidate candidate = cachedCandidates.get(pluginId);
-            if (candidate == null) {
+            ChannelUpdateResult candidate = updateResults.stream()
+                    .filter(r -> r.pluginId().equals(pluginId) && r.available())
+                    .findFirst()
+                    .orElse(null);
+
+            if (candidate == null || candidate.configText() == null) {
                 skippedList.add(pluginId);
                 continue;
             }
 
+            Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
+
             try {
-                Files.createDirectories(candidate.localConfigPath().getParent());
+                Files.createDirectories(localConfigPath.getParent());
             } catch (Exception e) {
                 logger.warning("创建渠道配置目录失败: " + e.getMessage());
                 failedList.add(pluginId);
                 continue;
             }
 
-            Path localConfigPath = candidate.localConfigPath();
             try {
                 Files.writeString(localConfigPath, candidate.configText());
                 successList.add(pluginId);
@@ -185,7 +151,7 @@ public class RepositoryService {
         return new RepositoryDownloadResult(successList, failedList, skippedList, false);
     }
 
-    private List<String> loadRepositories() {
+    private List<String> getRepositories() {
         try {
             Path repositoriesPath = Files.createDirectories(platform.getDataPath()).resolve("repositories.json");
             if (!Files.exists(repositoriesPath)) {
@@ -216,7 +182,7 @@ public class RepositoryService {
         }
     }
 
-    private PluginRepoConfigResult resolvePluginConfig(String pluginId, String platformName, List<String> repositories) {
+    private ChannelUpdateResult resolvePluginConfig(String pluginId, String platformName, List<String> repositories) {
         for (String repository : repositories) {
             String indexUrl = repository + "/channels/" + pluginId + "/index.json";
             debug(format("{0}: 尝试仓库索引: {1}", pluginId, indexUrl));
@@ -237,7 +203,7 @@ public class RepositoryService {
 
             if (indexResponse.content == null || indexResponse.content.isBlank()) {
                 logger.warning(format("{0}: 仓库存在索引但内容为空: {1}", pluginId, indexUrl));
-                return new PluginRepoConfigResult(true, null);
+                return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
             }
 
             RepoIndex index;
@@ -245,12 +211,12 @@ public class RepositoryService {
                 index = Utils.getGson().fromJson(indexResponse.content, RepoIndex.class);
             } catch (Exception e) {
                 logger.warning("解析仓库索引失败: " + indexUrl + "，原因: " + e.getMessage());
-                return new PluginRepoConfigResult(true, null);
+                return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
             }
 
             if (index == null || index.platform == null || index.platform.isEmpty()) {
                 logger.warning("仓库索引缺少 platform 定义: " + indexUrl);
-                return new PluginRepoConfigResult(true, null);
+                return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
             }
 
             String filename = index.platform.get(platformName);
@@ -261,38 +227,72 @@ public class RepositoryService {
 
             if (filename == null || filename.isBlank()) {
                 logger.warning("插件 " + pluginId + " 在仓库 " + repository + " 中没有可用配置。");
-                return new PluginRepoConfigResult(true, null);
+                return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
             }
 
             String configUrl = repository + "/channels/" + pluginId + "/" + filename;
             debug(format("{0}: 尝试下载配置: {1}", pluginId, configUrl));
             try {
-                Utils.Http.Response configResponse = Utils.Http.get(configUrl, null);
-                debug(format("{0}: 响应代码: {1}，URL: {2}", pluginId, configResponse.statusCode, configUrl));
-                if (configResponse.statusCode == 200 && configResponse.content != null && !configResponse.content.isBlank()) {
-                    debug("配置下载成功: " + pluginId + " @ " + configUrl);
-                    return new PluginRepoConfigResult(true, configResponse.content);
-                }
+                ChannelUpdateResult cachedConfig = remoteConfigCache.get(pluginId);
+                String reqIfModifiedSince = cachedConfig != null ? cachedConfig.lastModified() : null;
+                Utils.Http.Response configResponse = Utils.Http.get(configUrl, reqIfModifiedSince);
 
-                if (configResponse.statusCode == 304) {
-                    Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
-                    if (Files.exists(localConfigPath)) {
-                        debug(format("{0}: 返回 304，使用本地配置: {1}", pluginId, localConfigPath));
-                        return new PluginRepoConfigResult(true, Files.readString(localConfigPath));
-                    } else {
-                        debug(format("{0}: 返回 304，但本地配置不存在: {1}", pluginId, localConfigPath));
+                String remoteConfigText = null;
+                String lastModified = null;
+
+                if (configResponse.statusCode == 200) {
+                    if (configResponse.content != null && !configResponse.content.isBlank()) {
+                        debug("配置下载成功: " + pluginId + " @ " + configUrl);
+                        remoteConfigText = configResponse.content;
+                        lastModified = configResponse.lastModified;
                     }
+                } else if (configResponse.statusCode == 304) {
+                    debug(format("{0}: 返回 304，使用上一次拉取的更新配置", pluginId));
+                    if (cachedConfig != null) {
+                        remoteConfigText = cachedConfig.configText();
+                        lastModified = cachedConfig.lastModified();
+                    }
+                } else {
+                    logger.warning("下载配置失败: " + configUrl + "，状态码: " + configResponse.statusCode);
                 }
 
-                logger.warning("下载配置失败: " + configUrl + "，状态码: " + configResponse.statusCode);
-                return new PluginRepoConfigResult(true, null);
+                if (remoteConfigText != null) {
+                    long remoteLastUpdate = getLastUpdateFromJson(remoteConfigText);
+                    Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
+                    debug(format("{2}: 远程 last_update: {0}，本地路径: {1}", remoteLastUpdate, localConfigPath, pluginId));
+
+                    int pluginStatusCode = StatusCode.AVAILABLE.getCode();
+
+                    if (Files.exists(localConfigPath)) {
+                        long localLastUpdate = 0L;
+                        try {
+                            localLastUpdate = getLastUpdateFromJson(Files.readString(localConfigPath));
+                        } catch (Exception e) {
+                            logger.warning(pluginId + ": 读取本地配置失败: " + localConfigPath + "，原因: " + e.getMessage());
+                        }
+
+                        debug(format("{0}: 本地 last_update: {1}", pluginId, localLastUpdate));
+                        if (remoteLastUpdate > localLastUpdate) {
+                            debug(format("{0}: 检测到可更新配置", pluginId));
+                            pluginStatusCode |= StatusCode.UPDATABLE.getCode();
+                        }
+                    }
+
+                    ChannelUpdateResult updateResult = new ChannelUpdateResult(pluginId, pluginStatusCode, remoteConfigText, lastModified);
+                    if (configResponse.statusCode == 200) {
+                        remoteConfigCache.put(pluginId, updateResult);
+                    }
+                    return updateResult;
+                } else {
+                    return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
+                }
             } catch (Exception e) {
                 logger.warning("下载配置失败: " + configUrl + "，原因: " + e);
-                return new PluginRepoConfigResult(true, null);
+                return new ChannelUpdateResult(pluginId, StatusCode.SKIPPED.getCode(), null, null);
             }
         }
 
-        return new PluginRepoConfigResult(false, null);
+        return new ChannelUpdateResult(pluginId, StatusCode.NORMAL.getCode(), null, null);
     }
 
     private long getLastUpdateFromJson(String jsonText) {
@@ -329,56 +329,28 @@ public class RepositoryService {
         @SerializedName("platform") Map<String, String> platform;
     }
 
-    private record PluginRepoConfigResult(
-            boolean found,
-            @Nullable String configText
-    ) {
-    }
-
-    public record RepoCheckEntry(
+    /**
+     * 插件更新渠道结果
+     * @param pluginId 插件ID
+     * @param statusCode 状态码
+     */
+    public record ChannelUpdateResult(
             String pluginId,
-            int statusCode
+            int statusCode,
+            @Nullable String configText,
+            @Nullable String lastModified
     ) {
         public boolean available(){
             return (statusCode & StatusCode.AVAILABLE.getCode()) != 0;
         }
-
         public boolean updatable(){
             return (statusCode & StatusCode.UPDATABLE.getCode()) != 0;
         }
-
-        public boolean failed(){
-            return (statusCode & StatusCode.FAILED.getCode()) != 0;
+        public boolean skipped(){
+            return (statusCode & StatusCode.SKIPPED.getCode()) != 0;
         }
-
         public boolean latest(){
             return statusCode == StatusCode.NORMAL.getCode();
-        }
-    }
-
-    private record RepoDownloadCandidate(
-            String pluginId,
-            String configText,
-            Path localConfigPath
-    ) {}
-
-    public record RepositoryCheckResult(
-            List<RepoCheckEntry> entries
-    ) {
-        public long availableCount() {
-            return entries.stream().filter(RepoCheckEntry::available).count();
-        }
-
-        public long updatableCount() {
-            return entries.stream().filter(RepoCheckEntry::updatable).count();
-        }
-
-        public long latestCount() {
-            return entries.stream().filter(RepoCheckEntry::latest).count();
-        }
-
-        public long failedCount() {
-            return entries.stream().filter(RepoCheckEntry::failed).count();
         }
     }
 

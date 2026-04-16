@@ -49,13 +49,13 @@ public final class RepoCommand extends CommandHandler {
                     for (int i = 1; i < args.length; i++) {
                         String arg = args[i].toLowerCase();
                         switch (arg) {
-                            case "all" -> repositoryService.getCachedCheckEntries().stream()
-                                    .filter(RepositoryService.RepoCheckEntry::available)
-                                    .map(RepositoryService.RepoCheckEntry::pluginId)
+                            case "all" -> repositoryService.getUpdateResult().stream()
+                                    .filter(RepositoryService.ChannelUpdateResult::available)
+                                    .map(RepositoryService.ChannelUpdateResult::pluginId)
                                     .forEach(pluginIds::add);
-                            case "updatable" -> repositoryService.getCachedCheckEntries().stream()
-                                    .filter(RepositoryService.RepoCheckEntry::updatable)
-                                    .map(RepositoryService.RepoCheckEntry::pluginId)
+                            case "updatable" -> repositoryService.getUpdateResult().stream()
+                                    .filter(RepositoryService.ChannelUpdateResult::updatable)
+                                    .map(RepositoryService.ChannelUpdateResult::pluginId)
                                     .forEach(pluginIds::add);
                             default -> pluginIds.add(arg);
                         }
@@ -86,10 +86,10 @@ public final class RepoCommand extends CommandHandler {
                         }
                     }
 
-                    List<RepositoryService.RepoCheckEntry> entries = repositoryService.getCachedCheckEntries();
+                    List<RepositoryService.ChannelUpdateResult> entries = repositoryService.getUpdateResult();
 
                     sender.broadcastMessage(tr(locale, "message.command.repo.list.header"));
-                    for (RepositoryService.RepoCheckEntry entry : entries) {
+                    for (RepositoryService.ChannelUpdateResult entry : entries) {
                         boolean needOutput = !filterAvailable && !filterUpdatable || !filterAvailable && entry.updatable() || entry.available() && (!filterUpdatable || entry.updatable());
 
                         if (needOutput) {
@@ -103,9 +103,14 @@ public final class RepoCommand extends CommandHandler {
                 case "update" -> {
                     sender.broadcastMessage(tr(locale, "message.command.repo.update.start"));
 
-                    RepositoryService.RepositoryCheckResult result = repositoryService.update();
+                    List<RepositoryService.ChannelUpdateResult> result = repositoryService.update();
 
-                    sender.broadcastMessage(tr(locale, "message.command.repo.update.summary", result.availableCount(), result.updatableCount(), result.latestCount(), result.failedCount()));
+                    sender.broadcastMessage(tr(locale,
+                            "message.command.repo.update.summary",
+                            result.stream().filter(RepositoryService.ChannelUpdateResult::available).count(),
+                            result.stream().filter(RepositoryService.ChannelUpdateResult::updatable).count(),
+                            result.stream().filter(RepositoryService.ChannelUpdateResult::latest).count(),
+                            result.stream().filter(RepositoryService.ChannelUpdateResult::skipped).count()));
                     sender.sendMessage(tr(locale, "message.command.repo.update.next"));
                 }
                 default -> {
