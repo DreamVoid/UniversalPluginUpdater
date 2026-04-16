@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 异步操作锁<br>
  * 确保同一时间只有一个任务正在执行
  */
-public class AsyncLock implements AutoCloseable {
+public final class AsyncLock implements AutoCloseable {
     private static final AtomicBoolean locked = new AtomicBoolean(false);
 
     private AsyncLock() throws IllegalStateException {

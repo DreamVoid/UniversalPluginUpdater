@@ -15,13 +15,15 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  */
 public final class UpgradeStrategyRegistry {
     private static final UpgradeStrategyRegistry INSTANCE = new UpgradeStrategyRegistry();
-    
-    private final Map<String, UpgradeStrategy> strategies = new HashMap<>();
-    private String activeStrategy = "native"; // 默认使用 native 策略
-    
-    private final Logger logger = Utils.getLogger();
 
-    private UpgradeStrategyRegistry() {}
+    private final Logger logger;
+    private final Map<String, UpgradeStrategy> strategies = new HashMap<>();
+
+    private String activeStrategy = "native"; // 默认使用 native 策略
+
+    private UpgradeStrategyRegistry() {
+        logger = Utils.getLogger();
+    }
 
     public static UpgradeStrategyRegistry getInstance() {
         return INSTANCE;
@@ -33,15 +35,11 @@ public final class UpgradeStrategyRegistry {
      * @param strategy 策略实现
      */
     public void registerStrategy(String strategyId, UpgradeStrategy strategy) {
-        if (strategyId == null || strategy == null) {
-            return;
-        }
+        if (strategyId == null || strategy == null) return;
         
         strategies.put(strategyId, strategy);
-        
-        if (logger != null) {
-            logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getName()));
-        }
+
+        logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getName()));
     }
 
     /**
@@ -60,20 +58,16 @@ public final class UpgradeStrategyRegistry {
      * @param strategyId 策略标识符
      */
     public void setActiveStrategy(String strategyId) {
-        if (strategyId == null) {
-            return;
-        }
+        if (strategyId == null) return;
         
         this.activeStrategy = strategyId;
-        
-        if (logger != null) {
-            // 如果策略已注册，可以获取显示名，否则仅显示标识符
-            UpgradeStrategy strategy = strategies.get(strategyId);
-            if (strategy != null) {
-                logger.info(tr("message.service.strategy.active", strategyId, strategy.getName()));
-            } else {
-                logger.info(tr("message.service.strategy.active.unregistered", strategyId));
-            }
+
+        // 如果策略已注册，可以获取显示名，否则仅显示标识符
+        UpgradeStrategy strategy = strategies.get(strategyId);
+        if (strategy != null) {
+            logger.info(tr("message.service.strategy.active", strategyId, strategy.getName()));
+        } else {
+            logger.info(tr("message.service.strategy.active.unregistered", strategyId));
         }
     }
 
@@ -89,9 +83,7 @@ public final class UpgradeStrategyRegistry {
         
         // 如果不存在且不是 native，则回退到 native
         if (strategy == null && !activeStrategy.equals("native")) {
-            if (logger != null) {
-                logger.warning(tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
-            }
+            logger.warning(tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
             this.activeStrategy = "native";
             strategy = strategies.get("native");
         }

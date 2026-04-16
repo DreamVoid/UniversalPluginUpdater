@@ -38,10 +38,11 @@ public class UpdateManager {
      * 获取UpdateManager实例
      */
     public static UpdateManager instance() {
-        if (instance == null) {
+        if (instance != null) {
+            return instance;
+        } else {
             throw new IllegalStateException(tr("message.service.error.update-manager-not-initialized"));
         }
-        return instance;
     }
 
     /**

@@ -46,7 +46,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     public void onLoad() {
         lifeCycle.preLoad();
 
-        UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getName().toLowerCase()));
+        UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getPlatformName().toLowerCase()));
 
         // 注册 Bukkit 特定的升级策略
         UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));
@@ -80,7 +80,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     // 平台实现接口
 
     @Override
-    public @NotNull String getName(){
+    public @NotNull String getPlatformName(){
         return "Bukkit";
     }
 

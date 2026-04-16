@@ -53,6 +53,9 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
                 logger.warning(tr("message.strategy.native.error.unload-failed", pluginId));
             }
 
+            logger.info(tr("message.strategy.native.delete-old-file", oldFilePath));
+            Files.deleteIfExists(oldFilePath);
+
             // 将新文件移动到插件目录
             Path targetPath = pluginDirectory.resolve(newFilePath.getFileName());
             logger.info(tr("message.strategy.native.move-new-file", targetPath));

@@ -59,7 +59,7 @@ public class RepositoryService {
         List<String> repositories = loadRepositories();
         debug("仓库列表加载完成，数量: " + repositories.size());
 
-        String platformName = platform.getName().toLowerCase();
+        String platformName = platform.getPlatformName().toLowerCase();
         List<String> plugins = platform.getPlugins();
         debug("开始同步，平台: " + platformName + "，插件数量: " + plugins.size());
 

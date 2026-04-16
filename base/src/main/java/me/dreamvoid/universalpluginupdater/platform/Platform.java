@@ -21,7 +21,7 @@ public interface Platform {
      * @return 平台名称（如 "Paper", "Bukkit", "BungeeCord"）
      */
     @NotNull
-    String getName();
+    String getPlatformName();
 
     /**
      * 获取平台支持的游戏版本列表

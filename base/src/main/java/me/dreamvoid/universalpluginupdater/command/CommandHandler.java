@@ -44,7 +44,7 @@ public class CommandHandler {
 
             // 如果没有子命令，显示帮助
             if (action == null) {
-                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platform.getName()));
+                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platform.getPlatformName()));
                 return;
             }
 

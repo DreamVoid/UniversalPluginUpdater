@@ -30,10 +30,10 @@ import java.util.stream.Stream;
  */
 public final class LanguageService {
     private static final String FALLBACK_LOCALE = "zh-Hans";
-    private static final String LOCALE_PROPERTY = "upu.locale";
-    private static final String LANG_RESOURCE_DIR = "lang";
+
     private static final LanguageService INSTANCE = new LanguageService();
     private static Logger logger = Logger.getLogger(LanguageService.class.getName());
+
     private static final Type MAP_TYPE = new TypeToken<Map<String, JsonElement>>() {}.getType();
 
     private final Map<String, Map<String, JsonElement>> cache = new ConcurrentHashMap<>();
@@ -77,7 +77,7 @@ public final class LanguageService {
      * @return 当前平台的 Locale
      */
     public static Locale getLocale() {
-        String requested = System.getProperty(LOCALE_PROPERTY);
+        String requested = System.getProperty("upu.locale", FALLBACK_LOCALE);
         if (requested != null && !requested.isBlank()) {
             return INSTANCE.parseLocale(requested);
         }
@@ -349,7 +349,7 @@ public final class LanguageService {
     }
     private void loadLocales(Set<String> locales) {
         try {
-            var resources = LanguageService.class.getClassLoader().getResources(LANG_RESOURCE_DIR);
+            var resources = LanguageService.class.getClassLoader().getResources("lang");
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 String protocol = url.getProtocol();
@@ -372,11 +372,11 @@ public final class LanguageService {
                         while (entries.hasMoreElements()) {
                             JarEntry entry = entries.nextElement();
                             String name = entry.getName();
-                            if (!name.startsWith(LANG_RESOURCE_DIR + "/") || name.endsWith("/")) {
+                            if (!name.startsWith("lang" + "/") || name.endsWith("/")) {
                                 continue;
                             }
 
-                            String fileName = name.substring((LANG_RESOURCE_DIR + "/").length());
+                            String fileName = name.substring(("lang" + "/").length());
                             if (fileName.contains("/")) {
                                 continue;
                             }

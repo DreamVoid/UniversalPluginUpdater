@@ -8,6 +8,7 @@ import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -19,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.text.MessageFormat;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,6 +32,7 @@ public final class Utils {
 
     @Getter
     @Setter
+    @NotNull
     private static Logger logger = Logger.getLogger("UPU");
 
     @Getter
@@ -71,6 +72,7 @@ public final class Utils {
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build();
+        private static final String USER_AGENT = MessageFormat.format("UniversalPluginUpdater/{0} ({1})", BuildConstants.VERSION, System.getProperty("os.name"));
         private static volatile OkHttpClient client = defaultClient;
         private static volatile String clientProxyUri = "";
         private static volatile String clientProxyUsername = "";
@@ -107,7 +109,7 @@ public final class Utils {
         public static String get(String url) throws IOException {
             OkHttpClient httpClient = getClient();
             Request request = new Request.Builder().url(url)
-                    .header("User-Agent", "UniversalPluginUpdater/1.0")
+                    .header("User-Agent", USER_AGENT)
                     .build();
 
             try (okhttp3.Response response = httpClient.newCall(request).execute()) {
@@ -124,7 +126,7 @@ public final class Utils {
         public static Response get(String url, @Nullable String ifModifiedSince) throws IOException {
             OkHttpClient httpClient = getClient();
             Request.Builder requestBuilder = new Request.Builder().url(url)
-                    .header("User-Agent", "UniversalPluginUpdater/1.0");
+                    .header("User-Agent", USER_AGENT);
 
             // 如果有缓存时间戳，添加If-Modified-Since头
             if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
@@ -167,7 +169,7 @@ public final class Utils {
             OkHttpClient httpClient = getClient();
 
             Request request = new Request.Builder().url(url)
-                    .header("User-Agent", "UniversalPluginUpdater/1.0")
+                    .header("User-Agent", USER_AGENT)
                     .build();
 
             try (okhttp3.Response response = httpClient.newCall(request).execute()) {

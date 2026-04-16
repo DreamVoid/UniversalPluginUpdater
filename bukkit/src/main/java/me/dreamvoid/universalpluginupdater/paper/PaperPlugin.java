@@ -57,7 +57,7 @@ public class PaperPlugin extends BukkitPlugin {
     // 平台实现接口
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String getPlatformName() {
         return "Paper";
     }
 
