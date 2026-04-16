@@ -143,21 +143,12 @@ public final class LanguageManager {
     }
     private Map<String, JsonElement> getBundle(String localeName) {
         String effectiveLocale = localeName == null || localeName.isBlank() ? FALLBACK_LOCALE : localeName;
-        return cache.computeIfAbsent(effectiveLocale, this::loadBundleSafely);
+        return cache.computeIfAbsent(effectiveLocale, locale -> {
+            Map<String, JsonElement> bundle = Optional.ofNullable(loadBundle(locale)).orElse(loadBundle(FALLBACK_LOCALE));
+            return Optional.ofNullable(bundle).orElse(Collections.emptyMap());
+        });
     }
-    private Map<String, JsonElement> loadBundleSafely(String locale) {
-        Map<String, JsonElement> bundle = loadBundle(locale);
-        if (bundle != null) {
-            return bundle;
-        }
 
-        if (!FALLBACK_LOCALE.equals(locale)) {
-            logger.warning("未找到语言文件 " + locale + ", 回退到 " + FALLBACK_LOCALE);
-        }
-
-        Map<String, JsonElement> fallback = loadBundle(FALLBACK_LOCALE);
-        return fallback != null ? fallback : Collections.emptyMap();
-    }
     private String loadLink(String locale) {
         String externalPath = readExternalLangFile(locale + ".link");
         if (externalPath != null) {

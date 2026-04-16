@@ -189,15 +189,14 @@ public class RepositoryManager {
                 }
 
                 // 检查当前平台
-                String filename = index.platform.get(platformName);
-                if (filename == null || filename.isBlank()) {
-                    filename = index.platform.get("universal");
-                    debug("{0}: 未命中平台配置，回退 universal", pluginId);
-                }
-                if (filename == null || filename.isBlank()) {
+                Optional<String> optFilename = Optional.ofNullable(index.platform.get(platformName))
+                        .filter(s -> !s.isBlank())
+                        .or(() -> Optional.ofNullable(index.platform.get("universal")).filter(s -> !s.isBlank()));
+                if (optFilename.isEmpty()) {
                     debug("{0}: 在仓库 {1} 中没有可用配置。", pluginId, repository);
                     return null;
                 }
+                String filename = optFilename.get();
 
                 // 构造最终配置文件链接
                 String configUrl = repository + "/channels/" + pluginId + "/" + filename;

@@ -1,5 +1,7 @@
 package me.dreamvoid.universalpluginupdater;
 
+import me.dreamvoid.universalpluginupdater.service.LanguageManager;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -25,7 +27,7 @@ public abstract class Config {
      * 加载/重载配置项
      */
     public void reloadConfig(){
-        getLogger().info("正在加载配置文件...");
+        getLogger().info(LanguageManager.tr("message.lifecycle.config.load"));
         loadConfig();
 
         Verbose = getBoolean("verbose", Verbose);
