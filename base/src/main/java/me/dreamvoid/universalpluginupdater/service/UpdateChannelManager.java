@@ -21,13 +21,13 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
 
 /**
  * 更新渠道管理器
  * 负责读取配置文件并选择合适的更新渠道
  */
-public class UpdateChannelManager {
+public final class UpdateChannelManager {
     /**
      * 可用更新渠道注册
      */
@@ -45,30 +45,18 @@ public class UpdateChannelManager {
     }
 
     /**
-     * 注册外部更新实例（作为可用渠道之一参与选择）
-     */
-    public static synchronized void registerUpdateInstance(String pluginId, AbstractUpdate updateInstance) {
-        if (pluginId == null || pluginId.isBlank() || updateInstance == null) {
-            throw new IllegalArgumentException("Invalid external update registration arguments");
-        }
-
-        validateExternalUpdateInstance(updateInstance);
-        EXTERNAL_UPDATE_INSTANCES.put(pluginId.toLowerCase(), updateInstance);
-    }
-
-    /**
-     * 注册外部更新实例（使用实例内的插件ID）
+     * 注册外部更新实例
      */
     public static synchronized void registerUpdateInstance(AbstractUpdate updateInstance) {
-        if (updateInstance == null || updateInstance.getPluginId() == null || updateInstance.getPluginId().isBlank()) {
-            throw new IllegalArgumentException("Invalid external update registration arguments");
-        }
-
         validateExternalUpdateInstance(updateInstance);
-        registerUpdateInstance(updateInstance.getPluginId(), updateInstance);
+        EXTERNAL_UPDATE_INSTANCES.put(updateInstance.getPluginId().toLowerCase(), updateInstance);
     }
 
     private static void validateExternalUpdateInstance(AbstractUpdate updateInstance) {
+        if (updateInstance == null || updateInstance.getPluginId() == null || updateInstance.getPluginId().isBlank()) {
+            throw new IllegalArgumentException("Invalid instance or pluginId is empty");
+        }
+
         UpdateType updateType = updateInstance.getType();
         if (updateType != UpdateType.Plugin) {
             // 获取来源
@@ -103,10 +91,9 @@ public class UpdateChannelManager {
      * 注销外部更新实例
      */
     public static synchronized void unregisterUpdateInstance(String pluginId) {
-        if (pluginId == null || pluginId.isBlank()) {
-            return;
+        if (pluginId != null && !pluginId.isBlank()) {
+            EXTERNAL_UPDATE_INSTANCES.remove(pluginId.toLowerCase());
         }
-        EXTERNAL_UPDATE_INSTANCES.remove(pluginId.toLowerCase());
     }
 
     private final Platform platform;
@@ -159,7 +146,7 @@ public class UpdateChannelManager {
 
             for (String pluginId : changedPlugins) {
                 updateInstanceCache.keySet().removeIf(key -> key.startsWith(pluginId + ":"));
-                debug("插件 {0} 更新配置更改，清除缓存", pluginId);
+                debug("{0}: 插件更新配置更改，清除缓存", pluginId);
             }
         }
 
@@ -192,7 +179,7 @@ public class UpdateChannelManager {
             String cacheKey = (channelType == null || channelType.isBlank()) ? null : pluginId + ":" + channelType.toLowerCase();
 
             if (cacheKey != null && updateInstanceCache.containsKey(cacheKey)) {
-                debug("使用缓存更新实例: 插件 {0}, 渠道 {1}", pluginId, channelType);
+                debug("{0}: 使用缓存更新实例，渠道 {1}", pluginId, channelType);
                 return updateInstanceCache.get(cacheKey);
             }
 
@@ -200,7 +187,7 @@ public class UpdateChannelManager {
             if (configUpdate != null) {
                 if (cacheKey != null) {
                     updateInstanceCache.put(cacheKey, configUpdate);
-                    debug("创建更新实例: 插件 {0}, 渠道 {1}", pluginId, channelType);
+                    debug("{0}: 创建更新实例，渠道 {1}", pluginId, channelType);
                 }
                 return configUpdate;
             }
@@ -221,8 +208,9 @@ public class UpdateChannelManager {
             if (Files.exists(configPath)) {
                 String jsonContent = new String(Files.readAllBytes(configPath));
                 return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
+            } else {
+                debug("{0}: 渠道配置文件不存在: {1}", pluginId, configPath);
             }
-            debug("渠道配置文件不存在: {0}", configPath);
         } catch (IOException e) {
             logger.warning(tr("message.service.channel.error.config.failed", pluginId));
         }

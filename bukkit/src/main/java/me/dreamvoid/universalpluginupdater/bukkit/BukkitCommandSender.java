@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.bukkit;
 
 import me.dreamvoid.universalpluginupdater.platform.CommandSender;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
+import me.dreamvoid.universalpluginupdater.service.LanguageManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
@@ -43,6 +43,6 @@ public class BukkitCommandSender implements CommandSender {
     @Override
     public Locale getLocale() {
         //noinspection deprecation
-        return sender instanceof Player ? Locale.forLanguageTag(((Player) sender).getLocale().replace('_', '-')) : LanguageService.getLocale();
+        return sender instanceof Player ? Locale.forLanguageTag(((Player) sender).getLocale().replace('_', '-')) : LanguageManager.getLocale();
     }
 }

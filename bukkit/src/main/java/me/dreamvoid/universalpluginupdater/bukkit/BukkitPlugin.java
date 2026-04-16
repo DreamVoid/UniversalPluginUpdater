@@ -46,7 +46,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     public void onLoad() {
         lifeCycle.preLoad();
 
-        UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getPlatformName().toLowerCase()));
+        UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getName()));
 
         // 注册 Bukkit 特定的升级策略
         UpgradeStrategyRegistry.getInstance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));

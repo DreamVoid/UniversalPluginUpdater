@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * list 子命令处理器

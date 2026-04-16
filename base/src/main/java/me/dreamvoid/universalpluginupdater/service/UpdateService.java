@@ -3,6 +3,7 @@ package me.dreamvoid.universalpluginupdater.service;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -10,18 +11,18 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 检查更新服务
  * 负责检查所有已安装插件的更新
  */
-public class CheckUpdateService {
+public final class UpdateService {
     private final Platform platform;
     private final UpdateChannelManager channelManager;
     private final Logger logger;
 
-    public CheckUpdateService(Platform platform, UpdateChannelManager channelManager) {
+    public UpdateService(Platform platform, UpdateChannelManager channelManager) {
         this.platform = platform;
         this.channelManager = channelManager;
         this.logger = platform.getPlatformLogger();
@@ -40,6 +41,7 @@ public class CheckUpdateService {
      * @param pluginId 插件标识符（小写）
      * @return 如果有更新则返回UpdateInfo对象，否则返回null
      */
+    @Nullable
     private UpdateInfo checkPluginUpdate(String pluginId) {
         try {
             // 获取该插件对应的更新实例

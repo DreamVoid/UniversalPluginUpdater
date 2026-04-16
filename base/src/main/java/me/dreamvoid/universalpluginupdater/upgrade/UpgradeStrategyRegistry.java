@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 升级策略全局注册表<br>

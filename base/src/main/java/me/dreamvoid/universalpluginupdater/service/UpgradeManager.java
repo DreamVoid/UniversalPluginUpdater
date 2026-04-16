@@ -10,21 +10,21 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
 
 /**
  * 升级执行服务
  * 支持立即升级与延迟到插件卸载阶段执行
  */
-public class UpgradeService {
-    private static final UpgradeService INSTANCE = new UpgradeService();
+public class UpgradeManager {
+    private static final UpgradeManager INSTANCE = new UpgradeManager();
     private static final Logger logger = Utils.getLogger();
 
     private final Queue<ScheduledUpdate> scheduledUpdates = new ConcurrentLinkedQueue<>();
 
-    private UpgradeService() {}
+    private UpgradeManager() {}
 
-    public static UpgradeService getInstance() {
+    public static UpgradeManager getInstance() {
         return INSTANCE;
     }
 

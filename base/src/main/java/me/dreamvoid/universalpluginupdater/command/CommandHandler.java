@@ -10,7 +10,7 @@ import me.dreamvoid.universalpluginupdater.platform.Platform;
 
 import java.util.*;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 通用的命令处理器
@@ -87,7 +87,7 @@ public class CommandHandler {
             String subCommand = args[0].toLowerCase();
             CommandHandler handler = actions.get(subCommand);
             if (handler != null) {
-                result = handler.suggest(context);
+                result = handler.suggest(new CommandContext(context.sender(), Arrays.copyOfRange(context.args(), 1, context.args().length)));
             }
         }
 

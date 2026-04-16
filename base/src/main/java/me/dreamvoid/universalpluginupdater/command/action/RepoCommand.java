@@ -5,12 +5,12 @@ import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
-import me.dreamvoid.universalpluginupdater.service.RepositoryService;
+import me.dreamvoid.universalpluginupdater.service.RepositoryManager;
 
 import java.util.*;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * repo 子命令处理器
@@ -18,12 +18,12 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
  */
 public final class RepoCommand extends CommandHandler {
     private final Logger logger;
-    private final RepositoryService repositoryService;
+    private final RepositoryManager repositoryManager;
 
     public RepoCommand(Platform platform) {
         super(platform);
         this.logger = platform.getPlatformLogger();
-        this.repositoryService = new RepositoryService(platform);
+        this.repositoryManager = new RepositoryManager(platform);
     }
 
     @Override
@@ -49,53 +49,59 @@ public final class RepoCommand extends CommandHandler {
                     for (int i = 1; i < args.length; i++) {
                         String arg = args[i].toLowerCase();
                         switch (arg) {
-                            case "all" -> repositoryService.getUpdateResult().stream()
-                                    .filter(RepositoryService.ChannelUpdateResult::available)
-                                    .map(RepositoryService.ChannelUpdateResult::pluginId)
+                            case "all" -> repositoryManager.getChannelUpdateResults().stream()
+                                    .map(RepositoryManager.ChannelUpdateResult::pluginId)
                                     .forEach(pluginIds::add);
-                            case "updatable" -> repositoryService.getUpdateResult().stream()
-                                    .filter(RepositoryService.ChannelUpdateResult::updatable)
-                                    .map(RepositoryService.ChannelUpdateResult::pluginId)
-                                    .forEach(pluginIds::add);
+                            case "updatable" -> {
+                                for (RepositoryManager.ChannelUpdateResult channelUpdateResult : repositoryManager.getChannelUpdateResults()) {
+                                    if (channelUpdateResult.localFileStatus() == 2) {
+                                        String pluginId = channelUpdateResult.pluginId();
+                                        pluginIds.add(pluginId);
+                                    }
+                                }
+                            }
                             default -> pluginIds.add(arg);
                         }
                     }
 
                     sender.broadcastMessage(tr(locale, "message.command.repo.get.start"));
 
-                    RepositoryService.RepositoryDownloadResult result = repositoryService.download(pluginIds);
-                    if (result.emptyCache()) {
-                        sender.sendMessage(tr(locale, "message.command.repo.get.none"));
+                    RepositoryManager.RepositoryDownloadResult result = repositoryManager.download(pluginIds);
+                    int success = result.success();
+                    int failed = result.failed();
+                    int skipped = result.skipped();
+                    if (success > 0 || failed > 0 || skipped > 0) {
+                        sender.broadcastMessage(tr(locale, "message.command.repo.get.summary", success, failed, skipped));
                     } else {
-                        sender.broadcastMessage(tr(locale, "message.command.repo.get.summary", result.successList().size(), result.failedList().size(), result.skippedList().size()));
+                        sender.sendMessage(tr(locale, "message.command.repo.get.none"));
                     }
 
                 }
                 case "list" -> {
-                    boolean filterAvailable = false;
                     boolean filterUpdatable = false;
 
                     for (int i = 1; i < args.length; i++) {
                         String arg = args[i];
-                        if ("--available".equalsIgnoreCase(arg)) {
-                            filterAvailable = true;
-                        } else if ("--updatable".equalsIgnoreCase(arg)) {
+                        if ("--updatable".equalsIgnoreCase(arg)) {
                             filterUpdatable = true;
                         } else if (arg != null && !arg.isBlank()) {
                             sender.sendMessage(tr(locale, "message.command.error.unknown-argument", arg));
                         }
                     }
 
-                    List<RepositoryService.ChannelUpdateResult> entries = repositoryService.getUpdateResult();
+                    List<RepositoryManager.ChannelUpdateResult> entries = repositoryManager.getChannelUpdateResults();
 
-                    sender.broadcastMessage(tr(locale, "message.command.repo.list.header"));
-                    for (RepositoryService.ChannelUpdateResult entry : entries) {
-                        boolean needOutput = !filterAvailable && !filterUpdatable || !filterAvailable && entry.updatable() || entry.available() && (!filterUpdatable || entry.updatable());
+                    sender.sendMessage(tr(locale, "message.command.repo.list.header"));
+                    for (RepositoryManager.ChannelUpdateResult entry : entries) {
+                        boolean output = true;
 
-                        if (needOutput) {
+                        if(filterUpdatable && entry.localFileStatus() != 2){
+                            output = false;
+                        }
+
+                        if (output) {
                             Set<String> label = new HashSet<>();
-                            if (entry.available()) label.add("可获取");
-                            if (entry.updatable()) label.add("可更新");
+                            if (entry.localFileStatus() == 2) label.add("可更新");
                             sender.sendMessage("  &7- &b" + entry.pluginId() + (label.isEmpty() ? "" : " &7[" + String.join(", ", label) + "]"));
                         }
                     }
@@ -103,14 +109,15 @@ public final class RepoCommand extends CommandHandler {
                 case "update" -> {
                     sender.broadcastMessage(tr(locale, "message.command.repo.update.start"));
 
-                    List<RepositoryService.ChannelUpdateResult> result = repositoryService.update();
+                    List<RepositoryManager.ChannelUpdateResult> result = repositoryManager.update();
 
+                    long count = result.stream()
+                            .filter(channelUpdateResult -> channelUpdateResult.localFileStatus() == 2)
+                            .count();
                     sender.broadcastMessage(tr(locale,
                             "message.command.repo.update.summary",
-                            result.stream().filter(RepositoryService.ChannelUpdateResult::available).count(),
-                            result.stream().filter(RepositoryService.ChannelUpdateResult::updatable).count(),
-                            result.stream().filter(RepositoryService.ChannelUpdateResult::latest).count(),
-                            result.stream().filter(RepositoryService.ChannelUpdateResult::skipped).count()));
+                            result.size(),
+                            count));
                     sender.sendMessage(tr(locale, "message.command.repo.update.next"));
                 }
                 default -> {
@@ -132,23 +139,20 @@ public final class RepoCommand extends CommandHandler {
         String[] args = context.args();
         List<String> result = new java.util.ArrayList<>();
 
-        if (args.length == 2) {
-            String input = args[1].toLowerCase();
+        if (args.length == 1) {
+            String input = args[0].toLowerCase();
             if ("update".startsWith(input)) result.add("update");
             if ("list".startsWith(input)) result.add("list");
             if ("get".startsWith(input)) result.add("get");
-        } else if (args.length >= 3) {
-            if ("list".equalsIgnoreCase(args[1])) {
-                Set<String> used = new HashSet<>(Arrays.asList(args).subList(2, args.length));
+        } else if (args.length >= 2) {
+            if ("list".equalsIgnoreCase(args[0])) {
+                Set<String> used = new HashSet<>(Arrays.asList(args).subList(1, args.length));
                 String input = args[args.length - 1].toLowerCase();
-                if ("--available".startsWith(input) && !used.contains(input)) {
-                    result.add("--available");
-                }
                 if ("--updatable".startsWith(input) && !used.contains(input)) {
                     result.add("--updatable");
                 }
-            } else if ("get".equalsIgnoreCase(args[1])) {
-                Set<String> used = new HashSet<>(Arrays.asList(args).subList(2, args.length));
+            } else if ("get".equalsIgnoreCase(args[0])) {
+                Set<String> used = new HashSet<>(Arrays.asList(args).subList(1, args.length));
                 String input = args[args.length - 1].toLowerCase();
                 if ("all".startsWith(input) && !used.contains(input)) {
                     result.add("all");

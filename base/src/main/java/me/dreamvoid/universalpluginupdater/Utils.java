@@ -81,25 +81,11 @@ public final class Utils {
         /**
          * HTTP响应缓存对象
          */
-        public static class Response {
-            public int statusCode;
-            public String content;
-            public String lastModified;
-
-            public Response(int statusCode, String content, String lastModified) {
-                this.statusCode = statusCode;
-                this.content = content;
-                this.lastModified = lastModified;
-            }
-
-            public boolean isNotModified() {
-                return statusCode == 304;
-            }
-
-            public boolean isSuccess() {
-                return statusCode == 200;
-            }
-        }
+        public record Response (
+                int statusCode,
+                @Nullable String content,
+                String lastModified
+        ){ }
 
         /**
          * 发送HTTP GET请求并返回响应文本
@@ -107,14 +93,7 @@ public final class Utils {
          * @return 响应文本（JSON格式）
          */
         public static String get(String url) throws IOException {
-            OkHttpClient httpClient = getClient();
-            Request request = new Request.Builder().url(url)
-                    .header("User-Agent", USER_AGENT)
-                    .build();
-
-            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
-                return response.isSuccessful() && response.body() != null ? response.body().string() : null;
-            }
+            return get(url, null).content();
         }
 
         /**
@@ -137,22 +116,13 @@ public final class Utils {
 
             try (okhttp3.Response response = httpClient.newCall(request).execute()) {
                 int code = response.code();
+                String content = null;
 
-                // 处理304 Not Modified
-                if (code == 304) {
-                    return new Response(304, null, ifModifiedSince);
+                if (response.body() != null) { // 处理 200 OK
+                    content = response.body().string(); // 我说实话要是304能带出content也挺牛逼的，就不搞判断了
+                    ifModifiedSince = response.header("Last-Modified"); // 获取Last-Modified头中的时间
                 }
-
-                // 处理200 OK
-                if (code == 200 && response.body() != null) {
-                    String content = response.body().string();
-
-                    // 获取Last-Modified头中的时间
-                    String newLastModified = response.header("Last-Modified");
-                    return new Response(200, content, newLastModified);
-                }
-
-                return new Response(code, null, ifModifiedSince);
+                return new Response(code, content, ifModifiedSince);
             }
         }
 

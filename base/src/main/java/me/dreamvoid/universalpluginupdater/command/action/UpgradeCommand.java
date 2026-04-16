@@ -8,13 +8,13 @@ import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
-import me.dreamvoid.universalpluginupdater.service.UpgradeService;
+import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
 import java.util.*;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * upgrade 子命令处理器
@@ -65,7 +65,7 @@ public final class UpgradeCommand extends CommandHandler {
             // 统计成功和失败的升级数
             int successCount = 0;
             int failureCount = 0;
-            boolean scheduleUpgrade = UpgradeService.getInstance().canUpgradeNow(executeNow);
+            boolean scheduleUpgrade = UpgradeManager.getInstance().canUpgradeNow(executeNow);
 
             // 遍历每个待更新的插件，执行升级
             for (UpdateInfo updateInfo : updateInfos) {

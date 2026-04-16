@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeService;
+import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 
 import java.net.URI;
 import java.net.URL;
@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 public class URLUpdate extends AbstractUpdate {
     private final String pluginId;
@@ -53,23 +53,24 @@ public class URLUpdate extends AbstractUpdate {
         try {
             Utils.Http.Response response = Utils.Http.get(info.url(), lastModified);
 
-            if (response.isNotModified()) {
+            if (response.statusCode() == 304) {
                 // 返回304 Not Modified，使用缓存
-                if (updateInfo == null) {
+                if (updateInfo != null) {
+                    this.lastModified = response.lastModified();
+                    return true;
+                } else {
                     return false;
                 }
-                this.lastModified = response.lastModified;
-                return true;
             }
 
-            if (response.isSuccess()) {
-                String jsonResponse = response.content;
+            if (response.statusCode() == 200) {
+                String jsonResponse = response.content();
                 if (jsonResponse == null) {
                     return false;
                 }
 
                 this.updateInfo = Utils.getGson().fromJson(jsonResponse, UpdateInfo.class);
-                this.lastModified = response.lastModified;
+                this.lastModified = response.lastModified();
 
                 if (updateInfo == null || updateInfo.version == null || updateInfo.downloadUrl == null) {
                     this.updateInfo = null;
@@ -164,7 +165,7 @@ public class URLUpdate extends AbstractUpdate {
                 return false;
             }
 
-            return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
+            return UpgradeManager.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
             logger.warning(tr("message.update.failed", e));
             return false;

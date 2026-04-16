@@ -5,7 +5,7 @@ import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeService;
+import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
@@ -49,19 +49,18 @@ public class ModrinthUpdate extends AbstractUpdate {
         try {
             Utils.Http.Response response = Utils.Http.get(url, lastModified);
 
-            if (response.isNotModified()) {
+            if (response.statusCode() == 304) {
                 // 返回304 Not Modified，使用缓存
-                if (selectedVersion == null) {
+                if (selectedVersion != null) {
+                    this.lastModified = response.lastModified();
+                    logger.info(tr("message.update.hit", url));
+                    return true;
+                } else {
                     logger.warning(tr("message.update.modrinth.error.no-cache-304", url));
                     return false;
                 }
-                this.lastModified = response.lastModified;
-                logger.info(tr("message.update.hit", url));
-                return true;
-            }
-
-            if (response.isSuccess()) {
-                String content = response.content;
+            } else if (response.statusCode() == 200) {
+                String content = response.content();
                 if (content == null) {
                     logger.warning(tr("message.update.modrinth.error.response-null", url));
                     return false;
@@ -76,13 +75,13 @@ public class ModrinthUpdate extends AbstractUpdate {
 
                 // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
                 this.selectedVersion = versions[0];
-                this.lastModified = response.lastModified;
+                this.lastModified = response.lastModified();
                 logger.info(tr("message.update.get", url));
                 return true;
+            } else {
+                logger.warning(tr("message.update.error.status-code", url, response.statusCode()));
+                return false;
             }
-
-            logger.warning(tr("message.update.error.status-code", url, response.statusCode));
-            return false;
         } catch (Exception e) {
             logger.warning(tr("message.update.error", url, e));
             return false;
@@ -153,7 +152,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 return false;
             }
 
-            return UpgradeService.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
+            return UpgradeManager.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
             logger.warning(tr("message.update.failed", e));
             return false;

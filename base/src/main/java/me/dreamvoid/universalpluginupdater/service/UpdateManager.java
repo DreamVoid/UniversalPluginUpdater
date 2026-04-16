@@ -1,14 +1,15 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import me.dreamvoid.universalpluginupdater.update.UpdateType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 更新管理器
@@ -16,7 +17,7 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageService.*;
  */
 public class UpdateManager {
     private static UpdateManager instance;
-    private CheckUpdateService checkUpdateService;
+    private UpdateService updateService;
     private UpdateChannelManager updateChannelManager;
     private List<UpdateInfo> cachedUpdateInfos = new ArrayList<>();  // 缓存最后一次的检查结果
 
@@ -30,7 +31,7 @@ public class UpdateManager {
         if (instance == null) {
             instance = new UpdateManager();
             instance.updateChannelManager = new UpdateChannelManager(platform);
-            instance.checkUpdateService = new CheckUpdateService(platform, instance.updateChannelManager);
+            instance.updateService = new UpdateService(platform, instance.updateChannelManager);
         }
     }
 
@@ -50,14 +51,14 @@ public class UpdateManager {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdate() {
-        if (checkUpdateService == null) {
+        if (updateService == null) {
             throw new IllegalStateException(tr("message.service.error.check-update-service-not-initialized"));
         }
         if (updateChannelManager != null) {
             updateChannelManager.validateCache();
         }
         // 执行检查并缓存结果
-        cachedUpdateInfos = checkUpdateService.checkUpdates();
+        cachedUpdateInfos = updateService.checkUpdates();
         return cachedUpdateInfos;
     }
 
@@ -83,14 +84,8 @@ public class UpdateManager {
     }
 
     /**
-     * 注册外部更新实例（可在任意时机调用）
-     */
-    public static void registerUpdateInstance(String pluginId, AbstractUpdate updateInstance) {
-        UpdateChannelManager.registerUpdateInstance(pluginId, updateInstance);
-    }
-
-    /**
-     * 注册外部更新实例（使用实例内的插件ID）
+     * 注册外部更新实例
+     * @param updateInstance {@link UpdateType#Plugin} 类型的更新实例
      */
     public static void registerUpdateInstance(AbstractUpdate updateInstance) {
         UpdateChannelManager.registerUpdateInstance(updateInstance);
@@ -98,6 +93,7 @@ public class UpdateManager {
 
     /**
      * 注销外部更新实例
+     * @param pluginId 插件ID
      */
     public static void unregisterUpdateInstance(String pluginId) {
         UpdateChannelManager.unregisterUpdateInstance(pluginId);

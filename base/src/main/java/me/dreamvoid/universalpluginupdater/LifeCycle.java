@@ -1,15 +1,15 @@
 package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
+import me.dreamvoid.universalpluginupdater.service.LanguageManager;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
-import me.dreamvoid.universalpluginupdater.service.UpgradeService;
+import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 public class LifeCycle {
     private final Platform platform;
@@ -34,7 +34,7 @@ public class LifeCycle {
 
     public void preLoad(){
         logger = platform.getPlatformLogger();
-        LanguageService.setPlatform(platform);
+        LanguageManager.setPlatform(platform);
 
         logger.info(tr("message.lifecycle.preload.start"));
 
@@ -64,7 +64,7 @@ public class LifeCycle {
     public void unload(){
         logger.info(tr("message.lifecycle.unload.start"));
 
-        UpgradeService.ExecutionResult result = UpgradeService.getInstance().executeScheduledUpgrades();
+        UpgradeManager.ExecutionResult result = UpgradeManager.getInstance().executeScheduledUpgrades();
         if (result.totalCount() > 0) {
             logger.info(tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
             try {

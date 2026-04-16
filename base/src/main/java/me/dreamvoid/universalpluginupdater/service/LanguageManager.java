@@ -28,11 +28,11 @@ import java.util.stream.Stream;
  * 主代码语言服务
  * 从 resources/lang 下加载 JSON 语言文件，按 JVM 参数 / 系统语言 / 兜底语言逐层回退
  */
-public final class LanguageService {
+public final class LanguageManager {
     private static final String FALLBACK_LOCALE = "zh-Hans";
 
-    private static final LanguageService INSTANCE = new LanguageService();
-    private static Logger logger = Logger.getLogger(LanguageService.class.getName());
+    private static final LanguageManager INSTANCE = new LanguageManager();
+    private static Logger logger = Logger.getLogger(LanguageManager.class.getName());
 
     private static final Type MAP_TYPE = new TypeToken<Map<String, JsonElement>>() {}.getType();
 
@@ -40,7 +40,7 @@ public final class LanguageService {
     private final Map<String, String> localeResolveCache = new ConcurrentHashMap<>();
     private volatile Platform platform;
 
-    private LanguageService() {}
+    private LanguageManager() {}
 
     public static void setPlatform(Platform platform) {
         INSTANCE.platform = platform;
@@ -165,7 +165,7 @@ public final class LanguageService {
         }
 
         String resourcePath = "/lang/" + locale + ".link";
-        try (InputStream inputStream = LanguageService.class.getResourceAsStream(resourcePath)) {
+        try (InputStream inputStream = LanguageManager.class.getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 return null;
             }
@@ -185,7 +185,7 @@ public final class LanguageService {
         }
 
         String resourcePath = "/lang/" + locale + ".json";
-        try (InputStream inputStream = LanguageService.class.getResourceAsStream(resourcePath)) {
+        try (InputStream inputStream = LanguageManager.class.getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 return null;
             }
@@ -341,7 +341,7 @@ public final class LanguageService {
         try (Stream<Path> stream = Files.list(dir)) {
             stream.forEach(path -> {
                 String fileName = path.getFileName().toString();
-                LanguageService.this.addLocaleFromFileName(locales, fileName);
+                LanguageManager.this.addLocaleFromFileName(locales, fileName);
             });
         } catch (Exception e) {
             logger.warning("扫描外部语言目录失败: " + e);
@@ -349,7 +349,7 @@ public final class LanguageService {
     }
     private void loadLocales(Set<String> locales) {
         try {
-            var resources = LanguageService.class.getClassLoader().getResources("lang");
+            var resources = LanguageManager.class.getClassLoader().getResources("lang");
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 String protocol = url.getProtocol();

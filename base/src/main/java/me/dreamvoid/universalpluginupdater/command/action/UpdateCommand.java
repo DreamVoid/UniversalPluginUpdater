@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * update 子命令处理器

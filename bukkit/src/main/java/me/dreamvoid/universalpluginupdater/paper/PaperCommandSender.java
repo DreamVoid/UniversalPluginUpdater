@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.paper;
 
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitCommandSender;
-import me.dreamvoid.universalpluginupdater.service.LanguageService;
+import me.dreamvoid.universalpluginupdater.service.LanguageManager;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,6 +29,6 @@ public class PaperCommandSender extends BukkitCommandSender {
 
     @Override
     public Locale getLocale() {
-        return sender instanceof Player ? ((Player) sender).locale() : LanguageService.getLocale();
+        return sender instanceof Player ? ((Player) sender).locale() : LanguageManager.getLocale();
     }
 }

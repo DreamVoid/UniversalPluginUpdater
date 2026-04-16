@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageService.tr;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * Paper平台主类
