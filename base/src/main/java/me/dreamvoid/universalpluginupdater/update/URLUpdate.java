@@ -2,7 +2,7 @@ package me.dreamvoid.universalpluginupdater.update;
 
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.objects.channel.UrlChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 

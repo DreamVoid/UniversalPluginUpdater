@@ -1,7 +1,7 @@
 package me.dreamvoid.universalpluginupdater.update;
 
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.objects.channel.ModrinthChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
