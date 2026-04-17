@@ -15,24 +15,28 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.text.MessageFormat.format;
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 仓库同步服务
  */
 public class RepositoryManager {
-    private static final String DEFAULT_REPOSITORY = "https://repo.upu.dreamvoid.me/";
+    private static final String DEFAULT_REPOSITORY = "https://repo.upu.dreamvoid.me";
     private static final String REPOSITORIES_RESOURCE = "repositories.json";
 
     private final Platform platform;
+    private final Logger logger;
     private final List<ChannelUpdateResult> updateResults = new ArrayList<>();
     private final Map<String, RepositoryAccessor> remoteAccessorCache = new HashMap<>();
 
     public RepositoryManager(Platform platform) {
         this.platform = platform;
+        logger = platform.getPlatformLogger();
     }
 
     /**
@@ -72,19 +76,51 @@ public class RepositoryManager {
     }
 
     public RepositoryDownloadResult download(Set<String> pluginIds) {
-        Set<ChannelUpdateResult> availableResults = updateResults.stream().filter(r -> pluginIds.contains(r.pluginId)).collect(Collectors.toSet());
+        Set<ChannelUpdateResult> availableResults = updateResults.stream().filter(r -> pluginIds.contains(r.pluginId())).collect(Collectors.toSet());
 
         int success = 0, failed = 0;
 
         for (ChannelUpdateResult candidate : availableResults) {
+            String pluginId = candidate.pluginId();
             try {
-                Path localConfigPath = Files.createDirectories(platform.getDataPath().resolve("channels")).resolve(candidate.pluginId + ".json");
-                Files.writeString(localConfigPath, candidate.configText());
-                success += 1;
-                debug(format("{0}: 配置写入成功: {1}", candidate.pluginId, localConfigPath));
+                Path localConfigPath = Files.createDirectories(platform.getDataPath().resolve("channels")).resolve(pluginId + ".json");
+                
+                RepositoryAccessor activeAccessor = remoteAccessorCache.values().stream()
+                        .filter(acc -> acc.pluginId.equals(pluginId) && acc.configUrl != null && acc.configContent != null)
+                        .findFirst()
+                        .orElse(null);
+
+                if (activeAccessor == null) {
+                    failed += 1;
+                    debug(format("{0}: 找不到对应的缓存请求对象", pluginId));
+                    continue;
+                }
+
+                Utils.Http.Response response = Utils.Http.get(activeAccessor.configUrl, activeAccessor.configCacheToken);
+                
+                if (response.statusCode() == 304) {
+                    Files.writeString(localConfigPath, activeAccessor.configContent);
+                    success += 1;
+                    logger.info(tr("message.update.hit", activeAccessor.configUrl));
+                } else if (response.statusCode() == 200) {
+                    if (response.content() != null && !response.content().isBlank()) {
+                        activeAccessor.configContent = response.content();
+                        activeAccessor.configCacheToken = response.cacheToken();
+                        Files.writeString(localConfigPath, activeAccessor.configContent);
+                        success += 1;
+                        logger.info(tr("message.update.get", activeAccessor.configUrl));
+                    } else {
+                        failed += 1;
+                        logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.error.response-null")));
+                    }
+                } else {
+                    failed += 1;
+                    logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.error.status-code", response.statusCode())));
+                }
+
             } catch (Exception e) {
                 failed += 1;
-                debug(format("{0}: 配置写入失败，原因: {1}", candidate.pluginId, e));
+                debug(format("{0}: 配置写入失败，原因: {1}", pluginId, e));
             }
         }
 
@@ -114,12 +150,6 @@ public class RepositoryManager {
         }
     }
 
-    /**
-     * @param pluginId 小写插件 ID
-     * @param platformName 平台名称
-     * @param repositories 仓库地址列表
-     * @return 任意仓库获取成功返回 {@link ChannelUpdateResult} 实例，否则返回null
-     */
     @Nullable
     private ChannelUpdateResult getUpdateChannel(String pluginId, String platformName, List<String> repositories) {
         for (String repository : repositories) { // 每个仓库依次检查
@@ -139,10 +169,12 @@ public class RepositoryManager {
         private final String repository;
 
         private String configContent;
-        private String configLastModified;
+        private String configCacheToken;
 
         private String indexContent;
-        private String indexLastModified;
+        private String indexCacheToken;
+
+        private String configUrl;
 
         public RepositoryAccessor(String pluginId, String repository) {
             this.pluginId = pluginId;
@@ -154,30 +186,30 @@ public class RepositoryManager {
                 String indexUrl = repository + "/channels/" + pluginId + "/index.json";
                 debug("{0}: 尝试仓库索引: {1}", pluginId, indexUrl);
 
-                Utils.Http.Response indexResponse = Utils.Http.get(indexUrl, indexLastModified);
+                Utils.Http.Response indexResponse = Utils.Http.get(indexUrl, indexCacheToken);
 
                 debug("{0}: 索引响应状态: {1}，URL: {2}", pluginId, indexResponse.statusCode(), indexUrl);
 
                 if(indexResponse.statusCode() == 304) {
-                    if(indexContent != null){
-                        indexLastModified = indexResponse.lastModified();
-                        debug("{0}: 响应代码 304，使用缓存。", pluginId);
+                    if(indexContent != null && !indexContent.isBlank()) {
+                        indexCacheToken = indexResponse.cacheToken();
+                        logger.info(tr("message.update.hit", indexUrl));
                     } else {
-                        debug("{0}: 响应代码 304 但没有缓存！", pluginId);
+                        logger.warning(tr("message.update.error", indexUrl, tr("tag.update.error.no-cache-304")));
                         return null;
                     }
                 } else if(indexResponse.statusCode() == 200) {
-
                     if (indexResponse.content() != null && !indexResponse.content().isBlank()) {
                         indexContent = indexResponse.content();
-                        indexLastModified =  indexResponse.lastModified();
+                        indexCacheToken =  indexResponse.cacheToken();
+                        logger.info(tr("message.update.get", indexUrl));
                     } else { // 响应为空
-                        debug("{0}: 仓库存在索引但内容为空: {1}", pluginId, indexUrl);
+                        logger.warning(tr("message.update.error", indexUrl, tr("tag.update.error.response-null")));
                         return null;
                     }
                 } else {
                     // 响应不正常
-                    debug("{0}: 响应代码 {1} 异常！", pluginId, indexResponse.statusCode());
+                    logger.info(tr("message.update.ignore", indexUrl, tr("tag.update.error.status-code", indexResponse.statusCode())));
                     return null;
                 }
 
@@ -193,55 +225,59 @@ public class RepositoryManager {
                         .filter(s -> !s.isBlank())
                         .or(() -> Optional.ofNullable(index.platform.get("universal")).filter(s -> !s.isBlank()));
                 if (optFilename.isEmpty()) {
-                    debug("{0}: 在仓库 {1} 中没有可用配置。", pluginId, repository);
+                    logger.info(tr("message.update.ignore", indexUrl, "没有可用配置"));
                     return null;
                 }
                 String filename = optFilename.get();
 
                 // 构造最终配置文件链接
-                String configUrl = repository + "/channels/" + pluginId + "/" + filename;
+                configUrl = repository + "/channels/" + pluginId + "/" + filename;
                 debug("{0}: 尝试获取配置: {1}", pluginId, configUrl);
 
-                Utils.Http.Response configResponse = Utils.Http.get(configUrl, configLastModified);
+                Utils.Http.Response configResponse = Utils.Http.get(configUrl, configCacheToken);
 
                 if (configResponse.statusCode() == 200) {
                     if (configResponse.content() != null && !configResponse.content().isBlank()) {
-                        debug("{0}: 配置下载成功: {1}", pluginId, configUrl);
                         configContent = configResponse.content();
-                        configLastModified = configResponse.lastModified();
+                        configCacheToken = configResponse.cacheToken();
+                        logger.info(tr("message.update.get", configUrl));
+                    } else {
+                        logger.warning(tr("message.update.error", configUrl, tr("tag.update.error.response-null")));
+                        return null;
                     }
                 } else if (configResponse.statusCode() == 304) {
-                    configLastModified = configResponse.lastModified();
-                    debug("{0}: 返回 304，使用上一次拉取的更新配置", pluginId);
-                } else {
-                    debug("{0}: 下载配置失败，状态码: {1}", configUrl, configResponse.statusCode());
-                    return null;
-                }
-
-                if (configContent != null) {
-                    long remoteLastUpdate = getLastUpdateFromJson(configContent);
-                    Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
-                    debug("{2}: 远程 last_update: {0}，本地路径: {1}", remoteLastUpdate, localConfigPath, pluginId);
-
-                    short hasUpdate = 0;
-
-                    if (Files.exists(localConfigPath)) {
-                        hasUpdate = 2; // 存在更新
-                        try {
-                            long localLastUpdate = getLastUpdateFromJson(Files.readString(localConfigPath));
-                            debug("{0}: 本地 last_update: {1}", pluginId, localLastUpdate);
-                            if (remoteLastUpdate <= localLastUpdate) {
-                                hasUpdate = 1; // 存在且已是最新
-                            }
-                        } catch (Exception e) {
-                            debug("{0}: 读取本地配置失败: {1}，原因: {2}", pluginId, localConfigPath, e);
-                        }
+                    if(configContent != null && !configContent.isBlank()){
+                        configCacheToken = configResponse.cacheToken();
+                        logger.info(tr("message.update.hit", configUrl));
+                    } else {
+                        logger.warning(tr("message.update.error", configUrl, tr("tag.update.error.no-cache-304")));
+                        return null;
                     }
-
-                    return new ChannelUpdateResult(pluginId, hasUpdate, configContent);
                 } else {
+                    logger.info(tr("message.update.ignore", configUrl, tr("tag.update.error.status-code", configResponse.statusCode())));
                     return null;
                 }
+
+                long remoteLastUpdate = getLastUpdateFromJson(configContent);
+                Path localConfigPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
+                debug("{0}: 远程 last_update: {1}", pluginId, String.valueOf(remoteLastUpdate));
+
+                short 本地文件状态 = 0;
+
+                if (Files.exists(localConfigPath)) {
+                    本地文件状态 = 2; // 存在更新
+                    try {
+                        long localLastUpdate = getLastUpdateFromJson(Files.readString(localConfigPath));
+                        debug("{0}: 本地 last_update: {1}", pluginId, String.valueOf(localLastUpdate));
+                        if (remoteLastUpdate <= localLastUpdate) {
+                            本地文件状态 = 1; // 存在且已是最新
+                        }
+                    } catch (Exception e) {
+                        debug("{0}: 读取本地配置失败: {1}，原因: {2}", pluginId, localConfigPath, e);
+                    }
+                }
+
+                return new ChannelUpdateResult(pluginId, 本地文件状态, configContent);
             } catch (Exception e) {
                 debug("{0}: 解析出错，原因: {1}", pluginId, e);
                 return null;

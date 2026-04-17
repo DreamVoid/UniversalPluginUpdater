@@ -22,7 +22,7 @@ public class URLUpdate extends AbstractUpdate {
     private final Logger logger;
 
     private UpdateInfo updateInfo;
-    private String lastModified;
+    private String cacheToken;
     private Path downloadedFilePath;
 
     public URLUpdate(String pluginId, UrlChannelInfo info, Platform platform) {
@@ -51,12 +51,12 @@ public class URLUpdate extends AbstractUpdate {
     @Override
     public boolean update() {
         try {
-            Utils.Http.Response response = Utils.Http.get(info.url(), lastModified);
+            Utils.Http.Response response = Utils.Http.get(info.url(), cacheToken);
 
             if (response.statusCode() == 304) {
                 // 返回304 Not Modified，使用缓存
                 if (updateInfo != null) {
-                    this.lastModified = response.lastModified();
+                    this.cacheToken = response.cacheToken();
                     return true;
                 } else {
                     return false;
@@ -70,7 +70,7 @@ public class URLUpdate extends AbstractUpdate {
                 }
 
                 this.updateInfo = Utils.getGson().fromJson(jsonResponse, UpdateInfo.class);
-                this.lastModified = response.lastModified();
+                this.cacheToken = response.cacheToken();
 
                 if (updateInfo == null || updateInfo.version == null || updateInfo.downloadUrl == null) {
                     this.updateInfo = null;
@@ -128,7 +128,7 @@ public class URLUpdate extends AbstractUpdate {
                     // 删除不完整的文件
                     Files.delete(filePath);
                     this.downloadedFilePath = null;
-                    logger.warning(tr("message.update.error.checksum", downloadUrl));
+                    logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
                     return false;
                 }
             } else {

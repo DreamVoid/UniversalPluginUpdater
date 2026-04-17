@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -84,7 +85,7 @@ public final class Utils {
         public record Response (
                 int statusCode,
                 @Nullable String content,
-                String lastModified
+                @Nullable String cacheToken
         ){ }
 
         /**
@@ -99,17 +100,21 @@ public final class Utils {
         /**
          * 发送带有缓存支持的HTTP GET请求
          * @param url 请求URL
-         * @param ifModifiedSince 上次修改时间，null或空串表示无缓存，首次请求后可使用 {@link Response#lastModified} 传递
+         * @param cacheToken 缓存验证令牌（ETag 或 Last-Modified），null或空串表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
          * @return {@link Response}对象
          */
-        public static Response get(String url, @Nullable String ifModifiedSince) throws IOException {
+        public static Response get(String url, @Nullable String cacheToken) throws IOException {
             OkHttpClient httpClient = getClient();
             Request.Builder requestBuilder = new Request.Builder().url(url)
                     .header("User-Agent", USER_AGENT);
 
-            // 如果有缓存时间戳，添加If-Modified-Since头
-            if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
-                requestBuilder.header("If-Modified-Since", ifModifiedSince);
+            if (cacheToken != null && !cacheToken.isEmpty()) {
+                // 如果是以双引号或W/开头的标准 ETag，或是没有逗号的校验码，使用 If-None-Match
+                if (cacheToken.startsWith("\"") || cacheToken.startsWith("W/\"") || !cacheToken.contains(",")) {
+                    requestBuilder.header("If-None-Match", cacheToken);
+                } else {
+                    requestBuilder.header("If-Modified-Since", cacheToken);
+                }
             }
 
             Request request = requestBuilder.build();
@@ -118,11 +123,15 @@ public final class Utils {
                 int code = response.code();
                 String content = null;
 
-                if (response.body() != null) { // 处理 200 OK
-                    content = response.body().string(); // 我说实话要是304能带出content也挺牛逼的，就不搞判断了
-                    ifModifiedSince = response.header("Last-Modified"); // 获取Last-Modified头中的时间
+                if (response.body() != null) {
+                    content = response.body().string();
                 }
-                return new Response(code, content, ifModifiedSince);
+                
+                String newCacheToken = Optional.ofNullable(response.header("ETag")).filter(s -> !s.isBlank())
+                        .or(() -> Optional.ofNullable(response.header("Last-Modified")).filter(s -> !s.isBlank()))
+                        .orElse(cacheToken);
+                
+                return new Response(code, content, newCacheToken);
             }
         }
 
@@ -148,25 +157,16 @@ public final class Utils {
                 }
 
                 // 确定文件名
-                if (filename == null || filename.isEmpty()) {
-                    // 尝试从Content-Disposition头获取文件名
-                    String contentDisposition = response.header("Content-Disposition");
-                    if (contentDisposition != null && contentDisposition.contains("filename=")) {
-                        filename = extractFilenameFromContentDisposition(contentDisposition);
-                    }
-
-                    // 如果无法从头获取，尝试从URL路径提取
-                    if (filename == null || filename.isEmpty()) {
-                        filename = extractFilenameFromUrl(url);
-                    }
-
-                    // 如果仍然无法获取文件名，使用兜底名称
-                    if (filename == null || filename.isEmpty()) {
-                        filename = "download-" + System.currentTimeMillis();
-                    }
-                }
-
-                filename = filename.trim();
+                filename = Optional.ofNullable(filename)
+                        .filter(s -> !s.isBlank())
+                        .or(() -> Optional.ofNullable(response.header("Content-Disposition"))
+                                .filter(h -> h.contains("filename="))
+                                .map(h -> extractFilenameFromContentDisposition(h))
+                                .filter(s -> !s.isBlank()))
+                        .or(() -> Optional.ofNullable(extractFilenameFromUrl(url))
+                                .filter(s -> !s.isBlank()))
+                        .orElse("download-" + System.currentTimeMillis())
+                        .trim();
 
                 // 构建完整的文件路径
                 Path filePath = saveDir.resolve(filename);
@@ -430,6 +430,6 @@ public final class Utils {
     }
 
     public static void debug(String message, Object... args) {
-        logger.log((Config.Verbose ? Level.INFO : Level.FINE), MessageFormat.format(message, args));
+        logger.log((Config.Verbose ? Level.INFO : Level.FINE), "[DEBUG] " + MessageFormat.format(message, args));
     }
 }

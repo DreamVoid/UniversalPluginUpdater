@@ -24,7 +24,7 @@ public class ModrinthUpdate extends AbstractUpdate {
     private final ModrinthChannelInfo info;
     private final Platform platform;
     private ModrinthVersion selectedVersion;
-    private String lastModified;
+    private String cacheToken;
     private Path downloadedFilePath;
 
     public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
@@ -47,39 +47,39 @@ public class ModrinthUpdate extends AbstractUpdate {
     public boolean update() {
         String url = buildUrl();
         try {
-            Utils.Http.Response response = Utils.Http.get(url, lastModified);
+            Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
             if (response.statusCode() == 304) {
                 // 返回304 Not Modified，使用缓存
                 if (selectedVersion != null) {
-                    this.lastModified = response.lastModified();
+                    this.cacheToken = response.cacheToken();
                     logger.info(tr("message.update.hit", url));
                     return true;
                 } else {
-                    logger.warning(tr("message.update.modrinth.error.no-cache-304", url));
+                    logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
                     return false;
                 }
             } else if (response.statusCode() == 200) {
                 String content = response.content();
                 if (content == null) {
-                    logger.warning(tr("message.update.modrinth.error.response-null", url));
+                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
                     return false;
                 }
 
                 // 解析JSON数组
                 ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
-                    logger.warning(tr("message.update.modrinth.error.no-versions", url));
+                    logger.warning(tr("message.update.error", url, tr("tag.update.modrinth.error.no-versions")));
                     return false;
                 }
 
                 // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
                 this.selectedVersion = versions[0];
-                this.lastModified = response.lastModified();
+                this.cacheToken = response.cacheToken();
                 logger.info(tr("message.update.get", url));
                 return true;
             } else {
-                logger.warning(tr("message.update.error.status-code", url, response.statusCode()));
+                logger.info(tr("message.update.ignore", url, tr("tag.update.error.status-code", response.statusCode())));
                 return false;
             }
         } catch (Exception e) {
@@ -163,13 +163,13 @@ public class ModrinthUpdate extends AbstractUpdate {
     public boolean download() {
         // 从缓存的版本信息中获取下载链接
         if (selectedVersion == null) {
-            logger.warning(tr("message.update.modrinth.error.no-selected-version"));
+            logger.warning(tr("message.update.failed", tr("tag.update.modrinth.failed.no-selected-version")));
             return false;
         }
 
         ModrinthFile file = selectedVersion.getPrimaryFile();
         if (file == null || file.url() == null) {
-            logger.warning(tr("message.update.modrinth.error.no-primary-file"));
+            logger.warning(tr("message.update.failed", tr("tag.update.modrinth.failed.no-primary-file")));
             return false;
         }
 
@@ -215,7 +215,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                     logger.info(tr("message.update.get", downloadUrl));
                     return true;
                 } else {
-                    logger.warning(tr("message.update.error.checksum", downloadUrl));
+                    logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
                     Files.delete(downloadedPath);  // 删除不完整的文件
                     this.downloadedFilePath = null;
                     return false;

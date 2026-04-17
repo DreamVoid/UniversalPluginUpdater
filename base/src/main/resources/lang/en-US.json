@@ -120,13 +120,13 @@
     "message.update.hit": "Hit: {0}",
     "message.update.get": "Get: {0}",
     "message.update.error": "Err: {0} [{1}]",
-    "message.update.error.status-code": "Err: {0} [status code: {1}]",
-    "message.update.error.checksum": "Err: {0} [checksum mismatch]",
+    "tag.update.error.status-code": "Err: {0} [status code: {1}]",
+    "tag.update.error.checksum-mismatch": "Err: {0} [checksum mismatch]",
     "message.update.error.downloaded-file-missing": "Downloaded file is missing: {0}",
     "message.update.failed": "Upgrade failed: {0}",
-    "message.update.modrinth.error.no-cache-304": "Err: {0} [304 but no cache]",
-    "message.update.modrinth.error.response-null": "Err: {0} [response is null]",
-    "message.update.modrinth.error.no-versions": "Err: {0} [no versions]",
-    "message.update.modrinth.error.no-selected-version": "no selectedVersion",
-    "message.update.modrinth.error.no-primary-file": "No primary file"
+    "tag.update.error.no-cache-304": "Err: {0} [304 but no cache]",
+    "tag.update.error.response-null": "response is null",
+    "tag.update.modrinth.error.no-versions": "Err: {0} [no versions]",
+    "tag.update.modrinth.failed.no-selected-version": "no selectedVersion",
+    "tag.update.modrinth.failed.no-primary-file": "No primary file"
 }

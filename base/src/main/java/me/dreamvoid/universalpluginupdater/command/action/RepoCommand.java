@@ -91,19 +91,21 @@ public final class RepoCommand extends CommandHandler {
 
                     List<RepositoryManager.ChannelUpdateResult> entries = repositoryManager.getChannelUpdateResults();
 
-                    sender.sendMessage(tr(locale, "message.command.repo.list.header"));
-                    for (RepositoryManager.ChannelUpdateResult entry : entries) {
-                        boolean output = true;
+                    if (filterUpdatable) {
+                        entries = entries.stream()
+                                .filter(entry -> entry.localFileStatus() == 2)
+                                .toList();
+                    }
 
-                        if(filterUpdatable && entry.localFileStatus() != 2){
-                            output = false;
-                        }
-
-                        if (output) {
+                    if (!entries.isEmpty()) {
+                        sender.sendMessage(tr(locale, "message.command.repo.list.header"));
+                        for (RepositoryManager.ChannelUpdateResult entry : entries) {
                             Set<String> label = new HashSet<>();
                             if (entry.localFileStatus() == 2) label.add("可更新");
                             sender.sendMessage("  &7- &b" + entry.pluginId() + (label.isEmpty() ? "" : " &7[" + String.join(", ", label) + "]"));
                         }
+                    } else {
+                        sender.sendMessage(tr(locale, "message.command.repo.list.none"));
                     }
                 }
                 case "update" -> {

@@ -100,7 +100,7 @@ public final class UpdateChannelManager {
     private final Logger logger;
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
-     * 这样可以保留HTTP缓存信息（lastModified）供后续请求使用
+     * 这样可以保留HTTP缓存信息（cacheToken）供后续请求使用
      */
     private final Map<String, AbstractUpdate> updateInstanceCache = new HashMap<>();
     private final Map<String, Long> pluginConfigFingerprints = new HashMap<>();
