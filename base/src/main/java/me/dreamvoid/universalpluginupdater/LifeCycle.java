@@ -47,6 +47,8 @@ public class LifeCycle {
 
         UpgradeStrategyRegistry.instance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
+        // 初始化服务
+        UpdateManager.initialize(platform);
         UpgradeManager.initialize(platform);
         RepositoryManager.initialize(platform);
 
@@ -57,10 +59,7 @@ public class LifeCycle {
         logger.info(tr("message.lifecycle.postload.start"));
 
         UpgradeStrategyRegistry.instance().setActiveStrategy(Config.Updater_Strategy);
-
-        // 初始化更新管理器
-        UpdateManager.initialize(platform);
-
+        
         logger.info(tr("message.lifecycle.postload.moretasks"));
         logger.info(tr("message.lifecycle.postload.finish"));
     }
