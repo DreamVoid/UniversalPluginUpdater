@@ -9,11 +9,13 @@
     "message.lifecycle.postload.moretasks": "某些加载任务将在之后继续。",
     "message.lifecycle.postload.finish": "后加载任务完成. 欢迎使用 UniversalPluginUpdater！",
     "message.lifecycle.paper.postload.register-command": "正在向 Paper 注册命令...",
+    "message.lifecycle.bungee.postload.register-command": "正在向 BungeeCord 注册命令...",
     "message.lifecycle.unload.start": "准备 UniversalPluginUpdater 卸载.",
     "message.lifecycle.unload.result": "升级了 {0} 个插件，有 {1} 个插件升级失败。",
     "message.lifecycle.unload.finish": "卸载任务完成. 感谢使用 UniversalPluginUpdater！",
 
     "message.lifecycle.config.load": "正在加载配置文件...",
+    "message.lifecycle.config.exception": "加载配置文件时出现异常: {0}",
 
     "message.command.help": [
         "UniversalPluginUpdater {0} ({1})",
@@ -118,7 +120,7 @@
     "message.service.strategy.active.unregistered": "当前使用的升级策略: {0} [未注册]",
     "message.service.strategy.warn.unavailable-fallback": "当前使用的升级策略 \"{0}\" 不可用，回退到 \"native\"",
 
-    "message.strategy.native.error.plugin-directory-missing": "插件目录不存在！",
+    "message.strategy.native.error.plugin-directory-missing": "插件目录 {0} 不存在！",
     "message.strategy.native.unload": "卸载插件 {0}",
     "message.strategy.native.error.unload-failed": "插件 {0} 卸载失败！",
     "message.strategy.native.delete-old-file": "删除旧的插件文件 {0}",

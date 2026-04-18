@@ -447,4 +447,13 @@ public final class Utils {
     public static void debug(String message, Object... args) {
         logger.log((Config.Verbose ? Level.INFO : Level.FINE), "[DEBUG] " + MessageFormat.format(message, args));
     }
+
+    public static boolean findClass(String className) {
+        try{
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e){
+            return false;
+        }
+    }
 }

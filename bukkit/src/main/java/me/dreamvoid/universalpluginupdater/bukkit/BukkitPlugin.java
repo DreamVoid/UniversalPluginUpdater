@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * @author DreamVoid
  */
 public class BukkitPlugin extends JavaPlugin implements Platform {
-    protected final CommandHandler commandHandler;
     protected final LifeCycle lifeCycle;
+    protected final CommandHandler commandHandler;
 
     public BukkitPlugin() {
         lifeCycle = new LifeCycle(this);

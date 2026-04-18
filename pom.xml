@@ -12,6 +12,7 @@
     <modules>
         <module>base</module>
         <module>bukkit</module>
+        <module>bungee</module>
     </modules>
 
     <properties>

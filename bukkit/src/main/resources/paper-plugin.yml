@@ -1,5 +1,5 @@
 name: UniversalPluginUpdater
-version: ${project.version}
+version: '${project.version}'
 authors:
   - DreamVoid
 main: me.dreamvoid.universalpluginupdater.paper.PaperPlugin

@@ -40,10 +40,10 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
     public boolean upgrade(String pluginId, Path newFilePath, @Nullable Path oldFilePath) {
         try {
             // 获取插件目录（当前插件文件所在目录的父目录，通常是 plugins/）
-            Path pluginDirectory = oldFilePath != null ? oldFilePath.getParent() : null;
+            Path pluginDirectory = oldFilePath != null ? oldFilePath.getParent() : platform.getDataPath().getParent();
 
             if (pluginDirectory == null || !Files.exists(pluginDirectory)) {
-                logger.warning(tr("message.strategy.native.error.plugin-directory-missing"));
+                logger.warning(tr("message.strategy.native.error.plugin-directory-missing", pluginDirectory));
                 return false;
             }
 
@@ -53,8 +53,10 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
                 logger.warning(tr("message.strategy.native.error.unload-failed", pluginId));
             }
 
-            logger.info(tr("message.strategy.native.delete-old-file", oldFilePath));
-            Files.deleteIfExists(oldFilePath);
+            if(oldFilePath != null){
+                logger.info(tr("message.strategy.native.delete-old-file", oldFilePath));
+                Files.deleteIfExists(oldFilePath);
+            }
 
             // 将新文件移动到插件目录
             Path targetPath = pluginDirectory.resolve(newFilePath.getFileName());

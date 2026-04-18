@@ -8,6 +8,7 @@ import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
+import java.io.IOException;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
@@ -40,7 +41,11 @@ public class LifeCycle {
         logger.info(tr("message.lifecycle.preload.start"));
 
         config = platform.getPlatformConfig();
-        config.reloadConfig();
+        try {
+            config.reloadConfig();
+        } catch (IOException e){
+            logger.warning(tr("message.lifecycle.reload.exception"));
+        }
 
         logger.info(tr("message.lifecycle.preload.loaders", String.join(", ", platform.getLoaders())));
         logger.info(tr("message.lifecycle.preload.gameversions", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
@@ -81,7 +86,11 @@ public class LifeCycle {
     public void reload(){
         logger.info("准备 UniversalPluginUpdaer 重新加载...");
 
-        config.reloadConfig();
+        try {
+            config.reloadConfig();
+        } catch (IOException e){
+            logger.warning(tr("message.lifecycle.reload.exception"));
+        }
 
         logger.info("重新加载完成.");
     }
