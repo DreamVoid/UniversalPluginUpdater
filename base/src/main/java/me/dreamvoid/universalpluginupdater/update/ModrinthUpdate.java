@@ -62,14 +62,14 @@ public class ModrinthUpdate extends AbstractUpdate {
             } else if (response.statusCode() == 200) {
                 String content = response.content();
                 if (content == null) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
                 }
 
                 // 解析JSON数组
                 ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.modrinth.error.no-versions")));
+                    logger.warning(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
                 }
 
@@ -79,7 +79,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 logger.info(tr("message.update.get", url));
                 return true;
             } else {
-                logger.info(tr("message.update.ignore", url, tr("tag.update.error.status-code", response.statusCode())));
+                logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
                 return false;
             }
         } catch (Exception e) {

@@ -131,11 +131,11 @@ public final class RepositoryManager {
                         logger.info(tr("message.update.get", activeAccessor.configUrl));
                     } else {
                         failed += 1;
-                        logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.error.response-null")));
+                        logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.ignore.response-null")));
                     }
                 } else {
                     failed += 1;
-                    logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.error.status-code", response.statusCode())));
+                    logger.info(tr("message.update.ignore", activeAccessor.configUrl, tr("tag.update.ignore.status-code", response.statusCode())));
                 }
 
             } catch (Exception e) {
@@ -224,12 +224,12 @@ public final class RepositoryManager {
                         indexCacheToken =  indexResponse.cacheToken();
                         logger.info(tr("message.update.get", indexUrl));
                     } else { // 响应为空
-                        logger.warning(tr("message.update.error", indexUrl, tr("tag.update.error.response-null")));
+                        logger.info(tr("message.update.ignore", indexUrl, tr("tag.update.ignore.response-null")));
                         return null;
                     }
                 } else {
                     // 响应不正常
-                    logger.info(tr("message.update.ignore", indexUrl, tr("tag.update.error.status-code", indexResponse.statusCode())));
+                    logger.info(tr("message.update.ignore", indexUrl, tr("tag.update.ignore.status-code", indexResponse.statusCode())));
                     return null;
                 }
 
@@ -262,7 +262,7 @@ public final class RepositoryManager {
                         configCacheToken = configResponse.cacheToken();
                         logger.info(tr("message.update.get", configUrl));
                     } else {
-                        logger.warning(tr("message.update.error", configUrl, tr("tag.update.error.response-null")));
+                        logger.info(tr("message.update.ignore", configUrl, tr("tag.update.ignore.response-null")));
                         return null;
                     }
                 } else if (configResponse.statusCode() == 304) {
@@ -274,7 +274,7 @@ public final class RepositoryManager {
                         return null;
                     }
                 } else {
-                    logger.info(tr("message.update.ignore", configUrl, tr("tag.update.error.status-code", configResponse.statusCode())));
+                    logger.info(tr("message.update.ignore", configUrl, tr("tag.update.ignore.status-code", configResponse.statusCode())));
                     return null;
                 }
 

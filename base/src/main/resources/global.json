@@ -22,6 +22,15 @@
         "accept": "application/java-archive",
         "filter": null
       }
+    },
+    {
+      "type": "hangar",
+      "config": {
+        "author": null,
+        "slugOrId": null,
+        "channel": null,
+        "platform": null
+      }
     }
   ]
 }

@@ -131,16 +131,22 @@
 
     "message.update.get": "获取: {0}",
     "message.update.hit": "命中: {0}",
-    "message.update.failed": "失败: {0}",
+    "message.update.failed": "操作失败: {0}",
     "message.update.ignore": "忽略: {0} [{1}]",
     "message.update.error": "错误: {0} [{1}]",
     "message.update.error.downloaded-file-missing": "下载的文件丢失: {0}",
 
-    "tag.update.error.status-code": "状态码: {0}",
-    "tag.update.error.no-cache-304": "无缓存304",
     "tag.update.error.checksum-mismatch": "校验失败",
-    "tag.update.error.response-null": "响应为空",
+    "tag.update.error.no-cache-304": "无缓存304",
+    "tag.update.error.response-invalid": "响应无效",
+    "tag.update.ignore.no-version": "无可用版本",
+    "tag.update.ignore.response-null": "响应为空",
+    "tag.update.ignore.status-code": "状态码: {0}",
+    "tag.update.github.failed.no-selected-release": "无已选发行版",
+    "tag.update.github.failed.no-download-url": "无下载链接",
     "tag.update.modrinth.failed.no-selected-version": "无已选版本",
     "tag.update.modrinth.failed.no-primary-file": "无主文件",
-    "tag.update.modrinth.error.no-versions": "无可用版本"
+    "tag.update.hangar.failed.no-selected-version": "无已选版本",
+    "tag.update.url.failed.no-download-url": "无下载链接",
+    "tag.update.hangar.failed.no-download-url": "无下载链接"
 }

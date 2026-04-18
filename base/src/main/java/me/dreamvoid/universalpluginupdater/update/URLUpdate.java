@@ -67,7 +67,7 @@ public class URLUpdate extends AbstractUpdate {
             } else if (response.statusCode() == 200) {
                 String content = response.content();
                 if (content == null) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
                 }
 
@@ -80,11 +80,11 @@ public class URLUpdate extends AbstractUpdate {
                 } else {
                     this.updateInfo = null;
                     this.cacheToken = null;
-                    logger.warning(tr("message.update.error", url, "无效的响应"));
+                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-invalid")));
                     return false;
                 }
             } else {
-                logger.info(tr("message.update.ignore", url, tr("tag.update.error.status-code", response.statusCode())));
+                logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
                 return false;
             }
         } catch (Exception e) {
@@ -102,6 +102,7 @@ public class URLUpdate extends AbstractUpdate {
     public boolean download() {
         // 从缓存的更新信息中获取下载链接
         if (updateInfo == null || updateInfo.downloadUrl == null) {
+            logger.warning(tr("message.update.failed", tr("tag.update.url.failed.no-download-url")));
             return false;
         }
 

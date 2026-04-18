@@ -58,19 +58,19 @@ public class GitHubUpdate extends AbstractUpdate {
             } else if (response.statusCode() == 200) {
                 String content = response.content();
                 if (content == null) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
                 }
 
                 GithubRelease release = Utils.getGson().fromJson(content, GithubRelease.class);
                 if (release == null) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
                 }
 
                 GithubAsset targetAsset = resolveAsset(release.assets());
                 if (targetAsset == null) {
-                    logger.warning(tr("message.update.error", url, "未找到符合条件的文件 (filter/accept mismatched)"));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
                 }
 
@@ -80,7 +80,7 @@ public class GitHubUpdate extends AbstractUpdate {
                 logger.info(tr("message.update.get", url));
                 return true;
             } else {
-                logger.info(tr("message.update.ignore", url, tr("tag.update.error.status-code", response.statusCode())));
+                logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
                 return false;
             }
         } catch (Exception e) {
@@ -173,13 +173,13 @@ public class GitHubUpdate extends AbstractUpdate {
     @Override
     public boolean download() {
         if (selectedRelease == null || selectedAsset == null) {
-            logger.warning(tr("message.update.error", "No selected github release or asset (未选择到版本或附件)"));
+            logger.warning(tr("message.update.failed", tr("tag.update.github.failed.no-selected-release")));
             return false;
         }
 
         String downloadUrl = selectedAsset.browserDownloadUrl();
         if (downloadUrl == null) {
-            logger.warning(tr("message.update.error", "No valid browser_download_url (未找到下载链接)"));
+            logger.warning(tr("message.update.failed", tr("tag.update.github.failed.no-download-url")));
             return false;
         }
 
