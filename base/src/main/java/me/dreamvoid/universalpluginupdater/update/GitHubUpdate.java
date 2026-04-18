@@ -44,7 +44,7 @@ public class GitHubUpdate extends AbstractUpdate {
     public boolean update() {
         String url = GITHUB_API_URL + "/repos/" + info.repository() + "/releases/latest";
         try {
-            Utils.Http.Response response = Utils.Http.get(url, cacheToken, info.auth());
+            Utils.Http.Response response = Utils.Http.get(url, cacheToken, "Bearer " + info.auth());
 
             if (response.statusCode() == 304) {
                 if (selectedRelease != null) {
