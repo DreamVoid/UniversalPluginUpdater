@@ -43,16 +43,20 @@ public final class RepositoryManager {
         logger = platform.getPlatformLogger();
     }
 
+    public static RepositoryManager instance() {
+        if (INSTANCE != null) {
+            return INSTANCE;
+        } else {
+            throw new IllegalStateException(tr("message.service.error.not-initialized", "RepositoryManager"));
+        }
+    }
+
     public static void initialize(Platform platform) {
         if(INSTANCE == null) {
             INSTANCE = new RepositoryManager(platform);
         } else {
             throw new IllegalStateException();
         }
-    }
-
-    public static RepositoryManager instance() {
-        return INSTANCE;
     }
 
     /**

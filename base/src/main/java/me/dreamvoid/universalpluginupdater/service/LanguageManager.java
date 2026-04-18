@@ -314,12 +314,12 @@ public final class LanguageManager {
     }
     private Set<String> collectAvailableLocales() {
         Set<String> locales = new HashSet<>();
-        loadLocalesExternal(locales);
-        loadLocales(locales);
+        loadLocalesFile(locales);
+        loadLocalesClasspath(locales);
         locales.add(FALLBACK_LOCALE);
         return locales;
     }
-    private void loadLocalesExternal(Set<String> locales) {
+    private void loadLocalesFile(Set<String> locales) {
         if (platform == null) {
             return;
         }
@@ -338,7 +338,7 @@ public final class LanguageManager {
             logger.warning("扫描外部语言目录失败: " + e);
         }
     }
-    private void loadLocales(Set<String> locales) {
+    private void loadLocalesClasspath(Set<String> locales) {
         try {
             var resources = LanguageManager.class.getClassLoader().getResources("lang");
             while (resources.hasMoreElements()) {

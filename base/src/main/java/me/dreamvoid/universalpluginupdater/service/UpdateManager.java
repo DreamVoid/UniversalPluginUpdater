@@ -48,7 +48,7 @@ public final class UpdateManager {
         if (INSTANCE != null) {
             return INSTANCE;
         } else {
-            throw new IllegalStateException(tr("message.service.error.update-manager-not-initialized"));
+            throw new IllegalStateException(tr("message.service.error.not-initialized", "UpdateManager"));
         }
     }
 
@@ -57,15 +57,9 @@ public final class UpdateManager {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdate() {
-        if (updateService == null) {
-            throw new IllegalStateException(tr("message.service.error.check-update-service-not-initialized"));
-        }
-        if (updateChannelService != null) {
-            updateChannelService.validateCache();
-        }
-        // 执行检查并缓存结果
+        updateChannelService.validateCache();
         cachedUpdateInfos = updateService.checkUpdates();
-        return cachedUpdateInfos;
+        return new ArrayList<>(cachedUpdateInfos);
     }
 
     /**
@@ -83,9 +77,6 @@ public final class UpdateManager {
      * @return 对应的AbstractUpdate实例，若无法获取返回null
      */
     public AbstractUpdate getUpdateChannel(String pluginId) {
-        if (updateChannelService == null) {
-            throw new IllegalStateException(tr("message.service.error.update-channel-manager-not-initialized"));
-        }
         return updateChannelService.getUpdateChannelForPlugin(pluginId);
     }
 

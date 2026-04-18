@@ -106,9 +106,7 @@
     "message.service.check-update.error.no-remote-version": "无法获取插件 {0} 的远程版本信息！",
     "message.service.check-update.error": "无法检查插件 {0} 的更新！",
 
-    "message.service.error.check-update-service-not-initialized": "CheckUpdateService 未初始化",
-    "message.service.error.update-channel-manager-not-initialized": "UpdateChannelManager 未初始化",
-    "message.service.error.update-manager-not-initialized": "UpdateManager 尚未初始化",
+    "message.service.error.not-initialized": "{0} 尚未初始化",
 
     "message.service.upgrade.error.native-unavailable": "由于 native 升级策略不可用，{0} 升级失败！",
     "message.service.upgrade.execute.error.exception": "插件 {0} 执行升级任务时出现异常: {1}",

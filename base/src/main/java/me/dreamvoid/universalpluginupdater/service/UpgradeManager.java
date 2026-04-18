@@ -1,7 +1,8 @@
 package me.dreamvoid.universalpluginupdater.service;
 
 import me.dreamvoid.universalpluginupdater.Config;
-import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.LifeCycle;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
@@ -14,25 +15,39 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
 
 /**
  * 升级管理器<br>
- * 此服务由其自身实例化，并通过 {@link #instance()} 提供实例。
+ * 此服务在 {@link LifeCycle#preLoad()} 通过 {@link #initialize(Platform)} 实例化，并通过 {@link #instance()} 提供实例。
  */
 public final class UpgradeManager {
-    private static final UpgradeManager INSTANCE = new UpgradeManager();
-    private static final Logger logger = Utils.getLogger();
+    private static UpgradeManager INSTANCE;
+    private final Logger logger;
 
     private final Queue<ScheduledUpdate> scheduledUpdates = new ConcurrentLinkedQueue<>();
 
-    private UpgradeManager() {}
+    private UpgradeManager(Platform platform) {
+        this.logger = platform.getPlatformLogger();
+    }
 
     public static UpgradeManager instance() {
-        return INSTANCE;
+        if(INSTANCE != null) {
+            return INSTANCE;
+        } else {
+            throw new IllegalStateException(tr("message.service.error.not-initialized", "UpgradeManager"));
+        }
+    }
+    
+    public static void initialize(Platform platform){
+        if(INSTANCE == null){
+            INSTANCE = new UpgradeManager(platform);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     /**
      * 执行升级操作
      */
     public boolean upgrade(String pluginId, Path newPluginPath, Path oldPluginPath, boolean executeNow) {
-        UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
+        UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
         String strategyId = registry.getActiveStrategyId();
         UpgradeStrategy strategy = registry.getActiveStrategy();
 
@@ -62,7 +77,7 @@ public final class UpgradeManager {
      * 是否可以立即执行更新操作
      */
     public boolean canUpgradeNow(boolean executeNow) {
-        return canUpgradeNow(executeNow, UpgradeStrategyRegistry.getInstance().getActiveStrategy());
+        return canUpgradeNow(executeNow, UpgradeStrategyRegistry.instance().getActiveStrategy());
     }
 
     /**
@@ -94,7 +109,7 @@ public final class UpgradeManager {
 
     private boolean executeUpgrade(String pluginId, Path newPluginPath, Path oldPluginPath, String strategyId) {
         try {
-            UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.getInstance();
+            UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
             UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
 
             if (strategy == null) {

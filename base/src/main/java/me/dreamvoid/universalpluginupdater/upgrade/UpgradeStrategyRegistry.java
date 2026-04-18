@@ -15,19 +15,19 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
  */
 public final class UpgradeStrategyRegistry {
     private static final UpgradeStrategyRegistry INSTANCE = new UpgradeStrategyRegistry();
-
     private final Logger logger;
     private final Map<String, UpgradeStrategy> strategies = new HashMap<>();
-
-    private String activeStrategy = "native"; // 默认使用 native 策略
 
     private UpgradeStrategyRegistry() {
         logger = Utils.getLogger();
     }
 
-    public static UpgradeStrategyRegistry getInstance() {
+    public static UpgradeStrategyRegistry instance() {
         return INSTANCE;
     }
+
+    private String activeStrategy = "native"; // 默认使用 native 策略
+
 
     /**
      * 注册一个升级策略
