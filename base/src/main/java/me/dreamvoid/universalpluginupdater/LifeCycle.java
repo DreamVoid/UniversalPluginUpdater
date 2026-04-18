@@ -59,7 +59,7 @@ public class LifeCycle {
         logger.info(tr("message.lifecycle.postload.start"));
 
         UpgradeStrategyRegistry.instance().setActiveStrategy(Config.Updater_Strategy);
-        
+
         logger.info(tr("message.lifecycle.postload.moretasks"));
         logger.info(tr("message.lifecycle.postload.finish"));
     }
