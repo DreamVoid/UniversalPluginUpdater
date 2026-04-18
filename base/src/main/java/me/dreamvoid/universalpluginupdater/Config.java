@@ -20,6 +20,8 @@ public abstract class Config {
     public static String Updater_Proxy_Uri = null;
     public static String Updater_Proxy_Username = null;
     public static String Updater_Proxy_Password = null;
+    public static int Updater_PluginListMode = 1;
+    public static List<String> Updater_PluginList = new ArrayList<>();
     public static int Repository_CheckMode = 1;
     public static List<String> Repository_CheckList = new ArrayList<>();
 
@@ -38,6 +40,8 @@ public abstract class Config {
         Updater_Proxy_Uri = getString("updater.proxy.uri", null);
         Updater_Proxy_Username = getString("updater.proxy.username", null);
         Updater_Proxy_Password = getString("updater.proxy.password", null);
+        Updater_PluginListMode = getInt("updater.plugin-list-mode", Updater_PluginListMode);
+        Updater_PluginList = getStringList("updater.plugin-list");
         Repository_CheckMode = getInt("repository.check-mode", Repository_CheckMode);
         Repository_CheckList = getStringList("repository.check-list");
     }

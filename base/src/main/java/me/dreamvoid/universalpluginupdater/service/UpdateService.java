@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.service;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
@@ -35,7 +36,19 @@ public final class UpdateService {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdates() {
-        return platform.getPlugins().stream().map(this::checkPluginUpdate).filter(Objects::nonNull).collect(Collectors.toList());
+        return platform.getPlugins().stream()
+                .filter(pluginId -> {
+                    boolean inCheckList = Config.Updater_PluginList.stream().anyMatch(pluginId::equalsIgnoreCase);
+                    boolean shouldSkip = ((Config.Updater_PluginListMode == 0) && !inCheckList)
+                            || ((Config.Updater_PluginListMode == 1) && inCheckList);
+                    if (shouldSkip) {
+                        debug("{0}: 根据更新检查名单配置，跳过此插件", pluginId);
+                    }
+                    return !shouldSkip;
+                })
+                .map(this::checkPluginUpdate)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     /**
