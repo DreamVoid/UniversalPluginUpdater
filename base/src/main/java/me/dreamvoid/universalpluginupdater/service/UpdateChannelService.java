@@ -6,6 +6,7 @@ import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.HangarChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.channel.info.SpigotMCChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.GitHubChannelInfo;
@@ -15,6 +16,7 @@ import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
 import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import me.dreamvoid.universalpluginupdater.update.GitHubUpdate;
 import me.dreamvoid.universalpluginupdater.update.HangarUpdate;
+import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
 import me.dreamvoid.universalpluginupdater.update.UpdateType;
 
 import java.io.IOException;
@@ -57,6 +59,7 @@ public final class UpdateChannelService {
         registerChannel(UpdateType.Modrinth, ModrinthChannelInfo.class, new ModrinthChannelInfo(null, false), (pluginId, info) -> new ModrinthUpdate(pluginId, info, platform));
         registerChannel(UpdateType.GitHub, GitHubChannelInfo.class, new GitHubChannelInfo(null, null, null, null), (pluginId, info) -> new GitHubUpdate(pluginId, info, platform));
         registerChannel(UpdateType.Hangar, HangarChannelInfo.class, new HangarChannelInfo(null, null, null, null), (pluginId, info) -> new HangarUpdate(pluginId, info, platform));
+        registerChannel(UpdateType.SpigotMC, SpigotMCChannelInfo.class, new SpigotMCChannelInfo(null, false), (pluginId, info) -> new SpigotMCUpdate(pluginId, info, platform));
     }
 
     /**

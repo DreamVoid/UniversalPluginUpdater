@@ -9,8 +9,7 @@ public enum UpdateType {
     GitHub("github"),
     Modrinth("modrinth"),
     Hangar("hangar"),
-    SpigotMC("spigotmc"),
-    Maven("maven");
+    SpigotMC("spigotmc");
 
     @Getter
     private final String identifier;
