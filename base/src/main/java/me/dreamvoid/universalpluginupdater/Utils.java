@@ -104,9 +104,24 @@ public final class Utils {
          * @return {@link Response}对象
          */
         public static Response get(String url, @Nullable String cacheToken) throws IOException {
+            return get(url, cacheToken, null);
+        }
+
+        /**
+         * 发送带有缓存支持的HTTP GET请求
+         * @param url 请求URL
+         * @param cacheToken 缓存验证令牌（ETag 或 Last-Modified），null或空串表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
+         * @param auth Authorization Token，为null或空串表示不附带
+         * @return {@link Response}对象
+         */
+        public static Response get(String url, @Nullable String cacheToken, @Nullable String auth) throws IOException {
             OkHttpClient httpClient = getClient();
             Request.Builder requestBuilder = new Request.Builder().url(url)
                     .header("User-Agent", USER_AGENT);
+
+            if (auth != null && !auth.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + auth);
+            }
 
             if (cacheToken != null && !cacheToken.isEmpty()) {
                 // 如果是以双引号或W/开头的标准 ETag，或是没有逗号的校验码，使用 If-None-Match

@@ -76,16 +76,17 @@ public final class UpdateManager {
      * @param pluginId 插件ID
      * @return 对应的AbstractUpdate实例，若无法获取返回null
      */
-    public AbstractUpdate getUpdateChannel(String pluginId) {
-        return updateChannelService.getUpdateChannelForPlugin(pluginId);
+    public AbstractUpdate getUpdateInstance(String pluginId) {
+        return updateChannelService.getUpdateInstance(pluginId, null);
     }
 
     /**
      * 注册外部更新实例
      * @param updateInstance {@link UpdateType#Plugin} 类型的更新实例
+     * @throws IllegalArgumentException updateInstance 为 null 时<br>{@link AbstractUpdate#getPluginId()} 为 null 时<br>{@link AbstractUpdate#getType()} 不为 {@link UpdateType#Plugin} 时
      */
-    public static void registerUpdateInstance(AbstractUpdate updateInstance) {
-        UpdateChannelService.registerUpdateInstance(updateInstance);
+    public static void registerUpdateInstance(AbstractUpdate updateInstance) throws IllegalArgumentException {
+        UpdateChannelService.registerInstance(updateInstance);
     }
 
     /**

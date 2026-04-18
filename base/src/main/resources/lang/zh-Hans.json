@@ -131,7 +131,7 @@
 
     "message.update.get": "获取: {0}",
     "message.update.hit": "命中: {0}",
-    "message.update.failed": "升级失败: {0}",
+    "message.update.failed": "失败: {0}",
     "message.update.ignore": "忽略: {0} [{1}]",
     "message.update.error": "错误: {0} [{1}]",
     "message.update.error.downloaded-file-missing": "下载的文件丢失: {0}",

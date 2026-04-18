@@ -67,7 +67,7 @@ public final class DownloadCommand extends CommandHandler {
 
                 try {
                     // 获取该插件的更新实例
-                    AbstractUpdate updateInstance = updateManager.getUpdateChannel(pluginId);
+                    AbstractUpdate updateInstance = updateManager.getUpdateInstance(pluginId);
                     if (updateInstance == null) {
                         sender.sendMessage(tr(locale, "message.command.download.item.error.no-channel", pluginId));
                         failureCount++;

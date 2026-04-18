@@ -13,6 +13,15 @@
       "config": {
         "url": null
       }
+    },
+    {
+      "type": "github",
+      "config": {
+        "repository": null,
+        "auth": null,
+        "accept": "application/java-archive",
+        "filter": null
+      }
     }
   ]
 }

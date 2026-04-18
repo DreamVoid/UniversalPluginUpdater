@@ -50,38 +50,45 @@ public class URLUpdate extends AbstractUpdate {
      */
     @Override
     public boolean update() {
+        String url = info.url();
         try {
-            Utils.Http.Response response = Utils.Http.get(info.url(), cacheToken);
+            Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
             if (response.statusCode() == 304) {
                 // 返回304 Not Modified，使用缓存
                 if (updateInfo != null) {
                     this.cacheToken = response.cacheToken();
+                    logger.info(tr("message.update.hit", url));
                     return true;
                 } else {
+                    logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
                     return false;
                 }
-            }
-
-            if (response.statusCode() == 200) {
-                String jsonResponse = response.content();
-                if (jsonResponse == null) {
+            } else if (response.statusCode() == 200) {
+                String content = response.content();
+                if (content == null) {
+                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-null")));
                     return false;
                 }
 
-                this.updateInfo = Utils.getGson().fromJson(jsonResponse, UpdateInfo.class);
+                this.updateInfo = Utils.getGson().fromJson(content, UpdateInfo.class);
                 this.cacheToken = response.cacheToken();
 
-                if (updateInfo == null || updateInfo.version == null || updateInfo.downloadUrl == null) {
+                if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
+                    logger.info(tr("message.update.get", url));
+                    return true;
+                } else {
                     this.updateInfo = null;
+                    this.cacheToken = null;
+                    logger.warning(tr("message.update.error", url, "无效的响应"));
                     return false;
                 }
-
-                return true;
+            } else {
+                logger.info(tr("message.update.ignore", url, tr("tag.update.error.status-code", response.statusCode())));
+                return false;
             }
-
-            return false;
         } catch (Exception e) {
+            logger.warning(tr("message.update.error", url, e));
             return false;
         }
     }

@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.service;
 
+import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
@@ -45,10 +46,9 @@ public final class UpdateService {
     @Nullable
     private UpdateInfo checkPluginUpdate(String pluginId) {
         try {
-            // 获取该插件对应的更新实例
-            AbstractUpdate updateInstance = channelManager.getUpdateChannelForPlugin(pluginId);
-            if (updateInstance == null) {
-                // 该插件没有配置更新渠道
+            // 获取该插件对应的渠道候选并按顺序尝试
+            List<ChannelConfig> candidates = channelManager.getChannelCandidates(pluginId);
+            if (candidates.isEmpty()) {
                 debug("插件 {0} 无更新渠道", pluginId);
                 return null;
             }
@@ -60,22 +60,33 @@ public final class UpdateService {
                 return null;
             }
 
-            // 执行更新检查，联网获取最新版本信息
-            if (!updateInstance.update()) {
-                logger.warning(tr("message.service.check-update.error", pluginId));
-                return null;
+            for (ChannelConfig candidateConfig : candidates) {
+                AbstractUpdate instance = channelManager.getUpdateInstance(pluginId, candidateConfig);
+                if (instance == null) {
+                    continue;
+                }
+
+                if (!instance.update()) {
+                    String failedType = instance.getType() == null ? "unknown" : instance.getType().getIdentifier();
+                    debug("插件 {0} 渠道 {1} 更新检查失败，尝试下一个渠道", pluginId, failedType);
+                    continue;
+                }
+
+                // 获取缓存的远程版本信息
+                String remoteVersion = instance.getVersion();
+                if (remoteVersion == null) {
+                    logger.warning(tr("message.service.check-update.error.no-remote-version", pluginId));
+                    return null;
+                }
+
+                String channelType = instance.getType().getIdentifier();
+                debug("插件 {0} 版本: 本地={1}, 远程={2}, 渠道={3}", pluginId, localVersion, remoteVersion, channelType);
+                return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
             }
 
-            // 获取缓存的远程版本信息
-            String remoteVersion = updateInstance.getVersion();
-            if (remoteVersion == null) {
-                logger.warning(tr("message.service.check-update.error.no-remote-version", pluginId));
-                return null;
-            }
 
-            String channelType = updateInstance.getType().getIdentifier();
-            debug("插件 {0} 版本: 本地={1}, 远程={2}, 渠道={3}", pluginId, localVersion, remoteVersion, channelType);
-            return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
+            logger.warning(tr("message.service.check-update.error", pluginId));
+            return null;
         } catch (Exception e) {
             logger.warning(tr("message.service.check-update.error.exception", pluginId, e));
             return null;
