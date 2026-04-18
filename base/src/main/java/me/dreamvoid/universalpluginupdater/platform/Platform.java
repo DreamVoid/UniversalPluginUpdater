@@ -22,7 +22,6 @@ public interface Platform {
      */
     @NotNull
     String getPlatformName();
-
     /**
      * 获取平台支持的游戏版本列表
      * 用于Modrinth等API的版本筛选
@@ -30,7 +29,6 @@ public interface Platform {
      */
     @Nullable
     List<String> getGameVersions();
-
     /**
      * 获取平台支持的加载器类型列表
      * 用于Modrinth等API的版本筛选
@@ -38,6 +36,25 @@ public interface Platform {
      */
     @NotNull
     List<String> getLoaders();
+    /**
+     * 获取平台的Logger实例
+     * @return 平台的Logger实例，供插件使用
+     */
+    @NotNull
+    Logger getPlatformLogger();
+    /**
+     * 获取平台实现的配置对象
+     * @return 配置对象
+     */
+    @NotNull
+    Config getPlatformConfig();
+    /**
+     * 获取平台任务调度器
+     * @return 任务调度器
+     */
+    Scheduler getScheduler();
+
+    // 平台接口相关
 
     /**
      * 获取插件数据目录路径
@@ -45,9 +62,6 @@ public interface Platform {
      */
     @NotNull
     Path getDataPath();
-
-    // 平台其他插件相关
-
     /**
      * 获取所有已安装插件的标识符列表
      * 标识符应该为小写形式
@@ -55,14 +69,12 @@ public interface Platform {
      */
     @NotNull
     List<String> getPlugins();
-
     /**
      * 获取本插件的版本名
      * @return 插件版本名
      */
     @NotNull
     String getPluginVersion();
-
     /**
      * 获取指定插件的版本名
      * @param pluginName 插件标识符
@@ -70,30 +82,6 @@ public interface Platform {
      */
     @Nullable
     String getPluginVersion(String pluginName);
-
-    // 平台实用相关
-
-    /**
-     * 获取平台的Logger实例
-     * @return 平台的Logger实例，供插件使用
-     */
-    @NotNull
-    Logger getPlatformLogger();
-
-    /**
-     * 获取平台实现的配置对象
-     * @return 配置对象
-     */
-    @NotNull
-    Config getPlatformConfig();
-
-    /**
-     * 异步执行Runnable代码
-     * 不同平台对异步调度的方式不同，由各平台的实现来提供
-     * @param runnable 要执行的任务
-     */
-    void runTaskAsync(Runnable runnable);
-
     /**
      * 获取指定插件的文件路径
      * @param pluginId 插件标识符
@@ -102,6 +90,7 @@ public interface Platform {
     @Nullable
     Path getPluginFile(String pluginId);
 
+    // 平台操作相关
     /**
      * 卸载指定插件
      * @param pluginId 插件标识符

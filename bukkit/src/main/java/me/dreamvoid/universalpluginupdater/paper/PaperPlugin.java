@@ -4,15 +4,18 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import me.dreamvoid.universalpluginupdater.bukkit.BukkitPlugin;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
+import me.dreamvoid.universalpluginupdater.platform.Scheduler;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
@@ -72,6 +75,36 @@ public class PaperPlugin extends BukkitPlugin {
     }
 
     @Override
+    public Scheduler getScheduler() {
+        return new Scheduler() {
+            @Override
+            public void runTaskAsync(Runnable runnable) {
+                getServer().getAsyncScheduler().runNow(PaperPlugin.this, (task) -> runnable.run());
+            }
+
+            @Override
+            public void runTaskLaterAsync(Runnable runnable, long delay) {
+                getServer().getAsyncScheduler().runDelayed(PaperPlugin.this, (task) -> runnable.run(), delay, TimeUnit.SECONDS);
+            }
+
+            @Override
+            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+                getServer().getAsyncScheduler().runDelayed(PaperPlugin.this, (task) -> runnable.run(), delay.toMillis(), TimeUnit.MILLISECONDS);
+            }
+
+            @Override
+            public void runTaskTimerAsync(Runnable runnable, long repeat) {
+                getServer().getAsyncScheduler().runAtFixedRate(PaperPlugin.this, (task) -> runnable.run(), 0, repeat, TimeUnit.SECONDS);
+            }
+
+            @Override
+            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+                getServer().getAsyncScheduler().runAtFixedRate(PaperPlugin.this, (task) -> runnable.run(), 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
+            }
+        };
+    }
+
+    @Override
     @NotNull
     public String getPluginVersion() {
         return getPluginMeta().getVersion();
@@ -86,10 +119,5 @@ public class PaperPlugin extends BukkitPlugin {
         } else {
             return null;
         }
-    }
-
-    @Override
-    public void runTaskAsync(Runnable runnable) {
-        getServer().getAsyncScheduler().runNow(this, task -> runnable.run());
     }
 }

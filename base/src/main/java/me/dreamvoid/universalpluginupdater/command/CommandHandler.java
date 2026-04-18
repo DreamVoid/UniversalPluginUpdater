@@ -37,7 +37,7 @@ public class CommandHandler {
      * @param context 命令上下文
      */
     public void execute(CommandContext context) {
-        platform.runTaskAsync(() -> {
+        platform.getScheduler().runTaskAsync(() -> {
             CommandSender sender = context.sender();
             Locale locale = sender.getLocale();
             String action = context.args().length > 0 ? context.args()[0] : null;

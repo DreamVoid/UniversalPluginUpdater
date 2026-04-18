@@ -7,6 +7,7 @@ import me.dreamvoid.universalpluginupdater.bukkit.upgrade.BukkitUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.platform.Scheduler;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 import org.bukkit.Bukkit;
@@ -21,6 +22,7 @@ import org.jspecify.annotations.NonNull;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -136,9 +138,35 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     }
 
     @Override
-    public void runTaskAsync(Runnable runnable) {
-        getServer().getScheduler().runTaskAsynchronously(this, runnable);
+    public Scheduler getScheduler() {
+        return new Scheduler() {
+            @Override
+            public void runTaskAsync(Runnable runnable) {
+                getServer().getScheduler().runTaskAsynchronously(BukkitPlugin.this, runnable);
+            }
+
+            @Override
+            public void runTaskLaterAsync(Runnable runnable, long delay) {
+                getServer().getScheduler().runTaskLaterAsynchronously(BukkitPlugin.this, runnable, delay * 50);
+            }
+
+            @Override
+            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+                getServer().getScheduler().runTaskLaterAsynchronously(BukkitPlugin.this, runnable, delay.toMillis() / 50);
+            }
+
+            @Override
+            public void runTaskTimerAsync(Runnable runnable, long repeat) {
+                getServer().getScheduler().runTaskTimerAsynchronously(BukkitPlugin.this, runnable, 0, repeat * 50);
+            }
+
+            @Override
+            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+                getServer().getScheduler().runTaskTimerAsynchronously(BukkitPlugin.this, runnable, 0, repeat.toMillis() / 50);
+            }
+        };
     }
+
 
     @Override
     @Nullable
