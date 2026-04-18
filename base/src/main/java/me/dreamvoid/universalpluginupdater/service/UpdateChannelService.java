@@ -57,7 +57,7 @@ public final class UpdateChannelService {
         // 注册内部更新渠道
         registerChannel(UpdateType.URL, UrlChannelInfo.class, new UrlChannelInfo(null), (pluginId, info) -> new URLUpdate(pluginId, info, platform));
         registerChannel(UpdateType.Modrinth, ModrinthChannelInfo.class, new ModrinthChannelInfo(null, false), (pluginId, info) -> new ModrinthUpdate(pluginId, info, platform));
-        registerChannel(UpdateType.GitHub, GitHubChannelInfo.class, new GitHubChannelInfo(null, null, null, null), (pluginId, info) -> new GitHubUpdate(pluginId, info, platform));
+        registerChannel(UpdateType.GitHub, GitHubChannelInfo.class, new GitHubChannelInfo(null, null, "application/java-archive", null), (pluginId, info) -> new GitHubUpdate(pluginId, info, platform));
         registerChannel(UpdateType.Hangar, HangarChannelInfo.class, new HangarChannelInfo(null, null, null, null), (pluginId, info) -> new HangarUpdate(pluginId, info, platform));
         registerChannel(UpdateType.SpigotMC, SpigotMCChannelInfo.class, new SpigotMCChannelInfo(null, false), (pluginId, info) -> new SpigotMCUpdate(pluginId, info, platform));
     }
