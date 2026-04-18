@@ -25,8 +25,8 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 /**
- * 主代码语言服务
- * 从 resources/lang 下加载 JSON 语言文件，按 JVM 参数 / 系统语言 / 兜底语言逐层回退
+ * 语言管理器<br>
+ * 此服务不需要实例化
  */
 public final class LanguageManager {
     private static final String FALLBACK_LOCALE = "zh-Hans";

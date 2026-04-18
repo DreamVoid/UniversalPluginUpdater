@@ -152,7 +152,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 return false;
             }
 
-            return UpgradeManager.getInstance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
+            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
             logger.warning(tr("message.update.failed", e));
             return false;

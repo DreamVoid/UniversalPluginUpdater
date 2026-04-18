@@ -18,12 +18,10 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
  */
 public final class RepoCommand extends CommandHandler {
     private final Logger logger;
-    private final RepositoryManager repositoryManager;
 
     public RepoCommand(Platform platform) {
         super(platform);
-        this.logger = platform.getPlatformLogger();
-        this.repositoryManager = new RepositoryManager(platform);
+        logger = platform.getPlatformLogger();
     }
 
     @Override
@@ -49,11 +47,11 @@ public final class RepoCommand extends CommandHandler {
                     for (int i = 1; i < args.length; i++) {
                         String arg = args[i].toLowerCase();
                         switch (arg) {
-                            case "all" -> repositoryManager.getChannelUpdateResults().stream()
+                            case "all" -> RepositoryManager.instance().getChannelUpdateResults().stream()
                                     .map(RepositoryManager.ChannelUpdateResult::pluginId)
                                     .forEach(pluginIds::add);
                             case "updatable" -> {
-                                for (RepositoryManager.ChannelUpdateResult channelUpdateResult : repositoryManager.getChannelUpdateResults()) {
+                                for (RepositoryManager.ChannelUpdateResult channelUpdateResult : RepositoryManager.instance().getChannelUpdateResults()) {
                                     if (channelUpdateResult.localFileStatus() == 2) {
                                         String pluginId = channelUpdateResult.pluginId();
                                         pluginIds.add(pluginId);
@@ -66,7 +64,7 @@ public final class RepoCommand extends CommandHandler {
 
                     sender.broadcastMessage(tr(locale, "message.command.repo.get.start"));
 
-                    RepositoryManager.RepositoryDownloadResult result = repositoryManager.download(pluginIds);
+                    RepositoryManager.RepositoryDownloadResult result = RepositoryManager.instance().download(pluginIds);
                     int success = result.success();
                     int failed = result.failed();
                     int skipped = result.skipped();
@@ -89,7 +87,7 @@ public final class RepoCommand extends CommandHandler {
                         }
                     }
 
-                    List<RepositoryManager.ChannelUpdateResult> entries = repositoryManager.getChannelUpdateResults();
+                    List<RepositoryManager.ChannelUpdateResult> entries = RepositoryManager.instance().getChannelUpdateResults();
 
                     if (filterUpdatable) {
                         entries = entries.stream()
@@ -111,7 +109,7 @@ public final class RepoCommand extends CommandHandler {
                 case "update" -> {
                     sender.broadcastMessage(tr(locale, "message.command.repo.update.start"));
 
-                    List<RepositoryManager.ChannelUpdateResult> result = repositoryManager.update();
+                    List<RepositoryManager.ChannelUpdateResult> result = RepositoryManager.instance().update();
 
                     long count = result.stream()
                             .filter(channelUpdateResult -> channelUpdateResult.localFileStatus() == 2)

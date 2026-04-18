@@ -24,10 +24,11 @@ import static me.dreamvoid.universalpluginupdater.Utils.debug;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
 
 /**
- * 更新渠道管理器
- * 负责读取配置文件并选择合适的更新渠道
+ * 更新渠道服务<br>
+ * 负责读取配置文件并选择合适的更新渠道<br>
+ * 此服务在 {@link UpdateManager} 实例化，并由其内部调用
  */
-public final class UpdateChannelManager {
+public final class UpdateChannelService {
     /**
      * 可用更新渠道注册
      */
@@ -67,7 +68,7 @@ public final class UpdateChannelManager {
                 String className = element.getClassName();
                 String methodName = element.getMethodName();
 
-                if (UpdateChannelManager.class.getName().equals(className)) {
+                if (UpdateChannelService.class.getName().equals(className)) {
                     foundThisClass = true;
                     continue;
                 }
@@ -106,7 +107,7 @@ public final class UpdateChannelManager {
     private final Map<String, Long> pluginConfigFingerprints = new HashMap<>();
     private Long globalConfigFingerprint = null;
 
-    public UpdateChannelManager(Platform platform) {
+    UpdateChannelService(Platform platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
 
@@ -313,7 +314,7 @@ public final class UpdateChannelManager {
 
         try {
             if (!Files.exists(globalPath)) {
-                try (InputStream inputStream = UpdateChannelManager.class.getClassLoader().getResourceAsStream("global.json")) {
+                try (InputStream inputStream = UpdateChannelService.class.getClassLoader().getResourceAsStream("global.json")) {
                     Files.createDirectories(platform.getDataPath());
 
                     if (inputStream != null) {

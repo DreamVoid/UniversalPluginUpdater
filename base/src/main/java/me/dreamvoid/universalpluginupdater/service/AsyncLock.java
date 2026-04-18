@@ -4,7 +4,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 异步操作锁<br>
- * 确保同一时间只有一个任务正在执行
+ * 确保同一时间只有一个任务正在执行<br>
+ * 此服务不需要实例化
  */
 public final class AsyncLock implements AutoCloseable {
     private static final AtomicBoolean locked = new AtomicBoolean(false);

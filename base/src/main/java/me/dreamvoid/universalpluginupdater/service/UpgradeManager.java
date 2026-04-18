@@ -13,10 +13,10 @@ import java.util.logging.Logger;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
 
 /**
- * 升级执行服务
- * 支持立即升级与延迟到插件卸载阶段执行
+ * 升级管理器<br>
+ * 此服务由其自身实例化，并通过 {@link #instance()} 提供实例。
  */
-public class UpgradeManager {
+public final class UpgradeManager {
     private static final UpgradeManager INSTANCE = new UpgradeManager();
     private static final Logger logger = Utils.getLogger();
 
@@ -24,7 +24,7 @@ public class UpgradeManager {
 
     private UpgradeManager() {}
 
-    public static UpgradeManager getInstance() {
+    public static UpgradeManager instance() {
         return INSTANCE;
     }
 

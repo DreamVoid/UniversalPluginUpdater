@@ -2,6 +2,7 @@ package me.dreamvoid.universalpluginupdater;
 
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.LanguageManager;
+import me.dreamvoid.universalpluginupdater.service.RepositoryManager;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
@@ -46,6 +47,8 @@ public class LifeCycle {
 
         UpgradeStrategyRegistry.getInstance().registerStrategy("native", new NativeUpgradeStrategy(platform));
 
+        RepositoryManager.initialize(platform);
+
         logger.info(tr("message.lifecycle.preload.finish"));
     }
 
@@ -64,7 +67,7 @@ public class LifeCycle {
     public void unload(){
         logger.info(tr("message.lifecycle.unload.start"));
 
-        UpgradeManager.ExecutionResult result = UpgradeManager.getInstance().executeScheduledUpgrades();
+        UpgradeManager.ExecutionResult result = UpgradeManager.instance().executeScheduledUpgrades();
         if (result.totalCount() > 0) {
             logger.info(tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
             try {

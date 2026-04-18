@@ -65,7 +65,7 @@ public final class UpgradeCommand extends CommandHandler {
             // 统计成功和失败的升级数
             int successCount = 0;
             int failureCount = 0;
-            boolean scheduleUpgrade = UpgradeManager.getInstance().canUpgradeNow(executeNow);
+            boolean scheduleUpgrade = UpgradeManager.instance().canUpgradeNow(executeNow);
 
             // 遍历每个待更新的插件，执行升级
             for (UpdateInfo updateInfo : updateInfos) {

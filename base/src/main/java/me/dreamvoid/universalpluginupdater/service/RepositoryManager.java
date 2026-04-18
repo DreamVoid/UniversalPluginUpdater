@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import me.dreamvoid.universalpluginupdater.Config;
+import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
@@ -23,9 +24,12 @@ import static me.dreamvoid.universalpluginupdater.Utils.debug;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
- * 仓库同步服务
+ * 远程仓库管理器<br>
+ * 此服务在 {@link LifeCycle#preLoad()} 通过 {@link #initialize(Platform)} 实例化，并通过 {@link #instance()} 获取实例。
  */
-public class RepositoryManager {
+public final class RepositoryManager {
+    private static RepositoryManager INSTANCE;
+
     private static final String DEFAULT_REPOSITORY = "https://repo.upu.dreamvoid.me";
     private static final String REPOSITORIES_RESOURCE = "repositories.json";
 
@@ -34,9 +38,21 @@ public class RepositoryManager {
     private final List<ChannelUpdateResult> updateResults = new ArrayList<>();
     private final Map<String, RepositoryAccessor> remoteAccessorCache = new HashMap<>();
 
-    public RepositoryManager(Platform platform) {
+    private RepositoryManager(Platform platform) {
         this.platform = platform;
         logger = platform.getPlatformLogger();
+    }
+
+    public static void initialize(Platform platform) {
+        if(INSTANCE == null) {
+            INSTANCE = new RepositoryManager(platform);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public static RepositoryManager instance() {
+        return INSTANCE;
     }
 
     /**

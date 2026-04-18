@@ -204,4 +204,5 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
         getServer().getPluginManager().disablePlugin(plugin);
         return true;
     }
+
 }

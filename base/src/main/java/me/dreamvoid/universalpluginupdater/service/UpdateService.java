@@ -14,15 +14,16 @@ import static me.dreamvoid.universalpluginupdater.Utils.debug;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
- * 检查更新服务
- * 负责检查所有已安装插件的更新
+ * 检查更新服务<br>
+ * 负责检查所有已安装插件的更新<br>
+ * 此服务在 {@link UpdateManager} 实例化，并由其内部调用
  */
 public final class UpdateService {
     private final Platform platform;
-    private final UpdateChannelManager channelManager;
+    private final UpdateChannelService channelManager;
     private final Logger logger;
 
-    public UpdateService(Platform platform, UpdateChannelManager channelManager) {
+    UpdateService(Platform platform, UpdateChannelService channelManager) {
         this.platform = platform;
         this.channelManager = channelManager;
         this.logger = platform.getPlatformLogger();
