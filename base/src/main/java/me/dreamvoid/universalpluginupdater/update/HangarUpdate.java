@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.HangarChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarFileInfo;
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import static java.net.URLEncoder.*;
+import static java.net.URLEncoder.encode;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 public class HangarUpdate extends AbstractUpdate {
@@ -81,7 +82,9 @@ public class HangarUpdate extends AbstractUpdate {
                 }
 
                 // 寻找匹配的加载器
-                List<String> loaders = platform.getLoaders();
+                List<String> loaders = (Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
+                    ? Config.Platform_Loaders
+                    : platform.getLoaders();
                 String targetPlatform = null;
                 for (String platformKey : downloads.keySet()) {
                     for (String loader : loaders) {
@@ -133,7 +136,9 @@ public class HangarUpdate extends AbstractUpdate {
             
             // platformVersion -> gameVersions
             // Hangar API requires platform to be specified when platformVersion is provided
-            List<String> gameVersions = platform.getGameVersions();
+                List<String> gameVersions = (Config.Platform_GameVersions != null)
+                    ? Config.Platform_GameVersions
+                    : platform.getGameVersions();
             if (gameVersions != null && !gameVersions.isEmpty()) {
                 queries.add("platformVersion=" + encode(String.join(",", gameVersions), java.nio.charset.StandardCharsets.UTF_8));
             }

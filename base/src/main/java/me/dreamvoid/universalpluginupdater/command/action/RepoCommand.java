@@ -145,19 +145,22 @@ public final class RepoCommand extends CommandHandler {
             if ("list".startsWith(input)) result.add("list");
             if ("get".startsWith(input)) result.add("get");
         } else if (args.length >= 2) {
+            Set<String> used = Arrays.stream(args)
+                    .skip(1)
+                    .map(String::toLowerCase)
+                    .collect(java.util.stream.Collectors.toSet());
+
             if ("list".equalsIgnoreCase(args[0])) {
-                Set<String> used = new HashSet<>(Arrays.asList(args).subList(1, args.length));
                 String input = args[args.length - 1].toLowerCase();
-                if ("--updatable".startsWith(input) && !used.contains(input)) {
+                if ("--updatable".startsWith(input) && !used.contains("--updatable")) {
                     result.add("--updatable");
                 }
             } else if ("get".equalsIgnoreCase(args[0])) {
-                Set<String> used = new HashSet<>(Arrays.asList(args).subList(1, args.length));
                 String input = args[args.length - 1].toLowerCase();
-                if ("all".startsWith(input) && !used.contains(input)) {
+                if ("all".startsWith(input) && !used.contains("all")) {
                     result.add("all");
                 }
-                if ("updatable".startsWith(input) && !used.contains(input)) {
+                if ("updatable".startsWith(input) && !used.contains("updatable")) {
                     result.add("updatable");
                 }
             }

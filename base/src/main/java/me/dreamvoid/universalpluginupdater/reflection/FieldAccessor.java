@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class provides thread-safe caching of Field objects to improve performance
  * when repeatedly accessing the same fields.
  */
+@SuppressWarnings("ALL")
 public class FieldAccessor {
 
     private static final Map<String, Field> fieldCache = new ConcurrentHashMap<>();

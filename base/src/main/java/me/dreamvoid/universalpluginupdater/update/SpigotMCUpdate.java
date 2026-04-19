@@ -26,7 +26,7 @@ public class SpigotMCUpdate extends AbstractUpdate {
 
     public SpigotMCUpdate(String pluginId, SpigotMCChannelInfo info, Platform platform) {
         if (info.resource() == null || 变成文本好吗(info.resource()).isBlank()) {
-            throw new IllegalArgumentException("SpigotMC resource 不存在或为空");
+            throw new IllegalArgumentException("resource 不存在或为空");
         }
 
         this.updateType = UpdateType.SpigotMC;
@@ -57,13 +57,13 @@ public class SpigotMCUpdate extends AbstractUpdate {
             } else if (response.statusCode() == 200) {
                 String content = response.content();
                 if (content == null) {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.ignore.response-null")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
                 }
 
                 SpigotMCVersion version = Utils.getGson().fromJson(content, SpigotMCVersion.class);
                 if (version == null) {
-                    logger.warning(tr("message.update.error", url, "获取的 SpigotMC 版本信息无效"));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
                 }
 
@@ -114,12 +114,12 @@ public class SpigotMCUpdate extends AbstractUpdate {
     @Override
     public boolean download() {
         if (selectedVersion == null) {
-            logger.warning(tr("message.update.failed", "无法获取已选择的 SpigotMC 版本"));
+            logger.warning(tr("message.update.failed", tr("tag.update.spigotmc.failed.no-selected-version")));
             return false;
         }
 
         // 使用版本id作为下载链接的版本标识
-        String downloadUrl = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/" + selectedVersion.id() + "/download" + (Boolean.TRUE.equals(info.proxyDownload()) ? "/proxy" : "");
+        String downloadUrl = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/" + selectedVersion.id() + "/download" + (info.proxyDownload() ? "/proxy" : "");
         
         try {
             String desiredFilename = Utils.parseFileName(pluginId, updateType);

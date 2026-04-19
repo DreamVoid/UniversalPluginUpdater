@@ -64,7 +64,9 @@ public final class RepositoryManager {
      */
     public List<ChannelUpdateResult> update() {
         List<String> repositories = getRepositories();
-        String platformName = platform.getPlatformName().toLowerCase();
+        String platformName = ((Config.Platform_Name != null && !Config.Platform_Name.isBlank())
+            ? Config.Platform_Name
+            : platform.getPlatformName()).toLowerCase();
 
         updateResults.clear();
 

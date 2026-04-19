@@ -57,6 +57,11 @@ public class BungeeConfig extends Config {
         return config.getStringList(path);
     }
 
+    @Override
+    public Object getObject(String path) {
+        return config.get(path);
+    }
+
     private void saveDefaultConfig() throws IOException{
         Path configPath = Files.createDirectories(plugin.getDataPath()).resolve("config.yml");
         if(!Files.exists(configPath)){

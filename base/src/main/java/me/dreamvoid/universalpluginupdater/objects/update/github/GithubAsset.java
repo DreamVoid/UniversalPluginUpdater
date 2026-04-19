@@ -11,7 +11,7 @@ public record GithubAsset(
         @SerializedName("id") long id,
         @SerializedName("name") String name,
         @SerializedName("content_type") String contentType,
-                @SerializedName("digest") String digest,
+        @SerializedName("digest") String digest,
         @SerializedName("size") long size,
         @SerializedName("browser_download_url") String browserDownloadUrl
 ) {

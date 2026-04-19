@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@SuppressWarnings("deprecation")
 public final class BungeePlugin extends Plugin implements Platform {
     private final LifeCycle lifeCycle;
     private final CommandHandler commandHandler;
@@ -73,7 +74,7 @@ public final class BungeePlugin extends Plugin implements Platform {
     }
 
     @Override
-    public @Nullable List<String> getGameVersions() {
+    public @NonNull List<String> getGameVersions() {
         String version = getProxy().getVersion();
         String[] parts = version.split(":");
         if (parts.length >= 3) {

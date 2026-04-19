@@ -31,8 +31,6 @@ public final class UpgradeStrategyRegistry {
 
     /**
      * 注册一个升级策略
-     * @param strategyId 策略标识符
-     * @param strategy 策略实现
      */
     public void registerStrategy(UpgradeStrategy strategy) {
         if (strategy == null) return;

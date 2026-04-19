@@ -8,13 +8,14 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * 主代码配置缓存
- *
- * 命名约定：层级键使用大驼峰并以下划线连接，例如 foo.bar -> Foo_Bar
+ * 配置
  */
 public abstract class Config {
     public static boolean Verbose = false;
     public static String Language = "system";
+    public static String Platform_Name = null;
+    public static List<String> Platform_GameVersions = null;
+    public static List<String> Platform_Loaders = null;
     public static String Updater_Strategy = "native";
     public static boolean Updater_AllowUpgradeNow = true;
     public static String Updater_Filename = "${originName}";
@@ -35,6 +36,13 @@ public abstract class Config {
 
         Verbose = getBoolean("verbose", Verbose);
         Language = getString("language", Language);
+
+        Platform_Name = getString("platform.name", null);
+        Object gameVersionsRaw = getObject("platform.game-versions");
+        Platform_GameVersions = gameVersionsRaw == null ? null : getStringList("platform.game-versions");
+        Object loadersRaw = getObject("platform.loaders");
+        Platform_Loaders = loadersRaw == null ? null : getStringList("platform.loaders");
+
         Updater_Strategy = getString("updater.strategy", Updater_Strategy);
         Updater_AllowUpgradeNow = getBoolean("updater.allow-upgrade-now", Updater_AllowUpgradeNow);
         Updater_Filename = getString("updater.filename", Updater_Filename);
@@ -64,4 +72,6 @@ public abstract class Config {
     public abstract boolean getBoolean(String path, boolean def);
 
     public abstract List<String> getStringList(String path);
+
+    public abstract Object getObject(String path);
 }

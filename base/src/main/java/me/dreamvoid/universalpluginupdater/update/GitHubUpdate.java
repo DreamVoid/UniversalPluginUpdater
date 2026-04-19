@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.GitHubChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.github.GithubAsset;
@@ -102,7 +103,9 @@ public class GitHubUpdate extends AbstractUpdate {
         if (filteredByType.isEmpty()) return null;
 
         if (info.filter() == null) {
-            List<String> loaders = platform.getLoaders().stream()
+                List<String> loaders = ((Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
+                    ? Config.Platform_Loaders
+                    : platform.getLoaders()).stream()
                 .map(String::toLowerCase)
                 .toList();
 
@@ -153,17 +156,19 @@ public class GitHubUpdate extends AbstractUpdate {
     @Override
     public boolean upgrade(boolean now) {
         try {
-            if (!download()) return false;
+            if (download()) {
+                Path currentPluginFile = platform.getPluginFile(pluginId);
+                Path newPluginFile = downloadedFilePath;
 
-            Path currentPluginFile = platform.getPluginFile(pluginId);
-            Path newPluginFile = downloadedFilePath;
+                if (newPluginFile == null || !Files.exists(newPluginFile)) {
+                    logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
+                    return false;
+                }
 
-            if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
+                return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
+            } else {
                 return false;
             }
-
-            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
         } catch (Exception e) {
             logger.warning(tr("message.update.failed", e));
             return false;

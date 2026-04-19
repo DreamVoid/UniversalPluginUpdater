@@ -1,6 +1,11 @@
 verbose: false
 language: system
 
+platform:
+  name: null
+  game-versions: null
+  loaders: null
+
 updater:
   strategy: native
   allow-upgrade-now: true

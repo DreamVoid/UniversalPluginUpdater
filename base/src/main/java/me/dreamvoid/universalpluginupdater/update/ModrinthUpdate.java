@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
@@ -69,7 +70,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 // 解析JSON数组
                 ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
-                    logger.warning(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
                 }
 
@@ -105,13 +106,17 @@ public class ModrinthUpdate extends AbstractUpdate {
         if (info.featured()) queries.add("featured=true");
 
         // 添加加载器参数
-        List<String> loaders = platform.getLoaders();
+        List<String> loaders = (Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
+            ? Config.Platform_Loaders
+            : platform.getLoaders();
         if (!loaders.isEmpty()) {
             queries.add("loaders=[\"" + String.join("\",\"", loaders) + "\"]");
         }
 
         // 添加游戏版本参数
-        List<String> gameVersions = platform.getGameVersions();
+        List<String> gameVersions = (Config.Platform_GameVersions != null)
+            ? Config.Platform_GameVersions
+            : platform.getGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
             queries.add("game_versions=[\"" + String.join("\",\"", gameVersions) + "\"]");
         }

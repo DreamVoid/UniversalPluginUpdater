@@ -1,19 +1,27 @@
 {
     "message.lifecycle.startup.start": "准备 UniversalPluginUpdater 初始化.",
     "message.lifecycle.startup.finish": "初始化任务完成.",
+    "message.lifecycle.startup.exception": "初始化时发生异常: {0}",
     "message.lifecycle.preload.start": "准备 UniversalPluginUpdater 预加载.",
     "message.lifecycle.preload.loaders": "加载器: {0}",
     "message.lifecycle.preload.gameversions": "Minecraft 版本: {0}",
+    "message.lifecycle.preload.exception": "插件预加载时发生异常: {0}",
     "message.lifecycle.preload.finish": "预加载任务完成.",
     "message.lifecycle.postload.start": "准备 UniversalPluginUpdater 后加载.",
     "message.lifecycle.postload.moretasks": "某些加载任务将在之后继续。",
+    "message.lifecycle.postload.exception": "插件后加载时发生异常: {0}",
     "message.lifecycle.postload.finish": "后加载任务完成. 欢迎使用 UniversalPluginUpdater！",
     "message.lifecycle.paper.postload.register-command": "正在向 Paper 注册命令...",
     "message.lifecycle.bungee.postload.register-command": "正在向 BungeeCord 注册命令...",
     "message.lifecycle.velocity.postload.register-command": "正在向 Velocity 注册命令...",
     "message.lifecycle.unload.start": "准备 UniversalPluginUpdater 卸载.",
     "message.lifecycle.unload.result": "升级了 {0} 个插件，有 {1} 个插件升级失败。",
+    "message.lifecycle.unload.exception": "插件卸载时发生异常: {0}",
+    "message.lifecycle.unload.exception.no-class-def-found": "请勿在运行时直接修改 UniversalPluginUpdater 的 Jar 文件，这会导致严重问题。如果需要更新 UPU，应当在完全关闭服务端后替换文件或使用 UPU 的升级功能。",
     "message.lifecycle.unload.finish": "卸载任务完成. 感谢使用 UniversalPluginUpdater！",
+    
+    "message.lifecycle.reload.start": "准备 UniversalPluginUpdater 重新加载.",
+    "message.lifecycle.reload.finish": "重新加载任务完成.",
 
     "message.lifecycle.config.load": "正在加载配置文件...",
     "message.lifecycle.config.exception": "加载配置文件时出现异常: {0}",
@@ -162,5 +170,7 @@
     "tag.update.hangar.failed.no-selected-version": "无已选版本",
     "tag.update.modrinth.failed.no-primary-file": "无主文件",
     "tag.update.modrinth.failed.no-selected-version": "无已选版本",
+    "tag.update.spigotmc.failed.no-selected-version": "无已选版本",
     "tag.update.url.failed.no-download-url": "无下载链接"
+
 }

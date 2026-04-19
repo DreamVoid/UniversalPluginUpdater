@@ -22,6 +22,7 @@ public class VelocityConfig extends Config {
         this.plugin = plugin;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void loadConfig() throws IOException {
         saveDefaultConfig();
@@ -100,6 +101,11 @@ public class VelocityConfig extends Config {
             return result;
         }
         return List.of();
+    }
+
+    @Override
+    public Object getObject(String path) {
+        return getPathValue(path);
     }
 
     private void saveDefaultConfig() throws IOException {

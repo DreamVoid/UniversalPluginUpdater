@@ -47,4 +47,9 @@ public class BukkitConfig extends Config {
     public List<String> getStringList(String path) {
         return plugin.getConfig().getStringList(path);
     }
+
+    @Override
+    public Object getObject(String path) {
+        return plugin.getConfig().get(path);
+    }
 }

@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.command;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.command.action.DownloadCommand;
 import me.dreamvoid.universalpluginupdater.command.action.ListCommand;
 import me.dreamvoid.universalpluginupdater.command.action.RepoCommand;
@@ -44,7 +45,10 @@ public class CommandHandler {
 
             // 如果没有子命令，显示帮助
             if (action == null) {
-                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platform.getPlatformName()));
+                String platformName = (Config.Platform_Name != null && !Config.Platform_Name.isBlank())
+                        ? Config.Platform_Name
+                        : platform.getPlatformName();
+                sender.sendMessage(tr(locale, "message.command.help", platform.getPluginVersion(), platformName));
                 return;
             }
 

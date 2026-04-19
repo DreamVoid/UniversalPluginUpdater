@@ -176,7 +176,7 @@ public final class Utils {
                         .filter(s -> !s.isBlank())
                         .or(() -> Optional.ofNullable(response.header("Content-Disposition"))
                                 .filter(h -> h.contains("filename="))
-                                .map(h -> extractFilenameFromContentDisposition(h))
+                                .map(Http::extractFilenameFromContentDisposition)
                                 .filter(s -> !s.isBlank()))
                         .or(() -> Optional.ofNullable(extractFilenameFromUrl(url))
                                 .filter(s -> !s.isBlank()))
@@ -342,7 +342,7 @@ public final class Utils {
          * 下载结果对象
          *
          */
-                public static final class DownloadResult {
+        public static final class DownloadResult {
             private final boolean success;
             private final String filename;
             private final String errorMessage;

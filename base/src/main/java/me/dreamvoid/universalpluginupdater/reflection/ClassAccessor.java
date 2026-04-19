@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class provides thread-safe caching of Class objects to improve performance
  * when repeatedly accessing the same classes.
  */
+@SuppressWarnings("ALL")
 public class ClassAccessor {
 
     private static final Map<String, Class<?>> classCache = new ConcurrentHashMap<>();
