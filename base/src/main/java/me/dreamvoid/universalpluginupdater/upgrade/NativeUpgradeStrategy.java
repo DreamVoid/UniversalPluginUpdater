@@ -66,7 +66,7 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
             logger.info(tr("message.strategy.native.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning(tr("message.strategy.native.error.exception", pluginId, e));
+            logger.warning(tr("message.strategy.native.exception", pluginId, e));
             return false;
         }
     }

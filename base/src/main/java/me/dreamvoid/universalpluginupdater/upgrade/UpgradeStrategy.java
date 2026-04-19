@@ -40,7 +40,7 @@ public interface UpgradeStrategy {
      * 若为 true，调度层将直接执行升级并忽略 --now 参数
      * @return 支持安全升级返回 true，否则返回 false
      */
-    default boolean supportSaveUpgrade() {
+    default boolean supportSafeUpgrade() {
         return false;
     }
 }

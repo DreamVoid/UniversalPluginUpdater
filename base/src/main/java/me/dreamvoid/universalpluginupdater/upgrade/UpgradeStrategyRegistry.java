@@ -34,10 +34,10 @@ public final class UpgradeStrategyRegistry {
      * @param strategyId 策略标识符
      * @param strategy 策略实现
      */
-    public void registerStrategy(String strategyId, UpgradeStrategy strategy) {
-        if (strategyId == null || strategy == null) return;
-        
-        strategies.put(strategyId, strategy);
+    public void registerStrategy(UpgradeStrategy strategy) {
+        if (strategy == null) return;
+
+        strategies.put(strategy.getId(), strategy);
 
         logger.info(tr("message.service.strategy.registered", strategy.getId(), strategy.getName()));
     }

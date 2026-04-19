@@ -35,7 +35,7 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public boolean supportSaveUpgrade() {
+    public boolean supportSafeUpgrade() {
         return true;
     }
 
@@ -61,7 +61,7 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
             logger.info(tr("message.strategy.bukkit.updated", pluginId));
             return true;
         } catch (Exception e) {
-            logger.warning(tr("message.strategy.bukkit.error.exception", pluginId, e));
+            logger.warning(tr("message.strategy.bukkit.exception", pluginId, e));
             return false;
         }
     }

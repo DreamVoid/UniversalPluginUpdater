@@ -85,7 +85,7 @@ public final class UpgradeManager {
      */
     private boolean canUpgradeNow(boolean executeNow, UpgradeStrategy strategy) {
         if (strategy == null) return false;
-        if (strategy.supportSaveUpgrade()) return true;
+        if (strategy.supportSafeUpgrade()) return true;
         return executeNow && Config.Updater_AllowUpgradeNow;
     }
 

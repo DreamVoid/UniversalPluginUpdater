@@ -10,6 +10,7 @@
     "message.lifecycle.postload.finish": "后加载任务完成. 欢迎使用 UniversalPluginUpdater！",
     "message.lifecycle.paper.postload.register-command": "正在向 Paper 注册命令...",
     "message.lifecycle.bungee.postload.register-command": "正在向 BungeeCord 注册命令...",
+    "message.lifecycle.velocity.postload.register-command": "正在向 Velocity 注册命令...",
     "message.lifecycle.unload.start": "准备 UniversalPluginUpdater 卸载.",
     "message.lifecycle.unload.result": "升级了 {0} 个插件，有 {1} 个插件升级失败。",
     "message.lifecycle.unload.finish": "卸载任务完成. 感谢使用 UniversalPluginUpdater！",
@@ -27,8 +28,10 @@
         "",
         "常用命令：",
         "  /upu update - 更新可用插件列表",
+        "  /upu list - 列出可用插件",
         "  /upu download - 通过 下载 来下载现有插件的更新版本",
         "  /upu upgrade - 通过 下载/安装 来升级现有插件到更新版本",
+        "  /upu repo - 使用远程仓库检查或获取更新配置",
         "",
         "本插件配置选项及语法都已经在文档中进行了详细说明。",
         "插件及其版本偏好可以通过配置文件来设置。",
@@ -49,7 +52,7 @@
     "message.command.download.item.success": "{0} 已下载。",
     "message.command.download.none": "目前没有可下载更新的插件。使用 \"/upu update\" 检查更新。",
     "message.command.download.start": "&7开始下载插件更新...",
-    "message.command.download.summary": "下载了 {0} 个插件，有 {1} 个插件下载失败。文件已保存到 plugins/UniversalPluginUpdater/downloads/ 文件夹。",
+    "message.command.download.summary": "下载了 {0} 个插件，有 {1} 个插件下载失败。文件已保存到 \"downloads\" 文件夹。",
 
     "message.command.update.count": "有 {0} 个插件可以升级。使用 \"/upu list --upgradable\" 查看它们。",
     "message.command.update.exception.game": "&c检查更新时出现异常，请查看控制台了解更多信息！",
@@ -71,7 +74,7 @@
     "message.command.upgrade.success.queued": "{0} 已加入升级队列。",
     "message.command.upgrade.summary.now": "升级了 {0} 个插件，有 {1} 个插件升级失败。重新启动服务器以启用新插件。",
     "message.command.upgrade.summary.queued": "安排了 {0} 个插件的升级任务，有 {1} 个插件升级失败。重新启动服务器以完成升级过程。",
-    "message.command.upgrade.warn.upgrade-now-disabled": "&eW: 当前配置不允许使用 --now 参数，已忽略此参数。",
+    "message.command.upgrade.warn.upgrade-now-disabled": "&eW: 当前配置不允许使用 \"--now\" 参数，已忽略此参数。",
 
     "message.command.repo.help": [
         "用法: /upu repo <update|list|get>",
@@ -97,6 +100,8 @@
     "message.command.list.exception.log": "列出插件列表时出现异常: ",
     "message.command.list.exception.game": "&c列出插件时出现异常，请查看控制台了解更多信息！",
 
+    "message.service.error.not-initialized": "{0} 尚未初始化",
+
     "message.service.channel.error.config.failed": "无法加载 {0} 的更新配置",
     "message.service.channel.error.config.exception": "加载 {0} 的更新配置时出现异常: {1}",
     "message.service.channel.error.exception": "为更新渠道 {0} 创建实例时出现异常: {1}",
@@ -108,28 +113,35 @@
     "message.service.check-update.error.no-remote-version": "无法获取插件 {0} 的远程版本信息！",
     "message.service.check-update.error": "无法检查插件 {0} 的更新！",
 
-    "message.service.error.not-initialized": "{0} 尚未初始化",
-
     "message.service.upgrade.error.native-unavailable": "由于 native 升级策略不可用，{0} 升级失败！",
     "message.service.upgrade.execute.error.exception": "插件 {0} 执行升级任务时出现异常: {1}",
     "message.service.upgrade.queued": "将 {0} 插件的升级任务加入队列 ({1})",
     "message.service.upgrade.warn.strategy-unavailable-fallback": "当前升级策略 {0} 不可用，尝试回退到 native",
 
-    "message.service.strategy.registered": "注册新的升级方式: {0} ({1})",
-    "message.service.strategy.active": "当前使用的升级策略: {0} ({1})",
     "message.service.strategy.active.unregistered": "当前使用的升级策略: {0} [未注册]",
+    "message.service.strategy.active": "当前使用的升级策略: {0} ({1})",
+    "message.service.strategy.registered": "注册新的升级方式: {0} ({1})",
     "message.service.strategy.warn.unavailable-fallback": "当前使用的升级策略 \"{0}\" 不可用，回退到 \"native\"",
 
-    "message.strategy.native.error.plugin-directory-missing": "插件目录 {0} 不存在！",
-    "message.strategy.native.unload": "卸载插件 {0}",
-    "message.strategy.native.error.unload-failed": "插件 {0} 卸载失败！",
     "message.strategy.native.delete-old-file": "删除旧的插件文件 {0}",
+    "message.strategy.native.exception": "更新 {0} 时出现异常: {1}",
+    "message.strategy.native.error.plugin-directory-missing": "插件目录 {0} 不存在！",
+    "message.strategy.native.error.unload-failed": "插件 {0} 卸载失败！",
     "message.strategy.native.move-new-file": "移动新插件文件到 {0}",
+    "message.strategy.native.unload": "卸载插件 {0}",
     "message.strategy.native.updated": "插件 {0} 已更新，重启服务器生效。",
-    "message.strategy.native.error.exception": "更新 {0} 时出现异常: {1}",
+
     "message.strategy.bukkit.move-new-file": "移动新插件文件到 {0}",
     "message.strategy.bukkit.updated": "插件 {0} 已更新，重启服务器生效。",
-    "message.strategy.bukkit.error.exception": "更新 {0} 时出现异常: {1}",
+    "message.strategy.bukkit.exception": "更新 {0} 时出现异常: {1}",
+
+    "message.strategy.velocity.error.plugin-directory-missing": "插件目录不存在！",
+    "message.strategy.velocity.error.self-jar-missing": "找不到 UniversalPluginUpdater 的 Jar 文件，无法启动升级进程！",
+    "message.strategy.velocity.error.executable-java-missing": "找不到 Java 可执行文件，无法启动升级进程！",
+    "message.strategy.velocity.process.launched": "已启动升级进程（PID：{0}），日志存放在 message.strategy.velocity.launched/applier.log。",
+    "message.strategy.velocity.process.exception": "启动升级进程时出现异常: {0}",
+    "message.strategy.velocity.scheduled": "已将插件 {0} 升级队列，重启服务器应用升级。",
+    "message.strategy.velocity.exception": "更新 {0} 时出现异常: {1}",
 
     "message.update.get": "获取: {0}",
     "message.update.hit": "命中: {0}",
@@ -144,11 +156,11 @@
     "tag.update.ignore.no-version": "无可用版本",
     "tag.update.ignore.response-null": "响应为空",
     "tag.update.ignore.status-code": "状态码: {0}",
-    "tag.update.github.failed.no-selected-release": "无已选发行版",
     "tag.update.github.failed.no-download-url": "无下载链接",
-    "tag.update.modrinth.failed.no-selected-version": "无已选版本",
-    "tag.update.modrinth.failed.no-primary-file": "无主文件",
+    "tag.update.github.failed.no-selected-release": "无已选发行版",
+    "tag.update.hangar.failed.no-download-url": "无下载链接",
     "tag.update.hangar.failed.no-selected-version": "无已选版本",
-    "tag.update.url.failed.no-download-url": "无下载链接",
-    "tag.update.hangar.failed.no-download-url": "无下载链接"
+    "tag.update.modrinth.failed.no-primary-file": "无主文件",
+    "tag.update.modrinth.failed.no-selected-version": "无已选版本",
+    "tag.update.url.failed.no-download-url": "无下载链接"
 }

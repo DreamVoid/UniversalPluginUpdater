@@ -50,7 +50,7 @@ public class LifeCycle {
         logger.info(tr("message.lifecycle.preload.loaders", String.join(", ", platform.getLoaders())));
         logger.info(tr("message.lifecycle.preload.gameversions", platform.getGameVersions() == null ? "通用" : String.join(", ", platform.getGameVersions())));
 
-        UpgradeStrategyRegistry.instance().registerStrategy("native", new NativeUpgradeStrategy(platform));
+        UpgradeStrategyRegistry.instance().registerStrategy(new NativeUpgradeStrategy(platform));
 
         // 初始化服务
         UpdateManager.initialize(platform);

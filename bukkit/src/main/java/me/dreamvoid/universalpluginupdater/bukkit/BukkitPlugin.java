@@ -51,7 +51,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
         UpdateManager.registerUpdateInstance(new BukkitPluginUpdate(getName()));
 
         // 注册 Bukkit 特定的升级策略
-        UpgradeStrategyRegistry.instance().registerStrategy("bukkit", new BukkitUpgradeStrategy(getLogger()));
+        UpgradeStrategyRegistry.instance().registerStrategy(new BukkitUpgradeStrategy(getLogger()));
     }
 
     @Override
