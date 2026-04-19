@@ -102,13 +102,13 @@ public final class LoggerConverter {
         @Override
         public void log(Level level, String msg, Throwable thrown) {
             logger.debug("Unsupported method \"log(Level level, String msg, Throwable thrown)\" is being called.");
-            logUnsupported(level, msg);
+            logUnsupported(level, msg, thrown);
         }
 
         @Override
         public void log(Level level, Throwable thrown, Supplier<String> msgSupplier) {
             logger.debug("Unsupported method \"log(Level level, Throwable thrown, Supplier<String> msgSupplier)\" is being called.");
-            logUnsupported(level, msgSupplier);
+            logUnsupported(level, msgSupplier, thrown);
         }
 
         @Override
@@ -137,13 +137,13 @@ public final class LoggerConverter {
         @Override
         public void logp(Level level, String sourceClass, String sourceMethod, String msg, Throwable thrown) {
             logger.debug("Unsupported method \"logp(Level level, String sourceClass, String sourceMethod, String msg, Throwable thrown)\" is being called.");
-            logUnsupported(level, msg);
+            logUnsupported(level, msg, thrown);
         }
 
         @Override
         public void logp(Level level, String sourceClass, String sourceMethod, Throwable thrown, Supplier<String> msgSupplier) {
             logger.debug("Unsupported method \"logp(Level level, String sourceClass, String sourceMethod, Throwable thrown, Supplier<String> msgSupplier)\" is being called.");
-            logUnsupported(level, msgSupplier);
+            logUnsupported(level, msgSupplier, thrown);
         }
 
         @Override
@@ -177,13 +177,13 @@ public final class LoggerConverter {
         @Deprecated
         public void logrb(Level level, String sourceClass, String sourceMethod, String bundleName, String msg, Throwable thrown) {
             logger.debug("Unsupported method \"logrb(Level level, String sourceClass, String sourceMethod, String bundleName, String msg, Throwable thrown)\" is being called.");
-            logUnsupported(level, msg);
+            logUnsupported(level, msg, thrown);
         }
 
         @Override
         public void logrb(Level level, String sourceClass, String sourceMethod, ResourceBundle bundle, String msg, Throwable thrown) {
             logger.debug("Unsupported method \"logrb(Level level, String sourceClass, String sourceMethod, ResourceBundle bundle, String msg, Throwable thrown)\" is being called.");
-            logUnsupported(level, msg);
+            logUnsupported(level, msg, thrown);
         }
 
         @Override
@@ -261,7 +261,7 @@ public final class LoggerConverter {
         @Override
         public void finest(Supplier<String> msgSupplier) {
             logger.debug("Unsupported method \"finest(Supplier<String> msgSupplier)\" is being called.");
-            logger.debug(msgSupplier.get());
+            logger.trace(msgSupplier.get());
         }
 
         @Override
@@ -324,6 +324,34 @@ public final class LoggerConverter {
                 logger.trace(msgSupplier.get());
             } else {
                 logger.info(msgSupplier.get());
+            }
+        }
+
+        private void logUnsupported(Level level, String msg, Throwable thrown) {
+            if (level == Level.WARNING) {
+                logger.warn(msg, thrown);
+            } else if (level == Level.SEVERE) {
+                logger.error(msg, thrown);
+            } else if (level == Level.FINE || level == Level.FINER || level == Level.CONFIG) {
+                logger.debug(msg, thrown);
+            } else if (level == Level.FINEST) {
+                logger.trace(msg, thrown);
+            } else {
+                logger.info(msg, thrown);
+            }
+        }
+
+        private void logUnsupported(Level level, Supplier<String> msgSupplier, Throwable thrown) {
+            if (level == Level.WARNING) {
+                logger.warn(msgSupplier.get(), thrown);
+            } else if (level == Level.SEVERE) {
+                logger.error(msgSupplier.get(), thrown);
+            } else if (level == Level.FINE || level == Level.FINER || level == Level.CONFIG) {
+                logger.debug(msgSupplier.get(), thrown);
+            } else if (level == Level.FINEST) {
+                logger.trace(msgSupplier.get(), thrown);
+            } else {
+                logger.info(msgSupplier.get(), thrown);
             }
         }
     }
