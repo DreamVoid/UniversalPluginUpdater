@@ -16,27 +16,28 @@ UniversalPluginUpdater (UPU) is a Minecraft server plugin that allows you to qui
 
 The development of UniversalPluginUpdater was inspired by [APT](https://wiki.debian.org/zh_CN/Apt).
 
+## Documents and tutorials
+
+For first-time UPU users, reading the [UPU Help Manual](https://docs.upu.dreamvoid.me/en/) can help them get started quickly. Many questions can be answered by consulting the documentation, which also includes how UPU checks for updates to other plugins.
+
 ## Download
 * Stable version
   * [Modrinth](https://modrinth.com/plugin/upu/versions)
   * [GitHub Releases](https://github.com/DreamVoid/UniversalPluginUpdater/releases)
 
-## Commands and Permissions
-### Commands
-| Command                | Description                        | Permission                       |
-|-------------------|---------------------------|--------------------------|
-| /universalpluginupdater (/upu)         | UniversalPluginUpdater main command | universalpluginupdater.command |
-| /upu update | update list of available plugins.                    | universalpluginupdater.command.update |
-| /upu download  | download existing plugins' newer version by downloading.                  | universalpluginupdater.command.download |
-| /upu upgrade  | upgrade existing plugins by downloading/installing newer version.                  | universalpluginupdater.command.upgrade |
+## Commands
 
-### Permissions
-| Permission                     | Description             | Default |
-|--------------------------|----------------|----|
-| universalpluginupdater.command | Allow use /upu | OP |
-| universalpluginupdater.command.update | Allow use /upu update | OP |
-| universalpluginupdater.command.download | Allow use /upu download | OP |
-| universalpluginupdater.command.upgrade | Allow use /upu upgrade | OP |
+This is just a list of some commonly used commands. For a complete list of commands, please refer to the [documentation](https://docs.upu.dreamvoid.me/en/core/commands).
+
+| Command | Description | 
+| --- | --- |
+| /universalpluginupdater (/upu) | UniversalPluginUpdater main command |
+| /upu update | update list of available plugins. | 
+| /upu list | list all available plugins |
+| /upu download | download existing plugins' newer version by downloading. | 
+| /upu upgrade | upgrade existing plugins by downloading/installing newer version. | 
+| /upu repo | configuration file repository sub-command |
+
 
 ## License
 
