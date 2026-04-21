@@ -13,51 +13,39 @@ import java.util.List;
 
 public final class VelocityUpgradeApplierMain {
     private static final DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static Path workingDir;
 
-    private VelocityUpgradeApplierMain() {
-    }
+    private VelocityUpgradeApplierMain() {}
 
     public static void main(String[] args) {
         if (args.length < 1) {
             return;
         }
 
-        Path pendingDir = Paths.get(args[0]);
-        Path applierLog = pendingDir.resolve("applier.log");
+        workingDir = Paths.get(args[0]);
 
         try {
-            archiveOldLogIfExists(applierLog);
-            List<VelocityUpgradeStrategy.PendingOperation> operations = parseOperationsFromArgs(args);
+            archiveLogFile();
+            List<VelocityUpgradeStrategy.PendingOperation> operations = parseArgs(args);
             if (operations.isEmpty()) {
-                appendLog(applierLog, "未收到可执行的升级任务，已退出");
+                log("未收到可执行的升级任务，已退出");
+                System.exit(1);
                 return;
             }
 
-            List<VelocityUpgradeStrategy.PendingOperation> failed = new ArrayList<>();
-
             for (VelocityUpgradeStrategy.PendingOperation operation : operations) {
                 if (!applyOperation(operation)) {
-                    failed.add(operation);
+                    log(operation.pluginId() + ": 操作失败！");
                 }
             }
-
-            if (failed.isEmpty()) {
-                appendLog(applierLog, "延迟应用完成：所有待处理文件已替换成功");
-            } else {
-                for (VelocityUpgradeStrategy.PendingOperation operation : failed) {
-                    appendLog(applierLog, "替换失败：插件=" + operation.pluginId() + "，目标=" + operation.targetPath() + "，来源=" + operation.sourcePath());
-                }
-                appendLog(applierLog, "延迟应用完成：仍有 " + failed.size() + " 个文件替换失败，已保留到清单等待下次重试");
-            }
+            System.exit(0);
         } catch (Exception e) {
-            try {
-                appendLog(applierLog, "延迟应用器异常退出：" + e.getMessage());
-            } catch (Exception ignored) {
-            }
+            log("异常退出：" + e);
+            System.exit(-1);
         }
     }
 
-    private static List<VelocityUpgradeStrategy.PendingOperation> parseOperationsFromArgs(String[] args) {
+    private static List<VelocityUpgradeStrategy.PendingOperation> parseArgs(String[] args) {
         List<VelocityUpgradeStrategy.PendingOperation> operations = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
             if (!"--op".equals(args[i])) {
@@ -75,35 +63,24 @@ public final class VelocityUpgradeApplierMain {
         return operations;
     }
 
-    private static void archiveOldLogIfExists(Path applierLog) throws Exception {
-        if (!Files.exists(applierLog)) {
+    private static void archiveLogFile() throws Exception {
+        Path logFile = workingDir.resolve("applier.log");
+        if (!Files.exists(logFile)) {
             return;
         }
 
-        Path pendingDir = applierLog.getParent();
-        Path logsDir = pendingDir.resolve("logs");
+        Path logsDir = workingDir.resolve("logs");
         Files.createDirectories(logsDir);
 
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         int index = 1;
-        Path archivePath;
+        Path archiveLogPath;
         do {
-            archivePath = logsDir.resolve(date + "-" + index + ".log");
+            archiveLogPath = logsDir.resolve(date + "-" + index + ".log");
             index++;
-        } while (Files.exists(archivePath));
+        } while (Files.exists(archiveLogPath));
 
-        Files.move(applierLog, archivePath, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    private static void appendLog(Path logFile, String message) throws Exception {
-        Files.createDirectories(logFile.getParent());
-        Files.writeString(
-                logFile,
-                LocalDateTime.now().format(LOG_TIME_FORMATTER) + " " + message + System.lineSeparator(),
-                StandardCharsets.UTF_8,
-                java.nio.file.StandardOpenOption.CREATE,
-                java.nio.file.StandardOpenOption.APPEND
-        );
+        Files.move(logFile, archiveLogPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private static boolean applyOperation(VelocityUpgradeStrategy.PendingOperation operation) {
@@ -118,8 +95,10 @@ public final class VelocityUpgradeApplierMain {
             try {
                 Files.createDirectories(targetPath.getParent());
                 Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                log(operation.pluginId() + ": 移动文件" + sourcePath + "到" + targetPath);
                 return true;
             } catch (Exception e) {
+                log(operation.pluginId() + ": 第" + (retry + 1) + "次尝试失败！source=" + sourcePath + ", target=" + targetPath);
                 try {
                     Thread.sleep(1000L);
                 } catch (InterruptedException interruptedException) {
@@ -130,5 +109,18 @@ public final class VelocityUpgradeApplierMain {
         }
 
         return false;
+    }
+
+
+    private static void log(String message) {
+        try {
+            Files.writeString(
+                    Files.createDirectories(workingDir).resolve("applier.log"),
+                    LocalDateTime.now().format(LOG_TIME_FORMATTER) + " " + message + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch (Exception ignored) {}
     }
 }

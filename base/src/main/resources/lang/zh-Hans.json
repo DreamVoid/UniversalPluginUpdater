@@ -146,7 +146,7 @@
     "message.strategy.velocity.error.plugin-directory-missing": "插件目录不存在！",
     "message.strategy.velocity.error.self-jar-missing": "找不到 UniversalPluginUpdater 的 Jar 文件，无法启动升级进程！",
     "message.strategy.velocity.error.executable-java-missing": "找不到 Java 可执行文件，无法启动升级进程！",
-    "message.strategy.velocity.process.launched": "已启动升级进程（PID：{0}），日志存放在 message.strategy.velocity.launched/applier.log。",
+    "message.strategy.velocity.process.launched": "已启动升级进程（PID：{0}），日志存放在 pending-upgrades/applier.log。",
     "message.strategy.velocity.process.exception": "启动升级进程时出现异常: {0}",
     "message.strategy.velocity.scheduled": "已将插件 {0} 升级队列，重启服务器应用升级。",
     "message.strategy.velocity.exception": "更新 {0} 时出现异常: {1}",

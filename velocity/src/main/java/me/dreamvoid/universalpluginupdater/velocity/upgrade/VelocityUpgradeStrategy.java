@@ -117,7 +117,7 @@ public final class VelocityUpgradeStrategy implements UpgradeStrategy {
                     .directory(plugin.getDataPath().toFile())
                     .start();
 
-            logger.info(tr("message.strategy.velocity.launched", process.pid()));
+            logger.info(tr("message.strategy.velocity.process.launched", String.valueOf(process.pid())));
             synchronized (pendingOperations) {
                 pendingOperations.clear();
             }
