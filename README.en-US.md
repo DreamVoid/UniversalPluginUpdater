@@ -23,6 +23,7 @@ For first-time UPU users, reading the [UPU Help Manual](https://docs.upu.dreamvo
 ## Download
 * Stable version
   * [Modrinth](https://modrinth.com/plugin/upu/versions)
+  * [Hangar](https://hangar.papermc.io/DreamVoid/UniversalPluginUpdater/versions)
   * [GitHub Releases](https://github.com/DreamVoid/UniversalPluginUpdater/releases)
 
 ## Commands

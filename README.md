@@ -23,6 +23,7 @@ UniversalPluginUpdater 的开发受到 [APT](https://wiki.debian.org/zh_CN/Apt) 
 ## 下载
 * 稳定版本
   * [Modrinth](https://modrinth.com/plugin/upu/versions)
+  * [Hangar](https://hangar.papermc.io/DreamVoid/UniversalPluginUpdater/versions)
   * [GitHub 发布页](https://github.com/DreamVoid/UniversalPluginUpdater/releases)
 
 ## 命令
