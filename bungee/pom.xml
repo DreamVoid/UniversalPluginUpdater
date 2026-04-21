@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.dreamvoid</groupId>
         <artifactId>UniversalPluginUpdater</artifactId>
-        <version>0.2</version>
+        <version>1.0</version>
     </parent>
 
     <artifactId>UniversalPluginUpdater-Bungee</artifactId>
