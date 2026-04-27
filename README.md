@@ -28,7 +28,7 @@ UniversalPluginUpdater 的开发受到 [APT](https://wiki.debian.org/zh_CN/Apt) 
 
 ## 命令
 
-此处仅列出了几个常用命令，要查看完整命令列表，请查阅[文档](https://docs.upu.dreamvoid.me/core/commands）。
+此处仅列出了几个常用命令，要查看完整命令列表，请查阅[文档](https://docs.upu.dreamvoid.me/core/commands)。
 
 | 命令 | 描述 |
 |-------------------|---------------------------|
