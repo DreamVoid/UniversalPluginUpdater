@@ -21,7 +21,7 @@ public final class UpgradeManager {
     private static UpgradeManager INSTANCE;
     private final Logger logger;
 
-    private final Queue<ScheduledUpdate> scheduledUpdates = new ConcurrentLinkedQueue<>();
+    private final Queue<UpgradeOperation> scheduledUpgrade = new ConcurrentLinkedQueue<>();
 
     private UpgradeManager(Platform platform) {
         this.logger = platform.getPlatformLogger();
@@ -51,23 +51,12 @@ public final class UpgradeManager {
         String strategyId = registry.getActiveStrategyId();
         UpgradeStrategy strategy = registry.getActiveStrategy();
 
-        // 配置的更新策略不可用，回退native
-        if (strategy == null) {
-            logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
-            strategyId = "native";
-            strategy = registry.getStrategy("native");
-        }
-
-        // native更新策略不可用
-        if (strategy == null) {
-            logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
-            return false;
-        }
+        UpgradeOperation operation = new UpgradeOperation(pluginId, newPluginPath, oldPluginPath, strategyId);
 
         if (canUpgradeNow(executeNow, strategy)) {
-            return executeUpgrade(pluginId, newPluginPath, oldPluginPath, strategyId);
+            return executeUpgrade(operation);
         } else {
-            scheduledUpdates.add(new ScheduledUpdate(pluginId, newPluginPath, oldPluginPath, strategyId));
+            scheduledUpgrade.add(operation);
             logger.info(tr("message.service.upgrade.queued", pluginId, strategyId));
             return true;
         }
@@ -95,9 +84,9 @@ public final class UpgradeManager {
     public ExecutionResult executeScheduledUpgrades() {
         int successCount = 0, failureCount = 0;
 
-        ScheduledUpdate operation;
-        while ((operation = scheduledUpdates.poll()) != null) {
-            if (executeUpgrade(operation.pluginId, operation.newPluginPath, operation.oldPluginPath, operation.strategyId)) {
+        UpgradeOperation operation;
+        while ((operation = scheduledUpgrade.poll()) != null) {
+            if (executeUpgrade(operation)) {
                 successCount += 1;
             } else {
                 failureCount += 1;
@@ -107,7 +96,16 @@ public final class UpgradeManager {
         return new ExecutionResult(successCount, failureCount);
     }
 
-    private boolean executeUpgrade(String pluginId, Path newPluginPath, Path oldPluginPath, String strategyId) {
+    /**
+     * 执行升级操作<br>
+     * 此方法实际调用升级策略的 {@link UpgradeStrategy#upgrade(String, Path, Path)} 方法。
+     * @param operation 升级操作
+     * @return 升级是否成功
+     */
+    private boolean executeUpgrade(UpgradeOperation operation) {
+        String pluginId = operation.pluginId();
+        String strategyId = operation.strategyId();
+
         try {
             UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
             UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
@@ -117,24 +115,26 @@ public final class UpgradeManager {
                 strategy = registry.getActiveStrategy();
             }
 
+            // 配置的更新策略不可用，回退native
             if (strategy == null) {
                 logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
                 strategy = registry.getStrategy("native");
             }
 
+            // native更新策略不可用
             if (strategy == null) {
                 logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
                 return false;
             }
 
-            return strategy.upgrade(pluginId, newPluginPath, oldPluginPath);
+            return strategy.upgrade(pluginId, operation.newPluginPath(), operation.oldPluginPath());
         } catch (Exception e) {
             logger.warning(tr("message.service.upgrade.execute.error.exception", pluginId, e));
             return false;
         }
     }
 
-    private record ScheduledUpdate(
+    public record UpgradeOperation(
             String pluginId,
             Path newPluginPath,
             Path oldPluginPath,

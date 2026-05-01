@@ -72,7 +72,7 @@ public final class UpgradeStrategyRegistry {
     /**
      * 获取当前活跃的升级策略
      * 如果当前活跃策略不存在，自动回退到 native 策略
-     * @return 当前活跃的升级策略（保证不为 null）
+     * @return 当前活跃的升级策略
      */
     @Nullable
     public UpgradeStrategy getActiveStrategy() {
