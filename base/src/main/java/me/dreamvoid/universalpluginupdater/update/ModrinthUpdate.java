@@ -142,7 +142,8 @@ public class ModrinthUpdate extends AbstractUpdate {
                     String value = selectedVersion.versionNumber();
                     version = (value != null && !value.isBlank()) ? value : selectedVersion.name();
                 }
-                case "name", default -> version = selectedVersion.name();
+                case "name" -> version = selectedVersion.name();
+                default -> version = selectedVersion.name();
             }
         }
 

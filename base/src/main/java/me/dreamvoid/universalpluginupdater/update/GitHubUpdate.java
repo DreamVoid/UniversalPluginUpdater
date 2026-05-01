@@ -158,7 +158,8 @@ public class GitHubUpdate extends AbstractUpdate {
                     String value = selectedRelease.tagName();
                     yield (value != null && !value.isBlank()) ? value : selectedRelease.name();
                 }
-                case "name", default -> selectedRelease.name();
+                case "name" -> selectedRelease.name();
+                default -> selectedRelease.name();
             };
         }
 
