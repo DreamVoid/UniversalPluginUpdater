@@ -30,8 +30,8 @@ public record UpdateInfo(
             return !Objects.equals(currentVersion, newVersion);
         }
 
-        String[] currentParts = currentVersion.split("\\.");
-        String[] newParts = newVersion.split("\\.");
+        String[] currentParts = currentVersion.split("-")[0].split("\\.");
+        String[] newParts = newVersion.split("-")[0].split("\\.");
 
         int max = Math.max(currentParts.length, newParts.length);
         for (int i = 0; i < max; i++) {
