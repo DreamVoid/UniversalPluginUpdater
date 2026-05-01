@@ -21,7 +21,10 @@
             "config": {
                 "repository": null,
                 "auth": null,
-                        "accept": ["application/java-archive", "application/x-java-archive"],
+                "accept": [
+                    "application/java-archive",
+                    "application/x-java-archive"
+                ],
                 "filter": null,
                 "version-key": "name",
                 "version-regex": null
