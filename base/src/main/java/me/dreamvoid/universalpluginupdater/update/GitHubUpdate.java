@@ -96,9 +96,10 @@ public class GitHubUpdate extends AbstractUpdate {
         if (assets == null || assets.isEmpty()) return null;
 
         List<GithubAsset> filteredByType = assets;
-        if (info.accept() != null && !info.accept().isBlank()) {
+        List<String> acceptedTypes = info.acceptValues();
+        if (!acceptedTypes.isEmpty()) {
             filteredByType = assets.stream()
-                .filter(a -> info.accept().equalsIgnoreCase(a.contentType()))
+                .filter(a -> a.contentType() != null && acceptedTypes.stream().anyMatch(type -> type.equalsIgnoreCase(a.contentType())))
                 .toList();
         }
 
