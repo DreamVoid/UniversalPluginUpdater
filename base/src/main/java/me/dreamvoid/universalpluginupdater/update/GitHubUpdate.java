@@ -282,7 +282,7 @@ public class GitHubUpdate extends AbstractUpdate {
                 return true;
             }
         } catch (Exception e) {
-            logger.warning(tr("message.update.error.reason", downloadUrl, e));
+            logger.warning(tr("message.update.error", downloadUrl, e));
             return false;
         }
     }
