@@ -18,6 +18,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -188,7 +189,7 @@ public final class Utils {
 
                 // 下载文件
                 try (InputStream inputStream = response.body().byteStream()) {
-                    Files.copy(inputStream, filePath);
+                    Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
                 }
 
                 return new DownloadResult(true, filename, null);

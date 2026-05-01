@@ -76,8 +76,8 @@ public final class UpdateManager {
      * @param pluginId 插件ID
      * @return 对应的AbstractUpdate实例，若无法获取返回null
      */
-    public AbstractUpdate getUpdateInstance(String pluginId) {
-        return updateChannelService.getUpdateInstance(pluginId, null);
+    public AbstractUpdate getUpdateInstance(String pluginId, String channelId) {
+        return updateChannelService.getUpdateInstance(pluginId, channelId);
     }
 
     /**

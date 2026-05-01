@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.command.action;
 
+import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
@@ -67,12 +68,14 @@ public final class DownloadCommand extends CommandHandler {
 
                 try {
                     // 获取该插件的更新实例
-                    AbstractUpdate updateInstance = updateManager.getUpdateInstance(pluginId);
+                    AbstractUpdate updateInstance = updateManager.getUpdateInstance(pluginId, updateInfo.updateChannel());
                     if (updateInstance == null) {
                         sender.sendMessage(tr(locale, "message.command.download.item.error.no-channel", pluginId));
                         failureCount++;
                         continue;
                     }
+
+                    Utils.debug(pluginId + ": 当前更新实例: " + updateInstance.getClass().getName());
 
                     // 执行下载
                     if (updateInstance.download()) {

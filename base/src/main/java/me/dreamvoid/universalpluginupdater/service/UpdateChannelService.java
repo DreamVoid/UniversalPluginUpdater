@@ -1,24 +1,14 @@
 package me.dreamvoid.universalpluginupdater.service;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelInfo;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.HangarChannelInfo;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.SpigotMCChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.GitHubChannelInfo;
+import me.dreamvoid.universalpluginupdater.objects.channel.info.*;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
-import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
-import me.dreamvoid.universalpluginupdater.update.URLUpdate;
-import me.dreamvoid.universalpluginupdater.update.GitHubUpdate;
-import me.dreamvoid.universalpluginupdater.update.HangarUpdate;
-import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
-import me.dreamvoid.universalpluginupdater.update.UpdateType;
+import me.dreamvoid.universalpluginupdater.update.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +18,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
-import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 更新渠道服务<br>
@@ -195,12 +185,22 @@ public final class UpdateChannelService {
     }
 
     /**
-     * 按需获取或创建指定渠道的更新实例（不执行 update）
+     * 获取已知渠道名的更新实例缓存
+     * @param pluginId 插件ID
+     * @param channelId 渠道ID
+     * @return 渠道实例，没有缓存时返回 null
+     */
+    @Nullable
+    AbstractUpdate getUpdateInstance(String pluginId, String channelId) {
+        if (pluginId == null || pluginId.isBlank() || channelId == null || channelId.isBlank()) return null;
+
+        return updateInstanceCache.getOrDefault(pluginId.toLowerCase() + ":" + channelId.toLowerCase(), null);
+    }
+    /**
+     * 按需获取或创建指定渠道的更新实例
      */
     AbstractUpdate getUpdateInstance(String pluginId, ChannelConfig candidate) {
-        if (pluginId == null || pluginId.isBlank()) {
-            return null;
-        }
+        if (pluginId == null || pluginId.isBlank()) return null;
 
         pluginId = pluginId.toLowerCase();
 
