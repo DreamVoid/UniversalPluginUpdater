@@ -44,10 +44,8 @@ public final class UpdateCommand extends CommandHandler {
                 sender.broadcastMessage(tr(locale, "message.command.update.none"));
             } else {
                 sender.broadcastMessage(tr(locale, "message.command.update.count", updatableCount));
+                sender.broadcastMessage(tr(locale, "message.command.update.next"));
             }
-            
-            sender.broadcastMessage(tr(locale, "message.command.update.next"));
-
         } catch (IllegalStateException e) {
             sender.sendMessage(tr(locale, "message.command.lock.failed"));
             sender.sendMessage(tr(locale, "message.command.lock.warning"));
