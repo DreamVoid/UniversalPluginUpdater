@@ -191,12 +191,12 @@ public class GitHubUpdate extends AbstractUpdate {
             }
         }
 
-        String normalized = version.trim();
-        if (normalized.regionMatches(true, 0, "v", 0, 1)) {
-            normalized = normalized.substring(1).trim();
+        version = version.trim();
+        if (version.regionMatches(true, 0, "v", 0, 1)) {
+            version = version.substring(1).trim();
         }
 
-        return normalized.split(" ")[0];
+        return version.split(" ")[0];
     }
 
     @Override
