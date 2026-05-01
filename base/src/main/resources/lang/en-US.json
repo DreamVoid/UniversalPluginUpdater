@@ -157,6 +157,7 @@
     "message.update.ignore": "Ign: {0} [{1}]",
     "message.update.error": "Err: {0} [{1}]",
     "message.update.error.downloaded-file-missing": "Downloaded file is missing: {0}",
+    "message.update.warn.invalid-regex": "Invalid regex: {0}",
 
     "tag.update.error.checksum-mismatch": "checksum mismatch",
     "tag.update.error.no-cache-304": "304 but no cache",

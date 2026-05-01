@@ -12,7 +12,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
@@ -144,8 +146,55 @@ public class GitHubUpdate extends AbstractUpdate {
 
     @Override
     public String getVersion() {
-        if (selectedRelease == null || selectedRelease.name() == null) return null;
-        return selectedRelease.name().split(" ")[0];
+        if (selectedRelease == null) return null;
+        String version;
+
+        String versionKey = info.versionKey();
+        if (versionKey == null || versionKey.isBlank()) {
+            version = selectedRelease.name();
+        } else {
+            version = switch (versionKey) {
+                case "tag_name" -> {
+                    String value = selectedRelease.tagName();
+                    yield (value != null && !value.isBlank()) ? value : selectedRelease.name();
+                }
+                case "name", default -> selectedRelease.name();
+            };
+        }
+
+        if (version == null || version.isBlank()) {
+            return null;
+        }
+
+        String regex = info.versionRegex();
+        if (regex != null && !regex.isBlank()) {
+            try {
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(version);
+                if (matcher.find()) {
+                    if (matcher.groupCount() >= 1) {
+                        String group = matcher.group(1);
+                        if (group != null && !group.isBlank()) {
+                            return group.trim();
+                        }
+                    }
+
+                    String matched = matcher.group();
+                    if (matched != null && !matched.isBlank()) {
+                        return matched.trim();
+                    }
+                }
+            } catch (PatternSyntaxException e) {
+                logger.warning(tr("message.update.warn.invalid-regex", regex));
+            }
+        }
+
+        String normalized = version.trim();
+        if (normalized.regionMatches(true, 0, "v", 0, 1)) {
+            normalized = normalized.substring(1).trim();
+        }
+
+        return normalized.split(" ")[0];
     }
 
     @Override

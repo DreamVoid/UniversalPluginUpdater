@@ -9,5 +9,7 @@ public record GitHubChannelInfo(
         @SerializedName("repository") String repository,
         @SerializedName("auth") String auth,
         @SerializedName("accept") String accept,
-        @SerializedName("filter") String filter
+        @SerializedName("filter") String filter,
+        @SerializedName("version-key") String versionKey,
+        @SerializedName("version-regex") String versionRegex
 ) { }

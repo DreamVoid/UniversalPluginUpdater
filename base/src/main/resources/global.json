@@ -22,7 +22,9 @@
         "repository": null,
         "auth": null,
         "accept": "application/java-archive",
-        "filter": null
+        "filter": null,
+        "version-key": "name",
+        "version-regex": null
       }
     },
     {

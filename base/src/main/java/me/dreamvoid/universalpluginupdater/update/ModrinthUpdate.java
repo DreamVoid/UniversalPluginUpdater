@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -131,20 +130,32 @@ public class ModrinthUpdate extends AbstractUpdate {
 
     @Override
     public String getVersion() {
-        return selectedVersion == null ? null : normalizeVersionName(selectedVersion);
-    }
+        if (selectedVersion == null) return null;
+        String version;
 
-    private String normalizeVersionName(ModrinthVersion version) {
-        String rawVersion = extractRawVersion(version);
-        if (rawVersion == null || rawVersion.isBlank()) {
+        String versionKey = info.versionKey();
+        if (versionKey == null || versionKey.isBlank()) {
+            version = selectedVersion.name();
+        } else {
+            switch (versionKey) {
+                case "version_number" -> {
+                    String value = selectedVersion.versionNumber();
+                    version = (value != null && !value.isBlank()) ? value : selectedVersion.name();
+                }
+                case "name", default -> version = selectedVersion.name();
+            }
+        }
+
+        if (version == null || version.isBlank()) {
             return null;
         }
 
-        String versionRegex = info.versionRegex();
-        if (versionRegex != null && !versionRegex.isBlank()) {
+        String regex = info.versionRegex();
+
+        if (regex != null && !regex.isBlank()) {
             try {
-                Pattern pattern = Pattern.compile(versionRegex);
-                Matcher matcher = pattern.matcher(rawVersion);
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(version);
                 if (matcher.find()) {
                     if (matcher.groupCount() >= 1) {
                         String group = matcher.group(1);
@@ -159,44 +170,17 @@ public class ModrinthUpdate extends AbstractUpdate {
                     }
                 }
             } catch (PatternSyntaxException ignored) {
-                // 回退到默认规则
+                logger.warning(tr("message.update.warn.invalid-regex", regex));
             }
         }
 
-        return applyDefaultVersionRule(rawVersion);
-    }
-
-    private String extractRawVersion(ModrinthVersion version) {
-        String versionKey = info.versionKey();
-        if (versionKey == null || versionKey.isBlank()) {
-            return version.name();
+        version = version.trim();
+        if (version.regionMatches(true, 0, "v", 0, 1)) {
+            version = version.substring(1).trim();
         }
 
-        if ("version_number".equalsIgnoreCase(versionKey)) {
-            String value = version.versionNumber();
-            return (value != null && !value.isBlank()) ? value : version.name();
-        }
+        return version.split(" ")[0];
 
-        if ("name".equalsIgnoreCase(versionKey)) {
-            return version.name();
-        }
-
-        // 未知的 version-key 一律回退到 name
-        return version.name();
-    }
-
-    private String applyDefaultVersionRule(String rawVersion) {
-        String normalized = rawVersion.trim();
-        if (normalized.regionMatches(true, 0, "v", 0, 1)) {
-            normalized = normalized.substring(1).trim();
-        }
-
-        int spaceIndex = normalized.indexOf(' ');
-        if (spaceIndex >= 0) {
-            normalized = normalized.substring(0, spaceIndex);
-        }
-
-        return normalized.isBlank() ? null : normalized;
     }
 
     @Override

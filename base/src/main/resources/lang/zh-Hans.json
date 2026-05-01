@@ -157,6 +157,7 @@
     "message.update.ignore": "忽略: {0} [{1}]",
     "message.update.error": "错误: {0} [{1}]",
     "message.update.error.downloaded-file-missing": "下载的文件丢失: {0}",
+    "message.update.warn.invalid-regex": "无效的正则表达式: {0}",
 
     "tag.update.error.checksum-mismatch": "校验失败",
     "tag.update.error.no-cache-304": "无缓存304",
