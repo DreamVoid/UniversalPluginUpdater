@@ -12,8 +12,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
@@ -127,11 +131,72 @@ public class ModrinthUpdate extends AbstractUpdate {
 
     @Override
     public String getVersion() {
-        // 返回版本名而不是版本号
-        // 原因：本地插件版本号暂无法获取，且Modrinth版本号通常非纯数字
-        // 仅当版本号为纯数字时才适合直接比较大小
-        // 其他平台的更新渠道实现时应注意此点
-        return selectedVersion != null ? selectedVersion.name() : null;
+        return selectedVersion == null ? null : normalizeVersionName(selectedVersion);
+    }
+
+    private String normalizeVersionName(ModrinthVersion version) {
+        String rawVersion = extractRawVersion(version);
+        if (rawVersion == null || rawVersion.isBlank()) {
+            return null;
+        }
+
+        String versionRegex = info.versionRegex();
+        if (versionRegex != null && !versionRegex.isBlank()) {
+            try {
+                Pattern pattern = Pattern.compile(versionRegex);
+                Matcher matcher = pattern.matcher(rawVersion);
+                if (matcher.find()) {
+                    if (matcher.groupCount() >= 1) {
+                        String group = matcher.group(1);
+                        if (group != null && !group.isBlank()) {
+                            return group.trim();
+                        }
+                    }
+
+                    String matched = matcher.group();
+                    if (matched != null && !matched.isBlank()) {
+                        return matched.trim();
+                    }
+                }
+            } catch (PatternSyntaxException ignored) {
+                // 回退到默认规则
+            }
+        }
+
+        return applyDefaultVersionRule(rawVersion);
+    }
+
+    private String extractRawVersion(ModrinthVersion version) {
+        String versionKey = info.versionKey();
+        if (versionKey == null || versionKey.isBlank()) {
+            return version.name();
+        }
+
+        if ("version_number".equalsIgnoreCase(versionKey)) {
+            String value = version.versionNumber();
+            return (value != null && !value.isBlank()) ? value : version.name();
+        }
+
+        if ("name".equalsIgnoreCase(versionKey)) {
+            return version.name();
+        }
+
+        // 未知的 version-key 一律回退到 name
+        return version.name();
+    }
+
+    private String applyDefaultVersionRule(String rawVersion) {
+        String normalized = rawVersion.trim();
+        if (normalized.regionMatches(true, 0, "v", 0, 1)) {
+            normalized = normalized.substring(1).trim();
+        }
+
+        int spaceIndex = normalized.indexOf(' ');
+        if (spaceIndex >= 0) {
+            normalized = normalized.substring(0, spaceIndex);
+        }
+
+        return normalized.isBlank() ? null : normalized;
     }
 
     @Override

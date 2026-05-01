@@ -5,7 +5,9 @@
       "type": "modrinth",
       "config": {
         "projectId": null,
-        "featured": false
+        "featured": false,
+        "version-key": "name",
+        "version-regex": null
       }
     },
     {

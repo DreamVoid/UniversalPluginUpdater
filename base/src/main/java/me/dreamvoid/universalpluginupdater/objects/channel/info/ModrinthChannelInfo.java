@@ -7,5 +7,7 @@ import com.google.gson.annotations.SerializedName;
  */
 public record ModrinthChannelInfo(
         @SerializedName("projectId") String projectId,
-        @SerializedName("featured") boolean featured
+        @SerializedName("featured") boolean featured,
+        @SerializedName("version-key") String versionKey,
+        @SerializedName("version-regex") String versionRegex
 ) { }
