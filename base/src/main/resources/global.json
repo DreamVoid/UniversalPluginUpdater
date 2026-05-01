@@ -1,47 +1,47 @@
 {
-  "selectedChannel": null,
-  "channels": [
-    {
-      "type": "modrinth",
-      "config": {
-        "projectId": null,
-        "featured": false,
-        "version-key": "name",
-        "version-regex": null
-      }
-    },
-    {
-      "type": "url",
-      "config": {
-        "url": null
-      }
-    },
-    {
-      "type": "github",
-      "config": {
-        "repository": null,
-        "auth": null,
-        "accept": "application/java-archive",
-        "filter": null,
-        "version-key": "name",
-        "version-regex": null
-      }
-    },
-    {
-      "type": "hangar",
-      "config": {
-        "author": null,
-        "slugOrId": null,
-        "channel": null,
-        "platform": null
-      }
-    },
-    {
-      "type": "spigotmc",
-      "config": {
-        "resource": null,
-        "proxy-download": false
-      }
-    }
-  ]
+    "selectedChannel": null,
+    "channels": [
+        {
+            "type": "modrinth",
+            "config": {
+                "projectId": null,
+                "featured": false,
+                "version-key": "name",
+                "version-regex": null
+            }
+        },
+        {
+            "type": "url",
+            "config": {
+                "url": null
+            }
+        },
+        {
+            "type": "github",
+            "config": {
+                "repository": null,
+                "auth": null,
+                "accept": "application/java-archive",
+                "filter": null,
+                "version-key": "name",
+                "version-regex": null
+            }
+        },
+        {
+            "type": "hangar",
+            "config": {
+                "author": null,
+                "slugOrId": null,
+                "channel": null,
+                "platform": null
+            }
+        },
+        {
+            "type": "spigotmc",
+            "config": {
+                "resource": null,
+                "proxy-download": false
+            }
+        }
+    ]
 }
