@@ -12,6 +12,7 @@
     <modules>
         <module>base</module>
         <module>bukkit</module>
+        <module>bukkit/compatible</module>
         <module>bungee</module>
         <module>velocity</module>
     </modules>
@@ -46,14 +47,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>2.21.0</version>
-                <configuration>
-                    <generateBackupPoms>false</generateBackupPoms>
-                </configuration>
             </plugin>
         </plugins>
         <resources>

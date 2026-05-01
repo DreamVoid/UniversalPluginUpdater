@@ -8,9 +8,10 @@
         <groupId>io.github.dreamvoid</groupId>
         <artifactId>UniversalPluginUpdater</artifactId>
         <version>1.0</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>UniversalPluginUpdater-Velocity</artifactId>
+    <artifactId>UniversalPluginUpdater-Bukkit-compatible</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -18,24 +19,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>papermc-repo</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
             <groupId>io.github.dreamvoid</groupId>
-            <artifactId>UniversalPluginUpdater-Base</artifactId>
+            <artifactId>UniversalPluginUpdater-Bukkit</artifactId>
             <version>${project.parent.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.velocitypowered</groupId>
-            <artifactId>velocity-api</artifactId>
-            <version>3.5.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -43,17 +38,25 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <annotationProcessorPath>
-                            <groupId>com.velocitypowered</groupId>
-                            <artifactId>velocity-api</artifactId>
-                            <version>3.5.0-SNAPSHOT</version>
-                        </annotationProcessorPath>
-                    </annotationProcessorPaths>
-                </configuration>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.google.gson</pattern>
+                                    <shadedPattern>me.dreamvoid.universalpluginupdater.libs.gson</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -68,7 +71,7 @@
                         <configuration>
                             <target>
                                 <copy file="${project.build.directory}/${project.artifactId}.jar"
-                                      tofile="../target/${project.artifactId}.jar"/>
+                                      tofile="../../target/${project.artifactId}.jar"/>
                             </target>
                         </configuration>
                     </execution>
