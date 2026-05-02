@@ -38,12 +38,6 @@ jobs:
         echo "附件下载完成"
         ls -lh release-assets/
 
-    - name: Get current version info and calculate next version
-      id: version
-      run: |
-        NEXT_VERSION_NUM=$(version_code)
-        echo "next_version_num=$NEXT_VERSION_NUM" >> $GITHUB_OUTPUT
-
     - name: Get all Minecraft versions from Modrinth
       id: mc_versions
       run: |
