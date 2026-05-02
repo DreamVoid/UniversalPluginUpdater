@@ -4,4 +4,5 @@ package me.dreamvoid.universalpluginupdater;
 @SuppressWarnings("ALL")
 public class BuildConstants {
     public static final String VERSION = "${version}";
+    public static final String VERSION_CODE = "${versionCode}";
 }

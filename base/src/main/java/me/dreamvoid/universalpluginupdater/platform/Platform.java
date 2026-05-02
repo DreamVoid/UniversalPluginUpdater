@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.platform;
 
+import me.dreamvoid.universalpluginupdater.BuildConstants;
 import me.dreamvoid.universalpluginupdater.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -75,6 +76,15 @@ public interface Platform {
      */
     @NotNull
     String getPluginVersion();
+
+    /**
+     * 获取本插件的版本号
+     * @return 版本号
+     */
+    @NotNull
+    default int getVersionCode(){
+        return Integer.parseInt(BuildConstants.VERSION_CODE);
+    }
     /**
      * 获取指定插件的版本名
      * @param pluginName 插件标识符
