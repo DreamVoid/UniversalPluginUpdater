@@ -6,7 +6,7 @@
 
     <groupId>io.github.dreamvoid</groupId>
     <artifactId>UniversalPluginUpdater</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -18,7 +18,7 @@
     </modules>
 
     <properties>
-        <versionCode>1</versionCode>
+        <versionCode>2</versionCode>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
