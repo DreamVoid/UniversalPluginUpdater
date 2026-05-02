@@ -36,22 +36,22 @@ jobs:
       uses: actions/upload-artifact@v4.6.0
       with:
         name: "UniversalPluginUpdater-Bukkit.jar"
-        path: UniversalPluginUpdater-Bukkit/target/UniversalPluginUpdater-Bukkit.jar
+        path: target/UniversalPluginUpdater-Bukkit.jar
 
     - name: Upload a Build Artifact - Bukkit (Compatible)
       uses: actions/upload-artifact@v4.6.0
       with:
         name: "UniversalPluginUpdater-Bukkit-compatible.jar"
-        path: UniversalPluginUpdater-Bukkit/target/UniversalPluginUpdater-Bukkit-compatible.jar
+        path: target/UniversalPluginUpdater-Bukkit-compatible.jar
 
     - name: Upload a Build Artifact - BungeeCord
       uses: actions/upload-artifact@v4.6.0
       with:
         name: "UniversalPluginUpdater-Bungee.jar"
-        path: UniversalPluginUpdater-Bungee/target/UniversalPluginUpdater-Bungee.jar
+        path: target/UniversalPluginUpdater-Bungee.jar
 
     - name: Upload a Build Artifact - Velocity
       uses: actions/upload-artifact@v4.6.0
       with:
         name: "UniversalPluginUpdater-Velocity.jar"
-        path: UniversalPluginUpdater-Velocity/target/UniversalPluginUpdater-Velocity.jar
+        path: target/UniversalPluginUpdater-Velocity.jar
