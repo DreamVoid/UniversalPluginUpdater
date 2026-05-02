@@ -1,0 +1,57 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4.2.2
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4.7.0
+      with:
+        java-version: '21'
+        distribution: 'zulu'
+
+    - name: Set variable
+      id: variables
+      run: |
+        echo "PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+
+    - name: Update version
+      run: mvn versions:set -DnewVersion="${{ steps.variables.outputs.PROJECT_VERSION }}+github#${{ github.run_number }}" -DprocessAllModules=true -DgenerateBackupPoms=false
+
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+
+    - name: Upload a Build Artifact - Bukkit
+      uses: actions/upload-artifact@v4.6.0
+      with:
+        name: "UniversalPluginUpdater-Bukkit.jar"
+        path: UniversalPluginUpdater-Bukkit/target/UniversalPluginUpdater-Bukkit.jar
+
+    - name: Upload a Build Artifact - Bukkit (Compatible)
+      uses: actions/upload-artifact@v4.6.0
+      with:
+        name: "UniversalPluginUpdater-Bukkit-compatible.jar"
+        path: UniversalPluginUpdater-Bukkit/target/UniversalPluginUpdater-Bukkit-compatible.jar
+
+    - name: Upload a Build Artifact - BungeeCord
+      uses: actions/upload-artifact@v4.6.0
+      with:
+        name: "UniversalPluginUpdater-Bungee.jar"
+        path: UniversalPluginUpdater-Bungee/target/UniversalPluginUpdater-Bungee.jar
+
+    - name: Upload a Build Artifact - Velocity
+      uses: actions/upload-artifact@v4.6.0
+      with:
+        name: "UniversalPluginUpdater-Velocity.jar"
+        path: UniversalPluginUpdater-Velocity/target/UniversalPluginUpdater-Velocity.jar
