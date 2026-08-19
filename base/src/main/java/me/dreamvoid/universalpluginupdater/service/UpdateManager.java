@@ -3,8 +3,9 @@ package me.dreamvoid.universalpluginupdater.service;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.update.AbstractPluginUpdate;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
-import me.dreamvoid.universalpluginupdater.update.UpdateType;
+import me.dreamvoid.universalpluginupdater.update.UpdateChannel;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -118,19 +119,22 @@ public final class UpdateManager {
     }
 
     /**
-     * 注册外部更新实例
-     * @param updateInstance {@link UpdateType#Plugin} 类型的更新实例
-     * @throws IllegalArgumentException updateInstance 为 null 时<br>{@link AbstractUpdate#getPluginId()} 为 null 时<br>{@link AbstractUpdate#getType()} 不为 {@link UpdateType#Plugin} 时
+     * 注册通用更新渠道（插件无关，所有插件可通过配置文件使用）
+     * @param channelClass 渠道实现类，需标注 {@link UpdateChannel}，直接继承 {@link AbstractUpdate} 并提供约定构造器 {@code (String, JsonObject, Platform)}（自行解析配置并应用默认值）
+     * @throws IllegalStateException UpdateManager 尚未初始化时
+     * @throws IllegalArgumentException 渠道类无效或渠道标识重复时
      */
-    public static void registerUpdateInstance(AbstractUpdate updateInstance) throws IllegalArgumentException {
-        UpdateChannelService.registerInstance(updateInstance);
+    public static void registerChannel(Class<? extends AbstractUpdate> channelClass) throws IllegalArgumentException {
+        instance().updateChannelService.registerChannel(channelClass);
     }
 
     /**
-     * 注销外部更新实例
-     * @param pluginId 插件ID
+     * 注册插件专属更新渠道（仅服务于指定插件，渠道标识固定为 "plugin"）
+     * @param updateInstance 更新实例
+     * @throws IllegalStateException UpdateManager 尚未初始化时
+     * @throws IllegalArgumentException 实例未实现
      */
-    public static void unregisterUpdateInstance(String pluginId) {
-        UpdateChannelService.unregisterUpdateInstance(pluginId);
+    public static void registerChannel(AbstractPluginUpdate updateInstance) throws IllegalArgumentException {
+        instance().updateChannelService.registerChannel(updateInstance);
     }
 }

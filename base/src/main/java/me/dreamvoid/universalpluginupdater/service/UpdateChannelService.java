@@ -5,13 +5,16 @@ import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.ChannelConfig;
 import me.dreamvoid.universalpluginupdater.objects.channel.UpdateConfig;
-import me.dreamvoid.universalpluginupdater.objects.channel.info.*;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.update.*;
+import me.dreamvoid.universalpluginupdater.update.AbstractPluginUpdate;
+import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import me.dreamvoid.universalpluginupdater.update.UpdateChannel;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -21,20 +24,23 @@ import static me.dreamvoid.universalpluginupdater.Utils.debug;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
- * 更新渠道服务<br>
+ * 更新渠道服务（仅供内部使用）<br>
  * 负责读取配置文件并选择合适的更新渠道<br>
- * 此服务在 {@link UpdateManager} 实例化，并由其内部调用
+ * 渠道注册请通过 {@link UpdateManager#registerChannel(Class)}（通用渠道）
  */
-public final class UpdateChannelService {
+final class UpdateChannelService {
     private final Platform platform;
     private final Logger logger;
     private Long globalConfigFingerprint = null;
 
     /**
-     * 可用更新渠道注册
+     * 通用渠道注册表，键为渠道标识（小写）
      */
-    private static final Map<UpdateType, ChannelDescriptor<?>> INTERNAL_CHANNEL_DESCRIPTORS = new HashMap<>();
-    private static final Map<String, AbstractUpdate> EXTERNAL_CHANNEL_INSTANCES = new HashMap<>();
+    private final Map<String, Class<? extends AbstractUpdate>> genericChannels = new HashMap<>();
+    /**
+     * 插件专属渠道注册表，键为插件 ID（小写）
+     */
+    private final Map<String, AbstractUpdate> pluginChannels = new HashMap<>();
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
      */
@@ -44,81 +50,66 @@ public final class UpdateChannelService {
     UpdateChannelService(Platform platform) {
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
-
-        // 注册内部更新渠道
-        registerChannel(UpdateType.URL, UrlChannelInfo.class, new UrlChannelInfo(null), (pluginId, info) -> new URLUpdate(pluginId, info, platform));
-        registerChannel(UpdateType.Modrinth, ModrinthChannelInfo.class, new ModrinthChannelInfo(null, false, "name", null), (pluginId, info) -> new ModrinthUpdate(pluginId, info, platform));
-        registerChannel(UpdateType.GitHub, GitHubChannelInfo.class, new GitHubChannelInfo(null, null, List.of("application/java-archive", "application/x-java-archive"), null, "name", null), (pluginId, info) -> new GitHubUpdate(pluginId, info, platform));
-        registerChannel(UpdateType.Hangar, HangarChannelInfo.class, new HangarChannelInfo(null, null, null, null), (pluginId, info) -> new HangarUpdate(pluginId, info, platform));
-        registerChannel(UpdateType.SpigotMC, SpigotMCChannelInfo.class, new SpigotMCChannelInfo(null, false), (pluginId, info) -> new SpigotMCUpdate(pluginId, info, platform));
     }
 
     /**
-     * 注册内部更新渠道
+     * 注册通用更新渠道（插件无关，所有插件可通过配置文件使用）<br>
+     * 渠道实现类需标注 {@link UpdateChannel}，直接继承 {@link AbstractUpdate}，并提供约定构造器 {@code (String, JsonObject, Platform)} 自行解析配置并应用默认值
+     * @param channelClass 渠道实现类
+     * @throws IllegalArgumentException channelClass 为 null、缺少 {@link UpdateChannel} 注解、渠道标识为空或重复时
      */
-    private static synchronized <T> void registerChannel(UpdateType type, Class<T> infoClass, T defaults, ChannelFactory<T> factory) {
-        if (type == null || infoClass == null || defaults == null || factory == null) {
-            throw new IllegalArgumentException("Invalid update channel registration arguments");
+    synchronized void registerChannel(Class<? extends AbstractUpdate> channelClass) throws IllegalArgumentException {
+        if (channelClass == null) {
+            throw new IllegalArgumentException("channelClass 不能为 null");
         }
-        INTERNAL_CHANNEL_DESCRIPTORS.put(type, new ChannelDescriptor<>(infoClass, defaults, factory));
+
+        UpdateChannel annotation = channelClass.getAnnotation(UpdateChannel.class);
+        if (annotation == null) {
+            throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
+        }
+        String channelId = annotation.value();
+        if (channelId == null || channelId.isBlank()) {
+            throw new IllegalArgumentException("更新渠道标识不能为空");
+        }
+
+        String key = channelId.toLowerCase();
+        if (key.equalsIgnoreCase("plugin")) {
+            throw new IllegalArgumentException("非插件更新渠道不能为 \"plugin\"");
+        }
+        if (genericChannels.containsKey(key)) {
+            throw new IllegalArgumentException("更新渠道 \"" + channelId + "\" 已注册");
+        }
+
+        genericChannels.put(key, channelClass);
+        debug("注册更新渠道: {0}", channelId);
     }
 
     /**
-     * 注册外部更新实例
-     * @throws IllegalArgumentException updateInstance 为 null 时<br>{@link AbstractUpdate#getPluginId()} 为 null 时<br>{@link AbstractUpdate#getType()} 不为 {@link UpdateType#Plugin} 时
+     * 注册插件专属更新渠道（仅服务于指定插件，渠道标识固定为 "plugin"，不作为通用渠道注册）
+     * @param updateInstance 更新实例，需实现 {@link AbstractPluginUpdate} 并指定服务的插件 ID
+     * @throws IllegalArgumentException updateInstance 未实现
      */
-    static synchronized void registerInstance(AbstractUpdate updateInstance) throws IllegalArgumentException {
-        validateExternalInstance(updateInstance);
-        EXTERNAL_CHANNEL_INSTANCES.put(updateInstance.getPluginId().toLowerCase(), updateInstance);
-    }
-
-    /**
-     * 验证外部更新实例是否有效
-     * @param updateInstance 更新实例
-     * @throws IllegalArgumentException updateInstance 为 null 时<br>{@link AbstractUpdate#getPluginId()} 为 null 时<br>{@link AbstractUpdate#getType()} 不为 {@link UpdateType#Plugin} 时
-     */
-    private static void validateExternalInstance(AbstractUpdate updateInstance) throws IllegalArgumentException {
-        if (updateInstance == null || updateInstance.getPluginId() == null || updateInstance.getPluginId().isBlank()) {
-            throw new IllegalArgumentException("Invalid instance or pluginId is empty");
+    synchronized void registerChannel(AbstractPluginUpdate updateInstance) throws IllegalArgumentException {
+        UpdateChannel annotation = updateInstance.getClass().getAnnotation(UpdateChannel.class);
+        if (annotation == null) {
+            throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
+        }
+        String channelId = annotation.value();
+        if (channelId == null || channelId.isBlank()) {
+            throw new IllegalArgumentException("更新渠道标识不能为空");
         }
 
-        UpdateType updateType = updateInstance.getType();
-        if (updateType != UpdateType.Plugin) {
-            // 获取来源
-            String callerSource = null;
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            boolean foundThisClass = false;
-            for (StackTraceElement element : stackTrace) {
-                String className = element.getClassName();
-                String methodName = element.getMethodName();
-
-                if (UpdateChannelService.class.getName().equals(className)) {
-                    foundThisClass = true;
-                    continue;
-                }
-
-                if (foundThisClass && !"java.lang.Thread".equals(className) && !"getStackTrace".equals(methodName)) {
-                    callerSource = className + "#" + methodName + ":" + element.getLineNumber();
-                    break;
-                }
-            }
-            if (callerSource == null) {
-                callerSource = "unknown";
-            }
-
-            // 获取来源
-            Utils.getLogger().warning(tr("message.service.channel.warn.illegal-type", callerSource, updateType, UpdateType.Plugin));
-            throw new IllegalArgumentException("Except update type \"" + UpdateType.Plugin + "\", but got \"" + updateType + "\"");
+        String key = channelId.toLowerCase();
+        if (!key.equalsIgnoreCase("plugin")) {
+            throw new IllegalArgumentException("插件更新渠道必须为 \"plugin\"");
         }
-    }
 
-    /**
-     * 注销外部更新实例
-     */
-    static synchronized void unregisterUpdateInstance(String pluginId) {
-        if (pluginId != null && !pluginId.isBlank()) {
-            EXTERNAL_CHANNEL_INSTANCES.remove(pluginId.toLowerCase());
+        String pluginId = updateInstance.getPluginId();
+        if (pluginId == null || pluginId.isBlank()) {
+            throw new IllegalArgumentException("插件更新渠道必须指定插件 ID");
         }
+        pluginChannels.put(pluginId.toLowerCase(), updateInstance);
+        debug("注册插件专属更新渠道: {0}", pluginId);
     }
 
     /**
@@ -196,9 +187,11 @@ public final class UpdateChannelService {
 
         return updateInstanceCache.getOrDefault(pluginId.toLowerCase() + ":" + channelId.toLowerCase(), null);
     }
+
     /**
      * 按需获取或创建指定渠道的更新实例
      */
+    @Nullable
     AbstractUpdate getUpdateInstance(String pluginId, ChannelConfig candidate) {
         if (pluginId == null || pluginId.isBlank()) return null;
 
@@ -214,17 +207,18 @@ public final class UpdateChannelService {
         }
 
         String channelType = candidate.type();
-        UpdateType type = UpdateType.fromIdentifier(channelType);
-        if (type == null) {
-            return null;
-        }
+        if (channelType == null || channelType.isBlank()) return null;
 
         String cacheKey = pluginId + ":" + channelType.toLowerCase();
 
-        AbstractUpdate externalUpdate = EXTERNAL_CHANNEL_INSTANCES.get(pluginId);
-        if (externalUpdate != null && externalUpdate.getType() == type) {
-            updateInstanceCache.put(cacheKey, externalUpdate);
-            return externalUpdate;
+        // 插件专属渠道（渠道标识固定为 "plugin"）
+        if ("plugin".equalsIgnoreCase(channelType)) {
+            AbstractUpdate pluginUpdate = pluginChannels.get(pluginId);
+            if (pluginUpdate != null) {
+                updateInstanceCache.put(cacheKey, pluginUpdate);
+                return pluginUpdate;
+            }
+            return null;
         }
 
         if (updateInstanceCache.containsKey(cacheKey)) {
@@ -234,13 +228,13 @@ public final class UpdateChannelService {
 
         try {
             Object config = candidate.config();
-            ChannelDescriptor<?> descriptor = getChannelDescriptor(type);
-            if (descriptor == null) {
+            Class<? extends AbstractUpdate> channelClass = getChannelClass(channelType);
+            if (channelClass == null) {
                 logger.warning(tr("message.service.channel.error.unknown", channelType));
                 return null;
             }
 
-            AbstractUpdate configUpdate = createWithDescriptor(descriptor, pluginId, config);
+            AbstractUpdate configUpdate = createWithDescriptor(channelClass, pluginId, config);
             updateInstanceCache.put(cacheKey, configUpdate);
             debug("{0}: 创建更新实例，渠道 {1}", pluginId, channelType);
             return configUpdate;
@@ -276,22 +270,22 @@ public final class UpdateChannelService {
     /**
      * 构建渠道候选列表
      * 优先级：
-     * 1. 用户显式选择的渠道（若存在于候选中）
-     * 2. 其余渠道按声明顺序
-     * <p>
-    * 注意：这里不判定“有效性”，有效性由 getOrCreateUpdateInstance 决定。
+     * 1. 插件专属渠道（若存在）
+     * 2. 用户显式选择的渠道（若存在于候选中）
+     * 3. 其余渠道按声明顺序
      */
     private List<ChannelConfig> buildChannelCandidates(String pluginId, UpdateConfig config) {
         List<ChannelConfig> channels = new ArrayList<>();
 
-        AbstractUpdate externalUpdate = EXTERNAL_CHANNEL_INSTANCES.get(pluginId.toLowerCase());
-        if (externalUpdate != null && externalUpdate.getType() != null) {
-            channels.add(new ChannelConfig(externalUpdate.getType().getIdentifier(), new JsonObject(), null));
+        // 插件专属渠道（若有）优先
+        AbstractUpdate pluginUpdate = pluginChannels.get(pluginId.toLowerCase());
+        if (pluginUpdate != null) {
+            channels.add(new ChannelConfig("plugin", new JsonObject(), null));
         }
 
         if (config != null && config.channels() != null) {
             for (ChannelConfig c : config.channels()) {
-                if (c == null) continue;
+                if (c == null || c.type() == null) continue;
                 boolean exists = false;
                 for (int i = 0; i < channels.size(); i++) {
                     if (channels.get(i).type().equalsIgnoreCase(c.type())) {
@@ -310,15 +304,14 @@ public final class UpdateChannelService {
             return Collections.emptyList();
         }
 
-        UpdateType selectedType = UpdateType.fromIdentifier(config == null ? null : config.selectedChannel());
-        if (selectedType == null) {
+        String selectedId = config == null ? null : config.selectedChannel();
+        if (selectedId == null || selectedId.isBlank()) {
             return channels;
         }
 
         int selectedIndex = -1;
         for (int i = 0; i < channels.size(); i++) {
-            UpdateType type = UpdateType.fromIdentifier(channels.get(i).type());
-            if (selectedType.equals(type)) {
+            if (channels.get(i).type().equalsIgnoreCase(selectedId)) {
                 selectedIndex = i;
                 break;
             }
@@ -374,26 +367,29 @@ public final class UpdateChannelService {
     }
 
     private List<ChannelConfig> mergeChannels(List<ChannelConfig> pluginChannels, List<ChannelConfig> globalChannels) {
-        Map<UpdateType, ChannelConfig> globalByType = new LinkedHashMap<>();
+        Map<String, ChannelConfig> globalById = new LinkedHashMap<>();
         if (globalChannels != null) {
             for (ChannelConfig channel : globalChannels) {
-                UpdateType channelType = UpdateType.fromIdentifier(channel == null ? null : channel.type());
-                if (channelType != null) {
-                    globalByType.put(channelType, normalizeChannelConfig(channel));
+                if (channel == null || channel.type() == null || channel.type().isBlank()) continue;
+                String channelId = channel.type().toLowerCase();
+                if (getChannelClass(channelId) == null) {
+                    continue; // 未知渠道，丢弃
                 }
+                globalById.put(channelId, channel);
             }
         }
 
         List<ChannelConfig> merged = new ArrayList<>();
         if (pluginChannels != null) {
             for (ChannelConfig pluginChannel : pluginChannels) {
-                UpdateType pluginChannelType = UpdateType.fromIdentifier(pluginChannel == null ? null : pluginChannel.type());
-                if (pluginChannelType == null) {
-                    continue;
+                if (pluginChannel == null || pluginChannel.type() == null || pluginChannel.type().isBlank()) continue;
+                String pluginChannelId = pluginChannel.type().toLowerCase();
+                if (getChannelClass(pluginChannelId) == null) {
+                    continue; // 未知渠道，丢弃
                 }
-                ChannelConfig globalChannel = globalByType.get(pluginChannelType);
+                ChannelConfig globalChannel = globalById.get(pluginChannelId);
                 Object mergedConfig = mergeConfig(pluginChannel.config(), globalChannel == null ? null : globalChannel.config());
-                merged.add(normalizeChannelConfig(new ChannelConfig(pluginChannel.type(), mergedConfig, pluginChannel.lastUpdate())));
+                merged.add(new ChannelConfig(pluginChannel.type(), mergedConfig, pluginChannel.lastUpdate()));
             }
         }
 
@@ -424,18 +420,8 @@ public final class UpdateChannelService {
         return merged;
     }
 
-    private ChannelConfig normalizeChannelConfig(ChannelConfig channel) {
-        UpdateType type = UpdateType.fromIdentifier(channel == null ? null : channel.type());
-        return type == null ? channel : new ChannelConfig(channel.type(), normalizeConfigObject(type, channel.config()), channel.lastUpdate());
-    }
-
-    private Object normalizeConfigObject(UpdateType channelType, Object source) {
-        ChannelDescriptor<?> descriptor = getChannelDescriptor(channelType);
-        return descriptor != null ? normalizeWithDescriptor(descriptor, source) : source;
-    }
-
-    private static ChannelDescriptor<?> getChannelDescriptor(UpdateType channelType) {
-        return channelType != null ? INTERNAL_CHANNEL_DESCRIPTORS.get(channelType) : null;
+    private Class<? extends AbstractUpdate> getChannelClass(String channelId) {
+        return channelId == null ? null : genericChannels.get(channelId.toLowerCase());
     }
 
     private Map<String, Long> collectPluginConfigFingerprints(Path channelsDir) {
@@ -470,38 +456,36 @@ public final class UpdateChannelService {
         return null;
     }
 
-    private <T> Object normalizeWithDescriptor(ChannelDescriptor<T> descriptor, Object source) {
-        return parseWithDefaults(source, descriptor.infoClass(), descriptor.defaults());
-    }
-
-    private <T> AbstractUpdate createWithDescriptor(ChannelDescriptor<T> descriptor, String pluginId, Object source) {
-        T info = parseWithDefaults(source, descriptor.infoClass(), descriptor.defaults());
-        return descriptor.factory().create(pluginId, info);
-    }
-
-    private <T> T parseWithDefaults(Object source, Class<T> clazz, T defaults) {
-        JsonElement defaultTree = Utils.getGson().toJsonTree(defaults);
-        if (defaultTree.isJsonObject()) {
-            JsonObject merged = defaultTree.getAsJsonObject().deepCopy();
-            JsonElement sourceTree = Utils.getGson().toJsonTree(source);
-            if (sourceTree != null && sourceTree.isJsonObject()) {
-                for (Map.Entry<String, JsonElement> entry : sourceTree.getAsJsonObject().entrySet()) {
-                    JsonElement value = entry.getValue();
-                    if (value != null && !value.isJsonNull()) {
-                        merged.add(entry.getKey(), value);
-                    }
-                }
+    /**
+     * 创建更新渠道实例<br>
+     * 将合并后的配置转换为 {@link JsonObject}，使用约定构造器 {@code (String, JsonObject, Platform)} 反射实例化；渠道实现自行解析配置并应用默认值
+     */
+    private AbstractUpdate createWithDescriptor(Class<? extends AbstractUpdate> channelClass, String pluginId, Object config) {
+        JsonObject configJson = toConfigJson(config);
+        try {
+            Constructor<? extends AbstractUpdate> constructor = channelClass.getConstructor(String.class, JsonObject.class, Platform.class);
+            return constructor.newInstance(pluginId, configJson, platform);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException("更新渠道类缺少约定构造器 (String, JsonObject, Platform): " + channelClass.getName());
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
             }
-            return Utils.getGson().fromJson(merged, clazz);
-        } else {
-            return defaults;
+            throw new IllegalArgumentException("实例化更新渠道失败: " + channelClass.getName(), cause);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalArgumentException("实例化更新渠道失败: " + channelClass.getName(), e);
         }
     }
 
-    @FunctionalInterface
-    private interface ChannelFactory<T> {
-        AbstractUpdate create(String pluginId, T info);
+    /**
+     * 将渠道配置转换为 {@link JsonObject}（配置为 null 时返回空对象）
+     */
+    private JsonObject toConfigJson(Object config) {
+        if (config == null) {
+            return new JsonObject();
+        }
+        JsonElement tree = Utils.getGson().toJsonTree(config);
+        return tree.isJsonObject() ? tree.getAsJsonObject() : new JsonObject();
     }
-
-    private record ChannelDescriptor<T>(Class<T> infoClass, T defaults, ChannelFactory<T> factory) { }
 }

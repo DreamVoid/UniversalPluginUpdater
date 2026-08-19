@@ -1,11 +1,13 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
@@ -19,6 +21,7 @@ import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("modrinth")
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
 
@@ -27,14 +30,32 @@ public class ModrinthUpdate extends AbstractUpdate {
     private ModrinthVersion selectedVersion;
     private String cacheToken;
 
-    public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
+    public ModrinthUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
-        if(info.projectId() == null || info.projectId().isEmpty()){
+        this.info = applyDefaults(Utils.getGson().fromJson(config, ModrinthChannelInfo.class));
+        if(this.info.projectId() == null || this.info.projectId().isEmpty()){
             throw new IllegalArgumentException("projectId 不存在或为空");
         }
+    }
 
-        this.updateType = UpdateType.Modrinth;
-        this.info = info;
+    /**
+     * 获取该渠道的默认配置（仅本渠道使用）
+     */
+    private ModrinthChannelInfo defaults() {
+        return new ModrinthChannelInfo(null, false, "name", null);
+    }
+
+    /**
+     * 将配置中缺失（为 null）的字段用默认值替换
+     */
+    private ModrinthChannelInfo applyDefaults(ModrinthChannelInfo info) {
+        ModrinthChannelInfo defaults = defaults();
+        return new ModrinthChannelInfo(
+                info.projectId(),
+                info.featured(),
+                info.versionKey() != null ? info.versionKey() : defaults.versionKey(),
+                info.versionRegex()
+        );
     }
 
     /**
@@ -199,11 +220,11 @@ public class ModrinthUpdate extends AbstractUpdate {
         String hashAlgorithm = file.getHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
             // 获取下载目录
-            Path downloadDir = getDownloadPath();
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             // 检查文件是否已存在且完整

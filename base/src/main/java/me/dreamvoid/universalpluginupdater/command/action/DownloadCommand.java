@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
 
+import static me.dreamvoid.universalpluginupdater.Utils.debug;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
@@ -64,22 +65,22 @@ public final class DownloadCommand extends CommandHandler {
             for (AbstractUpdate channel : channels) {
                 String pluginId = channel.getPluginId();
 
-                sender.sendMessage(tr(locale, "message.command.download.item.start", pluginId));
+                debug(tr(locale, "message.command.download.item.start", pluginId));
 
                 try {
-                    Utils.debug(pluginId + ": 当前更新实例: " + channel.getClass().getName());
+                    debug(pluginId + ": 当前更新实例: " + channel.getClass().getName());
 
                     // 执行下载，成功时返回文件路径
                     Path downloaded = channel.download();
                     if (downloaded != null) {
-                        sender.sendMessage(tr(locale, "message.command.download.item.success", pluginId));
+                        debug(tr(locale, "message.command.download.item.success", pluginId));
                         successCount++;
                     } else {
-                        sender.sendMessage(tr(locale, "message.command.download.item.error.failed", pluginId));
+                        debug(tr(locale, "message.command.download.item.error.failed", pluginId));
                         failureCount++;
                     }
                 } catch (Exception e) {
-                    sender.sendMessage(tr(locale, "message.command.download.item.error.failed.reason", pluginId, e));
+                    debug(tr(locale, "message.command.download.item.error.failed.reason", pluginId, e));
                     failureCount++;
                 }
             }

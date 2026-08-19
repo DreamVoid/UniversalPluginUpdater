@@ -5,6 +5,11 @@ import me.dreamvoid.universalpluginupdater.service.LanguageManager;
 import me.dreamvoid.universalpluginupdater.service.RepositoryManager;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import me.dreamvoid.universalpluginupdater.update.GitHubUpdate;
+import me.dreamvoid.universalpluginupdater.update.HangarUpdate;
+import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
+import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
+import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
@@ -67,6 +72,14 @@ public class LifeCycle {
 
             // 初始化服务
             UpdateManager.initialize(platform);
+
+            // 注册内置更新渠道（与第三方更新渠道使用相同的注册方式）
+            UpdateManager.registerChannel(URLUpdate.class);
+            UpdateManager.registerChannel(ModrinthUpdate.class);
+            UpdateManager.registerChannel(GitHubUpdate.class);
+            UpdateManager.registerChannel(HangarUpdate.class);
+            UpdateManager.registerChannel(SpigotMCUpdate.class);
+
             UpgradeManager.initialize(platform);
             RepositoryManager.initialize(platform);
 

@@ -1,9 +1,11 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
@@ -14,16 +16,16 @@ import java.util.Map;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("url")
 public class URLUpdate extends AbstractUpdate {
     private final UrlChannelInfo info;
 
     private UpdateInfo updateInfo;
     private String cacheToken;
 
-    public URLUpdate(String pluginId, UrlChannelInfo info, Platform platform) {
+    public URLUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
-        this.updateType = UpdateType.URL;
-        this.info = info;
+        this.info = Utils.getGson().fromJson(config, UrlChannelInfo.class);
 
         if (this.info.url() == null || this.info.url().isEmpty()) {
             throw new IllegalArgumentException("URL 不存在或为空");
@@ -47,39 +49,43 @@ public class URLUpdate extends AbstractUpdate {
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
-            if (response.statusCode() == 304) {
-                // 返回304 Not Modified，使用缓存
-                if (updateInfo != null) {
+            return switch (response.statusCode()) {
+                case 304 -> {
+                    // 返回304 Not Modified，使用缓存
+                    if (updateInfo != null) {
+                        this.cacheToken = response.cacheToken();
+                        logger.info(tr("message.update.hit", url));
+                        yield true;
+                    } else {
+                        logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
+                        yield false;
+                    }
+                }
+                case 200 -> {
+                    String content = response.content();
+                    if (content == null) {
+                        logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
+                        yield false;
+                    }
+
+                    this.updateInfo = Utils.getGson().fromJson(content, UpdateInfo.class);
                     this.cacheToken = response.cacheToken();
-                    logger.info(tr("message.update.hit", url));
-                    return true;
-                } else {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
-                    return false;
-                }
-            } else if (response.statusCode() == 200) {
-                String content = response.content();
-                if (content == null) {
-                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
-                    return false;
-                }
 
-                this.updateInfo = Utils.getGson().fromJson(content, UpdateInfo.class);
-                this.cacheToken = response.cacheToken();
-
-                if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
-                    logger.info(tr("message.update.get", url));
-                    return true;
-                } else {
-                    this.updateInfo = null;
-                    this.cacheToken = null;
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-invalid")));
-                    return false;
+                    if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
+                        logger.info(tr("message.update.get", url));
+                        yield true;
+                    } else {
+                        this.updateInfo = null;
+                        this.cacheToken = null;
+                        logger.warning(tr("message.update.error", url, tr("tag.update.error.response-invalid")));
+                        yield false;
+                    }
                 }
-            } else {
-                logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
-                return false;
-            }
+                default -> {
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
+                    yield false;
+                }
+            };
         } catch (Exception e) {
             logger.warning(tr("message.update.error", url, e));
             return false;
@@ -105,10 +111,10 @@ public class URLUpdate extends AbstractUpdate {
         String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
 
             // 获取下载目录
-            Path downloadDir = getDownloadPath();
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
 
             // 若配置包含 ${originName}，desiredFilename 会被解析为 null，交给 Http 层按服务器原始文件名处理
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
@@ -144,14 +150,14 @@ public class URLUpdate extends AbstractUpdate {
     /**
      * 获取缓存的版本代码（若存在）
      */
-    public Integer getCachedVersionCode() {
+    public Integer getVersionCode() {
         return updateInfo != null ? updateInfo.versionCode : null;
     }
 
     /**
      * 获取缓存的更新日志链接（若存在）
      */
-    public URL getCachedChangelogLink() {
+    public URL getChangelogLink() {
         if (updateInfo != null && updateInfo.changelog != null) {
             try {
                 return new URI(updateInfo.changelog).toURL();

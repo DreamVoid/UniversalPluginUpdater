@@ -1,12 +1,12 @@
 package me.dreamvoid.universalpluginupdater.bukkit.update;
 
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import me.dreamvoid.universalpluginupdater.update.AbstractPluginUpdate;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 
-public class BukkitPluginUpdate extends AbstractUpdate {
+public class BukkitPluginUpdate extends AbstractPluginUpdate {
     private String newVersion;
 
     public BukkitPluginUpdate(String pluginId, Platform platform) {

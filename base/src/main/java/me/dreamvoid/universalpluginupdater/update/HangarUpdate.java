@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.HangarChannelInfo;
@@ -8,6 +9,7 @@ import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarPlatformD
 import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarResponse;
 import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import java.util.Set;
 import static java.net.URLEncoder.encode;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("hangar")
 public class HangarUpdate extends AbstractUpdate {
     private static final String HANGAR_API = "https://hangar.papermc.io/api/v1";
 
@@ -29,14 +32,12 @@ public class HangarUpdate extends AbstractUpdate {
     private String selectedPlatformKey; // eg "PAPER"
     private String cacheToken;
 
-    public HangarUpdate(String pluginId, HangarChannelInfo info, Platform platform) {
+    public HangarUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
-        if (info.author() == null || info.author().isEmpty() || info.slugOrId() == null || info.slugOrId().isEmpty()) {
+        this.info = Utils.getGson().fromJson(config, HangarChannelInfo.class);
+        if (this.info.author() == null || this.info.author().isEmpty() || this.info.slugOrId() == null || this.info.slugOrId().isEmpty()) {
             throw new IllegalArgumentException("author, slugOrId 不存在或为空");
         }
-
-        this.updateType = UpdateType.Hangar;
-        this.info = info;
     }
 
     @Override
@@ -167,10 +168,10 @@ public class HangarUpdate extends AbstractUpdate {
         String hashAlgorithm = "SHA-256";
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
             String expectedFilename = desiredFilename != null ? desiredFilename : (originFilename != null ? originFilename : pluginId + "-" + selectedVersion.name() + ".jar");
 
-            Path downloadDir = getDownloadPath();
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             if (filePath.toFile().exists()) {

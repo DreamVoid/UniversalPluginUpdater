@@ -22,7 +22,7 @@
 - Normalize plugin IDs and channel keys consistently with existing code, which generally treats them case-insensitively and stores them lowercase.
 - Reuse `LanguageManager` translations and existing resource files under `base/src/main/resources/lang/` for user-visible messages; do not hard-code new localized command output.
 - Reuse `Utils` for shared HTTP, JSON, logging, and file-related behavior instead of adding parallel helpers.
-- Update-channel implementations extend `AbstractUpdate`; built-in channel registration belongs in `UpdateChannelService` and external integrations must remain `UpdateType.Plugin` instances.
+- Update-channel implementations extend `AbstractUpdate`; generic channels are registered via `UpdateManager.registerChannel(Class)` (with an `@UpdateChannel` id) and plugin-specific channels via `UpdateManager.registerChannel(AbstractUpdate)` (implementing `PluginBoundUpdate`, id fixed to "plugin"). Registration lives in `UpdateManager`; `UpdateChannelService` is internal-only.
 - Upgrade behavior goes through `UpgradeStrategy` and `UpgradeStrategyRegistry`; account for delayed shutdown upgrades and platform-specific safe-upgrade support.
 - Platform lifecycle classes should delegate shared initialization to `LifeCycle` and register platform-specific upgrade strategies at the platform API lifecycle hook.
 - Preserve existing resource filtering and generated `BuildConstants` behavior when editing build files or resources.
@@ -30,7 +30,7 @@
 ## Change Boundaries
 
 - For a new command, add the shared handler under `base/.../command/action/`, register it in the shared `CommandHandler`, and only touch platform command registration when the server API requires it.
-- For a new update provider, add its configuration model and `AbstractUpdate` implementation in `base/`, register it in `UpdateChannelService`, and update relevant default configuration/resources.
+- For a new update provider, add its configuration model and `AbstractUpdate` implementation in `base/`, register it via `UpdateManager.registerChannel` in `LifeCycle` (for built-in channels), and update relevant default configuration/resources.
 - For platform-specific behavior, inspect the corresponding adapter and neighboring upgrade strategy before editing shared services.
 - Keep unrelated formatting, generated files, and release workflow changes out of feature fixes.
 

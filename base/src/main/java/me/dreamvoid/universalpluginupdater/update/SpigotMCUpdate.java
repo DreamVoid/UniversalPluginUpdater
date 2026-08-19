@@ -1,9 +1,11 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.SpigotMCChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.spigotmc.SpigotMCVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
@@ -11,6 +13,7 @@ import java.nio.file.Path;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("spigotmc")
 public class SpigotMCUpdate extends AbstractUpdate {
     private static final String SPIGET_API = "https://api.spiget.org/v2";
 
@@ -19,14 +22,12 @@ public class SpigotMCUpdate extends AbstractUpdate {
     private SpigotMCVersion selectedVersion;
     private String cacheToken;
 
-    public SpigotMCUpdate(String pluginId, SpigotMCChannelInfo info, Platform platform) {
+    public SpigotMCUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
-        if (info.resource() == null || 变成文本好吗(info.resource()).isBlank()) {
+        this.info = Utils.getGson().fromJson(config, SpigotMCChannelInfo.class);
+        if (this.info.resource() == null || 变成文本好吗(this.info.resource()).isBlank()) {
             throw new IllegalArgumentException("resource 不存在或为空");
         }
-
-        this.updateType = UpdateType.SpigotMC;
-        this.info = info;
     }
 
     @Override
@@ -91,10 +92,10 @@ public class SpigotMCUpdate extends AbstractUpdate {
         String downloadUrl = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/" + selectedVersion.id() + "/download" + (info.proxyDownload() ? "/proxy" : "");
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
             String expectedFilename = desiredFilename != null ? desiredFilename : pluginId + "-" + selectedVersion.name() + ".jar";
 
-            Path downloadDir = getDownloadPath();
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             // 此处由于没有提供文件hash进行完整性校验，使用简化的存在性检测或强制重新下载逻辑

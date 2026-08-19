@@ -3,7 +3,6 @@ package me.dreamvoid.universalpluginupdater;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
-import me.dreamvoid.universalpluginupdater.update.UpdateType;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -41,7 +40,7 @@ public final class Utils {
     private static final Gson gson = new Gson();
 
     @Nullable
-    public static String parseFileName(String pluginId, @Nullable UpdateType channel) {
+    public static String parseFileName(String pluginId, @Nullable String channelId) {
         String template = Config.Updater_Filename;
         if (template == null) {
             return null;
@@ -56,7 +55,7 @@ public final class Utils {
             return null;
         }
 
-        String channelValue = channel == null ? "" : channel.name().toLowerCase();
+        String channelValue = channelId == null ? "" : channelId;
         String timestamp = String.valueOf(System.currentTimeMillis());
 
         filename = filename

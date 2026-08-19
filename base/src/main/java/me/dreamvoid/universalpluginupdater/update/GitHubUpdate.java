@@ -1,11 +1,13 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.GitHubChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.github.GithubAsset;
 import me.dreamvoid.universalpluginupdater.objects.update.github.GithubRelease;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
@@ -17,6 +19,7 @@ import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("github")
 public class GitHubUpdate extends AbstractUpdate {
     private static final String GITHUB_API_URL = "https://api.github.com";
 
@@ -26,14 +29,34 @@ public class GitHubUpdate extends AbstractUpdate {
     private GithubAsset selectedAsset;
     private String cacheToken;
 
-    public GitHubUpdate(String pluginId, GitHubChannelInfo info, Platform platform) {
+    public GitHubUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
-        if (info.repository() == null || info.repository().isEmpty()) {
+        this.info = applyDefaults(Utils.getGson().fromJson(config, GitHubChannelInfo.class));
+        if (this.info.repository() == null || this.info.repository().isEmpty()) {
             throw new IllegalArgumentException("repository 不能为空");
         }
+    }
 
-        this.updateType = UpdateType.GitHub;
-        this.info = info;
+    /**
+     * 获取该渠道的默认配置（仅本渠道使用）
+     */
+    private GitHubChannelInfo defaults() {
+        return new GitHubChannelInfo(null, null, List.of("application/java-archive", "application/x-java-archive"), null, "name", null);
+    }
+
+    /**
+     * 将配置中缺失（为 null）的字段用默认值替换
+     */
+    private GitHubChannelInfo applyDefaults(GitHubChannelInfo info) {
+        GitHubChannelInfo defaults = defaults();
+        return new GitHubChannelInfo(
+                info.repository(),
+                info.auth(),
+                info.accept() != null ? info.accept() : defaults.accept(),
+                info.filter(),
+                info.versionKey() != null ? info.versionKey() : defaults.versionKey(),
+                info.versionRegex()
+        );
     }
 
     @Override
@@ -211,10 +234,10 @@ public class GitHubUpdate extends AbstractUpdate {
         String preferredHash = selectedAsset.hashValue();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
-            Path downloadDir = getDownloadPath();
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             if (filePath.toFile().exists()) {
