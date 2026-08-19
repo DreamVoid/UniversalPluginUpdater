@@ -6,12 +6,11 @@ import me.dreamvoid.universalpluginupdater.objects.channel.info.GitHubChannelInf
 import me.dreamvoid.universalpluginupdater.objects.update.github.GithubAsset;
 import me.dreamvoid.universalpluginupdater.objects.update.github.GithubRelease;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -21,30 +20,24 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 public class GitHubUpdate extends AbstractUpdate {
     private static final String GITHUB_API_URL = "https://api.github.com";
 
-    private final Logger logger;
-    private final String pluginId;
     private final GitHubChannelInfo info;
-    private final Platform platform;
 
     private GithubRelease selectedRelease;
     private GithubAsset selectedAsset;
     private String cacheToken;
-    private Path downloadedFilePath;
 
     public GitHubUpdate(String pluginId, GitHubChannelInfo info, Platform platform) {
+        super(pluginId, platform);
         if (info.repository() == null || info.repository().isEmpty()) {
             throw new IllegalArgumentException("repository 不能为空");
         }
 
         this.updateType = UpdateType.GitHub;
-        this.pluginId = pluginId;
         this.info = info;
-        this.platform = platform;
-        this.logger = platform.getPlatformLogger();
     }
 
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         String url = GITHUB_API_URL + "/repos/" + info.repository() + "/releases/latest";
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken, "Bearer " + info.auth());
@@ -200,43 +193,17 @@ public class GitHubUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getPluginId() {
-        return pluginId;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        try {
-            if (download()) {
-                Path currentPluginFile = platform.getPluginFile(pluginId);
-                Path newPluginFile = downloadedFilePath;
-
-                if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                    logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
-                    return false;
-                }
-
-                return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
-            } else {
-                return false;
-            }
-        } catch (Exception e) {
-            logger.warning(tr("message.update.failed", e));
-            return false;
-        }
-    }
-
-    @Override
-    public boolean download() {
+    @Nullable
+    public Path download() {
         if (selectedRelease == null || selectedAsset == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.github.failed.no-selected-release")));
-            return false;
+            return null;
         }
 
         String downloadUrl = selectedAsset.browserDownloadUrl();
         if (downloadUrl == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.github.failed.no-download-url")));
-            return false;
+            return null;
         }
 
         String originFilename = selectedAsset.name();
@@ -247,15 +214,14 @@ public class GitHubUpdate extends AbstractUpdate {
             String desiredFilename = Utils.parseFileName(pluginId, updateType);
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
-            Path downloadDir = platform.getDataPath().resolve("downloads");
+            Path downloadDir = getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             if (filePath.toFile().exists()) {
                 if (preferredHash != null && hashAlgorithm != null
                         && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = filePath;
                     logger.info(tr("message.update.hit", downloadUrl));
-                    return true;
+                    return filePath;
                 } else {
                     Files.delete(filePath);
                 }
@@ -265,7 +231,7 @@ public class GitHubUpdate extends AbstractUpdate {
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
-                return false;
+                return null;
             }
 
             Path downloadedPath = downloadDir.resolve(result.filename());
@@ -274,16 +240,14 @@ public class GitHubUpdate extends AbstractUpdate {
                     && !Utils.File.verifyHash(downloadedPath, hashAlgorithm, preferredHash)) {
                 logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
                 Files.delete(downloadedPath);
-                this.downloadedFilePath = null;
-                return false;
+                return null;
             } else {
-                this.downloadedFilePath = downloadedPath;
                 logger.info(tr("message.update.get", downloadUrl));
-                return true;
+                return downloadedPath;
             }
         } catch (Exception e) {
             logger.warning(tr("message.update.error", downloadUrl, e));
-            return false;
+            return null;
         }
     }
 

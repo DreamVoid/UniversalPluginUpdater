@@ -1,38 +1,32 @@
 package me.dreamvoid.universalpluginupdater.bukkit.update;
 
+import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import org.jetbrains.annotations.Nullable;
+
+import java.nio.file.Path;
 
 public class BukkitPluginUpdate extends AbstractUpdate {
-    private final String pluginId;
     private String newVersion;
 
-    public BukkitPluginUpdate(String pluginId) {
-        this.pluginId = pluginId.toLowerCase();
+    public BukkitPluginUpdate(String pluginId, Platform platform) {
+        super(pluginId.toLowerCase(), platform);
     }
 
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         this.newVersion = "2.0";
         return true;
     }
 
     @Override
-    public boolean download() {
-        return false;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        return download();
+    @Nullable
+    public Path download() {
+        return null;
     }
 
     @Override
     public String getVersion() {
         return newVersion;
-    }
-
-    @Override
-    public String getPluginId() {
-        return pluginId;
     }
 }

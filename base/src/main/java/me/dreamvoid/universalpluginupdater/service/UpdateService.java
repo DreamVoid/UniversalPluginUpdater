@@ -79,7 +79,7 @@ public final class UpdateService {
                     continue;
                 }
 
-                if (!instance.update()) {
+                if (!instance.checkUpdate()) {
                     String failedType = instance.getType() == null ? "unknown" : instance.getType().getIdentifier();
                     debug("插件 {0} 渠道 {1} 更新检查失败，尝试下一个渠道", pluginId, failedType);
                     continue;

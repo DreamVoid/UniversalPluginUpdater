@@ -6,14 +6,13 @@ import me.dreamvoid.universalpluginupdater.objects.channel.info.ModrinthChannelI
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -23,24 +22,19 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
 
-    private final Logger logger ;
-    private final String pluginId;
     private final ModrinthChannelInfo info;
-    private final Platform platform;
+
     private ModrinthVersion selectedVersion;
     private String cacheToken;
-    private Path downloadedFilePath;
 
     public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
+        super(pluginId, platform);
         if(info.projectId() == null || info.projectId().isEmpty()){
             throw new IllegalArgumentException("projectId 不存在或为空");
         }
 
         this.updateType = UpdateType.Modrinth;
-        this.pluginId = pluginId;
         this.info = info;
-        this.platform = platform;
-        this.logger = platform.getPlatformLogger();
     }
 
     /**
@@ -48,7 +42,7 @@ public class ModrinthUpdate extends AbstractUpdate {
      * 使用HTTP缓存机制减少网络请求和Modrinth负载
      */
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         String url = buildUrl();
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
@@ -185,47 +179,18 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getPluginId() {
-        return pluginId;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
-        try {
-            // 首先执行下载（如果还没下载）
-            if (!download()) return false;
-
-            // 获取当前插件文件
-            Path currentPluginFile = platform.getPluginFile(pluginId);
-
-            // 获取下载的新文件路径
-            Path newPluginFile = downloadedFilePath;
-
-            if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
-                return false;
-            }
-
-            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
-        } catch (Exception e) {
-            logger.warning(tr("message.update.failed", e));
-            return false;
-        }
-    }
-
-    @Override
-    public boolean download() {
+    @Nullable
+    public Path download() {
         // 从缓存的版本信息中获取下载链接
         if (selectedVersion == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.modrinth.failed.no-selected-version")));
-            return false;
+            return null;
         }
 
         ModrinthFile file = selectedVersion.getPrimaryFile();
         if (file == null || file.url() == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.modrinth.failed.no-primary-file")));
-            return false;
+            return null;
         }
 
         String downloadUrl = file.url();
@@ -237,17 +202,16 @@ public class ModrinthUpdate extends AbstractUpdate {
             String desiredFilename = Utils.parseFileName(pluginId, updateType);
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
-            // 获取数据目录下的downloads文件夹
-            Path downloadDir = platform.getDataPath().resolve("downloads");
+            // 获取下载目录
+            Path downloadDir = getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             // 检查文件是否已存在且完整
             if (filePath.toFile().exists()) {
                 if (preferredHash != null && hashAlgorithm != null
                         && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = filePath;
                     logger.info(tr("message.update.hit", downloadUrl));
-                    return true;  // 文件完整，不必重新下载
+                    return filePath;  // 文件完整，不必重新下载
                 } else {
                     Files.delete(filePath);
                 }
@@ -258,7 +222,7 @@ public class ModrinthUpdate extends AbstractUpdate {
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
-                return false;
+                return null;
             }
 
             Path downloadedPath = downloadDir.resolve(result.filename());
@@ -266,23 +230,20 @@ public class ModrinthUpdate extends AbstractUpdate {
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(downloadedPath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = downloadedPath;
                     logger.info(tr("message.update.get", downloadUrl));
-                    return true;
+                    return downloadedPath;
                 } else {
                     logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
                     Files.delete(downloadedPath);  // 删除不完整的文件
-                    this.downloadedFilePath = null;
-                    return false;
+                    return null;
                 }
             } else {
-                this.downloadedFilePath = downloadedPath;
                 logger.info(tr("message.update.get", downloadUrl));
-                return true;
+                return downloadedPath;
             }
         } catch (Exception e) {
             logger.warning(tr("message.update.error", downloadUrl, e));
-            return false;
+            return null;
         }
     }
 }

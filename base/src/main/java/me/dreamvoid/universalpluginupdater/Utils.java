@@ -69,6 +69,44 @@ public final class Utils {
         return filename.isEmpty() ? null : filename;
     }
 
+    /**
+     * 判断新版本是否比当前版本更新（语义化版本比较）<br>
+     * 逐段比较点分版本号，数值段按数值比较，非数值段回退字符串比较<br>
+     * 预发布段（"-" 之后）与构建元数据不参与比较
+     * @param newVersion 新版本
+     * @param currentVersion 当前版本
+     * @return 新版本比当前版本新时返回 true
+     */
+    public static boolean isVersionNewer(@Nullable String newVersion, @Nullable String currentVersion) {
+        if (currentVersion == null || newVersion == null) {
+            return !Objects.equals(currentVersion, newVersion);
+        }
+
+        String[] currentParts = currentVersion.split("-")[0].split("\\.");
+        String[] newParts = newVersion.split("-")[0].split("\\.");
+
+        int max = Math.max(currentParts.length, newParts.length);
+        for (int i = 0; i < max; i++) {
+            String currentPart = i < currentParts.length ? currentParts[i].trim() : "0";
+            String newPart = i < newParts.length ? newParts[i].trim() : "0";
+
+            try {
+                int currentValue = Integer.parseInt(currentPart);
+                int newValue = Integer.parseInt(newPart);
+
+                if (newValue > currentValue) {
+                    return true;
+                } else if (newValue < currentValue) {
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                return !currentPart.equals(newPart);
+            }
+        }
+
+        return false;
+    }
+
     public static class Http {
         private static final OkHttpClient defaultClient = new OkHttpClient.Builder()
                 .followRedirects(true)

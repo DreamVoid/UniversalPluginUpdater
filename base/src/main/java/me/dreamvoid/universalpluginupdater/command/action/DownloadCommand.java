@@ -3,13 +3,13 @@ package me.dreamvoid.universalpluginupdater.command.action;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
-import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.CommandSender;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
@@ -43,15 +43,15 @@ public final class DownloadCommand extends CommandHandler {
                 }
             }
 
-            // 获取缓存的更新信息并提前过滤
+            // 获取缓存的更新渠道实例，过滤出存在更新且命中的插件
             UpdateManager updateManager = UpdateManager.instance();
-            List<UpdateInfo> updateInfos = updateManager.getUpdateInfoList().stream()
-                    .filter(UpdateInfo::hasUpdate)
-                    .filter(info -> targetPlugins.isEmpty() || targetPlugins.contains(info.pluginName().toLowerCase()))
+            List<AbstractUpdate> channels = updateManager.getChannels().stream()
+                    .filter(AbstractUpdate::hasUpdate)
+                    .filter(channel -> targetPlugins.isEmpty() || targetPlugins.contains(channel.getPluginId().toLowerCase()))
                     .toList();
 
             // 检查是否有可下载的更新
-            if (updateInfos.isEmpty()) {
+            if (channels.isEmpty()) {
                 sender.broadcastMessage(tr(locale, "message.command.download.none"));
                 return;
             }
@@ -61,24 +61,17 @@ public final class DownloadCommand extends CommandHandler {
             int failureCount = 0;
 
             // 遍历每个待更新的插件，执行下载
-            for (UpdateInfo updateInfo : updateInfos) {
-                String pluginId = updateInfo.pluginName();
-                
+            for (AbstractUpdate channel : channels) {
+                String pluginId = channel.getPluginId();
+
                 sender.sendMessage(tr(locale, "message.command.download.item.start", pluginId));
 
                 try {
-                    // 获取该插件的更新实例
-                    AbstractUpdate updateInstance = updateManager.getUpdateInstance(pluginId, updateInfo.updateChannel());
-                    if (updateInstance == null) {
-                        sender.sendMessage(tr(locale, "message.command.download.item.error.no-channel", pluginId));
-                        failureCount++;
-                        continue;
-                    }
+                    Utils.debug(pluginId + ": 当前更新实例: " + channel.getClass().getName());
 
-                    Utils.debug(pluginId + ": 当前更新实例: " + updateInstance.getClass().getName());
-
-                    // 执行下载
-                    if (updateInstance.download()) {
+                    // 执行下载，成功时返回文件路径
+                    Path downloaded = channel.download();
+                    if (downloaded != null) {
                         sender.sendMessage(tr(locale, "message.command.download.item.success", pluginId));
                         successCount++;
                     } else {
@@ -115,9 +108,9 @@ public final class DownloadCommand extends CommandHandler {
 
         String currentArg = args[args.length - 1].toLowerCase();
         
-        UpdateManager.instance().getUpdateInfoList().stream()
-                .filter(UpdateInfo::hasUpdate)
-                .map(UpdateInfo::pluginName)
+        UpdateManager.instance().getChannels().stream()
+                .filter(AbstractUpdate::hasUpdate)
+                .map(AbstractUpdate::getPluginId)
                 .filter(name -> !used.contains(name.toLowerCase()))
                 .filter(name -> name.toLowerCase().startsWith(currentArg))
                 .forEach(result::add);

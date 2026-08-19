@@ -1,9 +1,9 @@
 package me.dreamvoid.universalpluginupdater.objects;
 
+import me.dreamvoid.universalpluginupdater.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.MessageFormat;
-import java.util.Objects;
 
 /**
  * 待更新插件的信息
@@ -26,33 +26,7 @@ public record UpdateInfo(
      * @return 如果存在更新，返回true
      */
     public boolean hasUpdate() {
-        if (currentVersion == null || newVersion == null) {
-            return !Objects.equals(currentVersion, newVersion);
-        }
-
-        String[] currentParts = currentVersion.split("-")[0].split("\\.");
-        String[] newParts = newVersion.split("-")[0].split("\\.");
-
-        int max = Math.max(currentParts.length, newParts.length);
-        for (int i = 0; i < max; i++) {
-            String currentPart = i < currentParts.length ? currentParts[i].trim() : "0";
-            String newPart = i < newParts.length ? newParts[i].trim() : "0";
-
-            try {
-                int currentValue = Integer.parseInt(currentPart);
-                int newValue = Integer.parseInt(newPart);
-
-                if (newValue > currentValue) {
-                    return true;
-                } else if (newValue < currentValue) {
-                    return false;
-                }
-            } catch (NumberFormatException e) {
-                return !currentPart.equals(newPart);
-            }
-        }
-
-        return false;
+        return Utils.isVersionNewer(newVersion, currentVersion);
     }
 
     @NotNull

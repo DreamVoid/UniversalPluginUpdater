@@ -8,7 +8,7 @@ import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarPlatformD
 import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarResponse;
 import me.dreamvoid.universalpluginupdater.objects.update.hangar.HangarVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import static java.net.URLEncoder.encode;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
@@ -24,30 +23,24 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 public class HangarUpdate extends AbstractUpdate {
     private static final String HANGAR_API = "https://hangar.papermc.io/api/v1";
 
-    private final Logger logger;
-    private final String pluginId;
     private final HangarChannelInfo info;
-    private final Platform platform;
 
     private HangarVersion selectedVersion;
     private String selectedPlatformKey; // eg "PAPER"
     private String cacheToken;
-    private Path downloadedFilePath;
 
     public HangarUpdate(String pluginId, HangarChannelInfo info, Platform platform) {
+        super(pluginId, platform);
         if (info.author() == null || info.author().isEmpty() || info.slugOrId() == null || info.slugOrId().isEmpty()) {
             throw new IllegalArgumentException("author, slugOrId 不存在或为空");
         }
 
         this.updateType = UpdateType.Hangar;
-        this.pluginId = pluginId;
         this.info = info;
-        this.platform = platform;
-        this.logger = platform.getPlatformLogger();
     }
 
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         String url = buildUrl();
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
@@ -154,41 +147,17 @@ public class HangarUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getPluginId() {
-        return pluginId;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        try {
-            if (!download()) return false;
-
-            Path currentPluginFile = platform.getPluginFile(pluginId);
-            Path newPluginFile = downloadedFilePath;
-
-            if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
-                return false;
-            }
-
-            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
-        } catch (Exception e) {
-            logger.warning(tr("message.update.failed", e));
-            return false;
-        }
-    }
-
-    @Override
-    public boolean download() {
+    @Nullable
+    public Path download() {
         if (selectedVersion == null || selectedPlatformKey == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.hangar.failed.no-selected-version")));
-            return false;
+            return null;
         }
 
         HangarPlatformDownload downloadInf = selectedVersion.downloads().get(selectedPlatformKey);
         if (downloadInf == null || downloadInf.downloadUrl() == null || downloadInf.downloadUrl().isEmpty()) {
             logger.warning(tr("message.update.failed", tr("tag.update.hangar.failed.no-download-url")));
-            return false;
+            return null;
         }
 
         String downloadUrl = downloadInf.downloadUrl();
@@ -201,14 +170,13 @@ public class HangarUpdate extends AbstractUpdate {
             String desiredFilename = Utils.parseFileName(pluginId, updateType);
             String expectedFilename = desiredFilename != null ? desiredFilename : (originFilename != null ? originFilename : pluginId + "-" + selectedVersion.name() + ".jar");
 
-            Path downloadDir = platform.getDataPath().resolve("downloads");
+            Path downloadDir = getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
 
             if (filePath.toFile().exists()) {
                 if (preferredHash != null && !preferredHash.isEmpty() && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = filePath;
                     logger.info(tr("message.update.hit", downloadUrl));
-                    return true;
+                    return filePath;
                 } else {
                     Files.delete(filePath);
                 }
@@ -218,30 +186,27 @@ public class HangarUpdate extends AbstractUpdate {
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
-                return false;
+                return null;
             }
 
             Path downloadedPath = downloadDir.resolve(result.filename());
 
             if (preferredHash != null && !preferredHash.isEmpty()) {
                 if (Utils.File.verifyHash(downloadedPath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = downloadedPath;
                     logger.info(tr("message.update.get", downloadUrl));
-                    return true;
+                    return downloadedPath;
                 } else {
                     logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
                     Files.delete(downloadedPath);
-                    this.downloadedFilePath = null;
-                    return false;
+                    return null;
                 }
             } else {
-                this.downloadedFilePath = downloadedPath;
                 logger.info(tr("message.update.get", downloadUrl));
-                return true;
+                return downloadedPath;
             }
         } catch (Exception e) {
             logger.warning(tr("message.update.error", downloadUrl, e));
-            return false;
+            return null;
         }
     }
 }
