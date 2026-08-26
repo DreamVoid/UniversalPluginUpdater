@@ -69,19 +69,19 @@ public final class Utils {
     }
 
     /**
-     * 判断新版本是否比当前版本更新（语义化版本比较）<br>
+     * 判断新版本是否比旧版本更新（语义化版本比较）<br>
      * 逐段比较点分版本号，数值段按数值比较，非数值段回退字符串比较<br>
      * 预发布段（"-" 之后）与构建元数据不参与比较
      * @param newVersion 新版本
-     * @param currentVersion 当前版本
-     * @return 新版本比当前版本新时返回 true
+     * @param oldVersion 旧版本
+     * @return 新版本比旧版本新时返回 true
      */
-    public static boolean isVersionNewer(@Nullable String newVersion, @Nullable String currentVersion) {
-        if (currentVersion == null || newVersion == null) {
-            return !Objects.equals(currentVersion, newVersion);
+    public static boolean isVersionNewer(@Nullable String newVersion, @Nullable String oldVersion) {
+        if (oldVersion == null || newVersion == null) {
+            return !Objects.equals(oldVersion, newVersion);
         }
 
-        String[] currentParts = currentVersion.split("-")[0].split("\\.");
+        String[] currentParts = oldVersion.split("-")[0].split("\\.");
         String[] newParts = newVersion.split("-")[0].split("\\.");
 
         int max = Math.max(currentParts.length, newParts.length);

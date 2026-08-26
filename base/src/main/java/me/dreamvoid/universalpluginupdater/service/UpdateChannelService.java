@@ -40,7 +40,7 @@ final class UpdateChannelService {
     /**
      * 插件专属渠道注册表，键为插件 ID（小写）
      */
-    private final Map<String, AbstractUpdate> pluginChannels = new HashMap<>();
+    private final Map<String, AbstractPluginUpdate> pluginChannels = new HashMap<>();
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
      */
@@ -53,17 +53,16 @@ final class UpdateChannelService {
     }
 
     /**
-     * 注册通用更新渠道（插件无关，所有插件可通过配置文件使用）<br>
-     * 渠道实现类需标注 {@link UpdateChannel}，直接继承 {@link AbstractUpdate}，并提供约定构造器 {@code (String, JsonObject, Platform)} 自行解析配置并应用默认值
-     * @param channelClass 渠道实现类
-     * @throws IllegalArgumentException channelClass 为 null、缺少 {@link UpdateChannel} 注解、渠道标识为空或重复时
+     * 注册通用更新渠道
+     * @param updateClass {@link AbstractUpdate} 的实现类
+     * @throws IllegalArgumentException updateClass 为 null、缺少 {@link UpdateChannel} 注解、渠道标识为空或重复时
      */
-    synchronized void registerChannel(Class<? extends AbstractUpdate> channelClass) throws IllegalArgumentException {
-        if (channelClass == null) {
-            throw new IllegalArgumentException("channelClass 不能为 null");
+    synchronized void registerChannel(Class<? extends AbstractUpdate> updateClass) throws IllegalArgumentException {
+        if (updateClass == null) {
+            throw new IllegalArgumentException("updateClass 不能为 null");
         }
 
-        UpdateChannel annotation = channelClass.getAnnotation(UpdateChannel.class);
+        UpdateChannel annotation = updateClass.getAnnotation(UpdateChannel.class);
         if (annotation == null) {
             throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
         }
@@ -80,16 +79,20 @@ final class UpdateChannelService {
             throw new IllegalArgumentException("更新渠道 \"" + channelId + "\" 已注册");
         }
 
-        genericChannels.put(key, channelClass);
+        genericChannels.put(key, updateClass);
         debug("注册更新渠道: {0}", channelId);
     }
 
     /**
-     * 注册插件专属更新渠道（仅服务于指定插件，渠道标识固定为 "plugin"，不作为通用渠道注册）
-     * @param updateInstance 更新实例，需实现 {@link AbstractPluginUpdate} 并指定服务的插件 ID
-     * @throws IllegalArgumentException updateInstance 未实现
+     * 注册插件专用更新渠道
+     * @param updateInstance 实现 {@link AbstractPluginUpdate} 的对象
+     * @throws IllegalArgumentException updateInstance 为 null、未指定插件 ID 时
      */
     synchronized void registerChannel(AbstractPluginUpdate updateInstance) throws IllegalArgumentException {
+        if (updateInstance == null) {
+            throw new IllegalArgumentException("updateInstance 不能为 null");
+        }
+
         UpdateChannel annotation = updateInstance.getClass().getAnnotation(UpdateChannel.class);
         if (annotation == null) {
             throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
