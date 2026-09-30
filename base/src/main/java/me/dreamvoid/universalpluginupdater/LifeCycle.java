@@ -119,6 +119,9 @@ public class LifeCycle {
             logger.warning(tr("message.lifecycle.reload.exception"));
         }
 
+        // 重新读取语言配置，使外部语言文件与 language 变更立即生效
+        LanguageManager.setPlatform(platform);
+
         logger.info(tr("message.lifecycle.reload.finish"));
     }
 }

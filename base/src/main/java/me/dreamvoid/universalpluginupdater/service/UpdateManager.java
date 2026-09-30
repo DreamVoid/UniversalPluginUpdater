@@ -7,7 +7,6 @@ import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.update.UpdateType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
@@ -22,7 +21,7 @@ public final class UpdateManager {
     private final UpdateService updateService;
     private final UpdateChannelService updateChannelService;
 
-    private List<UpdateInfo> cachedUpdateInfos = new ArrayList<>();  // 缓存最后一次的检查结果
+    private volatile List<UpdateInfo> cachedUpdateInfos = List.of();  // 缓存最后一次的检查结果
 
     private UpdateManager(Platform platform) {
         updateChannelService = new UpdateChannelService(platform);
@@ -58,8 +57,8 @@ public final class UpdateManager {
      */
     public List<UpdateInfo> checkUpdate() {
         updateChannelService.validateCache();
-        cachedUpdateInfos = updateService.checkUpdates();
-        return new ArrayList<>(cachedUpdateInfos);
+        cachedUpdateInfos = List.copyOf(updateService.checkUpdates());
+        return cachedUpdateInfos;
     }
 
     /**
@@ -68,7 +67,7 @@ public final class UpdateManager {
      */
     @NotNull
     public List<UpdateInfo> getUpdateInfoList() {
-        return new ArrayList<>(cachedUpdateInfos);  // 返回副本以防外部修改
+        return cachedUpdateInfos;
     }
 
     /**

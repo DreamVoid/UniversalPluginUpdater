@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.Utils.debug;
@@ -28,18 +29,18 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 public final class UpdateChannelService {
     private final Platform platform;
     private final Logger logger;
-    private Long globalConfigFingerprint = null;
+    private String globalConfigFingerprint = null;
 
     /**
      * 可用更新渠道注册
      */
-    private static final Map<UpdateType, ChannelDescriptor<?>> INTERNAL_CHANNEL_DESCRIPTORS = new HashMap<>();
-    private static final Map<String, AbstractUpdate> EXTERNAL_CHANNEL_INSTANCES = new HashMap<>();
+    private static final Map<UpdateType, ChannelDescriptor<?>> INTERNAL_CHANNEL_DESCRIPTORS = new ConcurrentHashMap<>();
+    private static final Map<String, AbstractUpdate> EXTERNAL_CHANNEL_INSTANCES = new ConcurrentHashMap<>();
     /**
      * 缓存AbstractUpdate实例，键为"pluginId:channelType"
      */
-    private final Map<String, AbstractUpdate> updateInstanceCache = new HashMap<>();
-    private final Map<String, Long> pluginConfigFingerprints = new HashMap<>();
+    private final Map<String, AbstractUpdate> updateInstanceCache = new ConcurrentHashMap<>();
+    private final Map<String, String> pluginConfigFingerprints = new HashMap<>();
 
     UpdateChannelService(Platform platform) {
         this.platform = platform;
@@ -128,8 +129,8 @@ public final class UpdateChannelService {
         Path channelsDir = platform.getDataPath().resolve("channels");
         Path globalFile = platform.getDataPath().resolve("global.json");
 
-        Map<String, Long> currentPluginFingerprints = collectPluginConfigFingerprints(channelsDir);
-        Long globalFingerprint = getFileFingerprint(globalFile);
+        Map<String, String> currentPluginFingerprints = collectPluginConfigFingerprints(channelsDir);
+        String globalFingerprint = getFileFingerprint(globalFile);
 
         if (!Objects.equals(globalConfigFingerprint, globalFingerprint)) {
             updateInstanceCache.clear(); // 全局配置更改
@@ -137,9 +138,9 @@ public final class UpdateChannelService {
         } else {
             Set<String> changedPlugins = new HashSet<>();
 
-            for (Map.Entry<String, Long> entry : currentPluginFingerprints.entrySet()) {
+            for (Map.Entry<String, String> entry : currentPluginFingerprints.entrySet()) {
                 String pluginId = entry.getKey();
-                Long oldFingerprint = pluginConfigFingerprints.get(pluginId);
+                String oldFingerprint = pluginConfigFingerprints.get(pluginId);
                 if (!Objects.equals(oldFingerprint, entry.getValue())) {
                     changedPlugins.add(pluginId);
                 }
@@ -263,7 +264,7 @@ public final class UpdateChannelService {
             Path configPath = platform.getDataPath().resolve("channels").resolve(pluginId + ".json");
             if (Files.exists(configPath)) {
                 String jsonContent = new String(Files.readAllBytes(configPath));
-                return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
+                return Utils.gson.fromJson(jsonContent, UpdateConfig.class);
             } else {
                 debug("{0}: 渠道配置文件不存在: {1}", pluginId, configPath);
             }
@@ -348,7 +349,7 @@ public final class UpdateChannelService {
             }
 
             String jsonContent = Files.readString(globalPath);
-            return Utils.getGson().fromJson(jsonContent, UpdateConfig.class);
+            return Utils.gson.fromJson(jsonContent, UpdateConfig.class);
         } catch (IOException e) {
             logger.warning(tr("message.service.channel.error.config.exception", "global", e));
             return null;
@@ -408,8 +409,8 @@ public final class UpdateChannelService {
             return pluginConfig;
         }
 
-        JsonElement pluginTree = Utils.getGson().toJsonTree(pluginConfig);
-        JsonElement globalTree = Utils.getGson().toJsonTree(globalConfig);
+        JsonElement pluginTree = Utils.gson.toJsonTree(pluginConfig);
+        JsonElement globalTree = Utils.gson.toJsonTree(globalConfig);
         if (!pluginTree.isJsonObject() || !globalTree.isJsonObject()) {
             return pluginConfig;
         }
@@ -438,8 +439,8 @@ public final class UpdateChannelService {
         return channelType != null ? INTERNAL_CHANNEL_DESCRIPTORS.get(channelType) : null;
     }
 
-    private Map<String, Long> collectPluginConfigFingerprints(Path channelsDir) {
-        Map<String, Long> result = new HashMap<>();
+    private Map<String, String> collectPluginConfigFingerprints(Path channelsDir) {
+        Map<String, String> result = new HashMap<>();
         if (Files.isDirectory(channelsDir)) {
             try (var paths = Files.list(channelsDir)) {
                 paths.filter(Files::isRegularFile)
@@ -451,7 +452,7 @@ public final class UpdateChannelService {
                                 return;
                             }
                             String pluginId = filename.substring(0, dotIndex).toLowerCase();
-                            Long fingerprint = getFileFingerprint(path);
+                            String fingerprint = getFileFingerprint(path);
                             if (fingerprint != null) {
                                 result.put(pluginId, fingerprint);
                             }
@@ -461,11 +462,11 @@ public final class UpdateChannelService {
         return result;
     }
 
-    private Long getFileFingerprint(Path file) {
+    private String getFileFingerprint(Path file) {
         if (Files.isRegularFile(file)) try {
             long size = Files.size(file);
             long modified = Files.getLastModifiedTime(file).toMillis();
-            return (long) Objects.hash(size, modified);
+            return size + ":" + modified;
         } catch (IOException ignored) {}
         return null;
     }
@@ -480,10 +481,10 @@ public final class UpdateChannelService {
     }
 
     private <T> T parseWithDefaults(Object source, Class<T> clazz, T defaults) {
-        JsonElement defaultTree = Utils.getGson().toJsonTree(defaults);
+        JsonElement defaultTree = Utils.gson.toJsonTree(defaults);
         if (defaultTree.isJsonObject()) {
             JsonObject merged = defaultTree.getAsJsonObject().deepCopy();
-            JsonElement sourceTree = Utils.getGson().toJsonTree(source);
+            JsonElement sourceTree = Utils.gson.toJsonTree(source);
             if (sourceTree != null && sourceTree.isJsonObject()) {
                 for (Map.Entry<String, JsonElement> entry : sourceTree.getAsJsonObject().entrySet()) {
                     JsonElement value = entry.getValue();
@@ -492,7 +493,7 @@ public final class UpdateChannelService {
                     }
                 }
             }
-            return Utils.getGson().fromJson(merged, clazz);
+            return Utils.gson.fromJson(merged, clazz);
         } else {
             return defaults;
         }

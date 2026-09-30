@@ -163,6 +163,11 @@ public final class RepoCommand extends CommandHandler {
                 if ("updatable".startsWith(input) && !used.contains("updatable")) {
                     result.add("updatable");
                 }
+                RepositoryManager.instance().getChannelUpdateResults().stream()
+                        .map(RepositoryManager.ChannelUpdateResult::pluginId)
+                        .filter(id -> !used.contains(id.toLowerCase()))
+                        .filter(id -> id.toLowerCase().startsWith(input))
+                        .forEach(result::add);
             }
         }
 

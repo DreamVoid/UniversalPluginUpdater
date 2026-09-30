@@ -48,7 +48,9 @@ public record UpdateInfo(
                     return false;
                 }
             } catch (NumberFormatException e) {
-                return !currentPart.equals(newPart);
+                if (!currentPart.equals(newPart)) {
+                    return true;
+                }
             }
         }
 

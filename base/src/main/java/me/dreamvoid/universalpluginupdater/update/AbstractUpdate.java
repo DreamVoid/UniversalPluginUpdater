@@ -5,7 +5,22 @@ public abstract class AbstractUpdate {
      * 更新渠道类型<br>
      * 非 UPU 插件只能注册 {@link UpdateType#Plugin} 类型的更新实例
      */
-    UpdateType updateType = UpdateType.Plugin;
+    private final UpdateType updateType;
+
+    /**
+     * 创建更新渠道类型为 {@link UpdateType#Plugin} 的更新实例
+     */
+    protected AbstractUpdate() {
+        this.updateType = UpdateType.Plugin;
+    }
+
+    /**
+     * 创建指定更新渠道类型的更新实例，仅供内置更新渠道实现使用
+     * @param updateType 更新渠道类型
+     */
+    AbstractUpdate(UpdateType updateType) {
+        this.updateType = updateType;
+    }
 
     /**
      * 执行更新检查，联网获取最新版本信息<br>

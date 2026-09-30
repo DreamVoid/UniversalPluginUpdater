@@ -31,15 +31,15 @@ public class HangarUpdate extends AbstractUpdate {
 
     private HangarVersion selectedVersion;
     private String selectedPlatformKey; // eg "PAPER"
-    private String cacheToken;
+    private Utils.Http.CacheToken cacheToken;
     private Path downloadedFilePath;
 
     public HangarUpdate(String pluginId, HangarChannelInfo info, Platform platform) {
+        super(UpdateType.Hangar);
         if (info.author() == null || info.author().isEmpty() || info.slugOrId() == null || info.slugOrId().isEmpty()) {
             throw new IllegalArgumentException("author, slugOrId 不存在或为空");
         }
 
-        this.updateType = UpdateType.Hangar;
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
@@ -68,7 +68,7 @@ public class HangarUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                HangarResponse hangarResponse = Utils.getGson().fromJson(content, HangarResponse.class);
+                HangarResponse hangarResponse = Utils.gson.fromJson(content, HangarResponse.class);
                 if (hangarResponse == null || hangarResponse.result() == null || hangarResponse.result().isEmpty()) {
                     logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
@@ -198,7 +198,7 @@ public class HangarUpdate extends AbstractUpdate {
         String hashAlgorithm = "SHA-256";
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getType());
             String expectedFilename = desiredFilename != null ? desiredFilename : (originFilename != null ? originFilename : pluginId + "-" + selectedVersion.name() + ".jar");
 
             Path downloadDir = platform.getDataPath().resolve("downloads");
@@ -214,7 +214,7 @@ public class HangarUpdate extends AbstractUpdate {
                 }
             }
 
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));

@@ -45,6 +45,7 @@ public final class LanguageManager {
     public static void setPlatform(Platform platform) {
         INSTANCE.platform = platform;
         logger = platform.getPlatformLogger();
+        INSTANCE.cache.clear();
         INSTANCE.localeResolveCache.clear();
     }
 
@@ -182,7 +183,7 @@ public final class LanguageManager {
             }
 
             try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-                Map<String, JsonElement> bundle = Utils.getGson().fromJson(reader, MAP_TYPE);
+                Map<String, JsonElement> bundle = Utils.gson.fromJson(reader, MAP_TYPE);
                 return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {
@@ -421,7 +422,7 @@ public final class LanguageManager {
             }
 
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-                Map<String, JsonElement> bundle = Utils.getGson().fromJson(reader, MAP_TYPE);
+                Map<String, JsonElement> bundle = Utils.gson.fromJson(reader, MAP_TYPE);
                 return bundle != null ? sanitizeBundle(bundle) : Collections.emptyMap();
             }
         } catch (Exception e) {

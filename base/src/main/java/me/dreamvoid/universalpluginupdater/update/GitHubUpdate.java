@@ -28,15 +28,15 @@ public class GitHubUpdate extends AbstractUpdate {
 
     private GithubRelease selectedRelease;
     private GithubAsset selectedAsset;
-    private String cacheToken;
+    private Utils.Http.CacheToken cacheToken;
     private Path downloadedFilePath;
 
     public GitHubUpdate(String pluginId, GitHubChannelInfo info, Platform platform) {
+        super(UpdateType.GitHub);
         if (info.repository() == null || info.repository().isEmpty()) {
             throw new IllegalArgumentException("repository 不能为空");
         }
 
-        this.updateType = UpdateType.GitHub;
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
@@ -47,7 +47,7 @@ public class GitHubUpdate extends AbstractUpdate {
     public boolean update() {
         String url = GITHUB_API_URL + "/repos/" + info.repository() + "/releases/latest";
         try {
-            Utils.Http.Response response = Utils.Http.get(url, cacheToken, "Bearer " + info.auth());
+            Utils.Http.Response response = Utils.Http.get(url, cacheToken, info.auth() != null && !info.auth().isBlank() ? "Bearer " + info.auth() : null);
 
             if (response.statusCode() == 304) {
                 if (selectedRelease != null) {
@@ -65,7 +65,7 @@ public class GitHubUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                GithubRelease release = Utils.getGson().fromJson(content, GithubRelease.class);
+                GithubRelease release = Utils.gson.fromJson(content, GithubRelease.class);
                 if (release == null) {
                     logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
                     return false;
@@ -244,7 +244,7 @@ public class GitHubUpdate extends AbstractUpdate {
         String preferredHash = selectedAsset.hashValue();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getType());
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
             Path downloadDir = platform.getDataPath().resolve("downloads");
@@ -261,7 +261,7 @@ public class GitHubUpdate extends AbstractUpdate {
                 }
             }
 
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));

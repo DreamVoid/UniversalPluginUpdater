@@ -123,31 +123,12 @@ public final class BungeePlugin extends Plugin implements Platform {
 
             @Override
             public void runTaskTimerAsync(Runnable runnable, long repeat) {
-                // 我也知道这是神人操作，但没办法，只能这样
-                getProxy().getScheduler().runAsync(BungeePlugin.this, () -> {
-                    while(true){
-                        runnable.run();
-                        try {
-                            wait(repeat * 1000);
-                        } catch (InterruptedException e) {
-                            break;
-                        }
-                    }
-                });
+                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, 0, repeat, TimeUnit.SECONDS);
             }
 
             @Override
             public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
-                getProxy().getScheduler().runAsync(BungeePlugin.this, () -> {
-                    while(true){
-                        runnable.run();
-                        try {
-                            wait(repeat.toMillis());
-                        } catch (InterruptedException e) {
-                            break;
-                        }
-                    }
-                });
+                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
             }
         };
     }

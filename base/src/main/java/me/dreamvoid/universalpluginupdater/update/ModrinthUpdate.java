@@ -7,12 +7,11 @@ import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthFile;
 import me.dreamvoid.universalpluginupdater.objects.update.modrinth.ModrinthVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import okhttp3.HttpUrl;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,15 +27,15 @@ public class ModrinthUpdate extends AbstractUpdate {
     private final ModrinthChannelInfo info;
     private final Platform platform;
     private ModrinthVersion selectedVersion;
-    private String cacheToken;
+    private Utils.Http.CacheToken cacheToken;
     private Path downloadedFilePath;
 
     public ModrinthUpdate(String pluginId, ModrinthChannelInfo info, Platform platform) {
+        super(UpdateType.Modrinth);
         if(info.projectId() == null || info.projectId().isEmpty()){
             throw new IllegalArgumentException("projectId 不存在或为空");
         }
 
-        this.updateType = UpdateType.Modrinth;
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
@@ -71,7 +70,7 @@ public class ModrinthUpdate extends AbstractUpdate {
                 }
 
                 // 解析JSON数组
-                ModrinthVersion[] versions = Utils.getGson().fromJson(content, ModrinthVersion[].class);
+                ModrinthVersion[] versions = Utils.gson.fromJson(content, ModrinthVersion[].class);
                 if (versions == null || versions.length == 0) {
                     logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
@@ -96,24 +95,20 @@ public class ModrinthUpdate extends AbstractUpdate {
      * 构建Modrinth API URL
      */
     private String buildUrl() {
-        StringBuilder url = new StringBuilder();
-        url.append(MODRINTH_API).append("/project/").append(info.projectId()).append("/version");
+        HttpUrl.Builder url = HttpUrl.get(MODRINTH_API + "/project/" + info.projectId() + "/version").newBuilder();
 
         // 构建查询参数
-        Set<String> queries = new HashSet<>();
-
-        // 添加changelog参数（不需要更新日志）
-        queries.add("include_changelog=false");
+        url.addQueryParameter("include_changelog", "false");
 
         // 添加featured参数（默认true，优先选择推荐版本）
-        if (info.featured()) queries.add("featured=true");
+        if (info.featured()) url.addQueryParameter("featured", "true");
 
         // 添加加载器参数
         List<String> loaders = (Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
             ? Config.Platform_Loaders
             : platform.getLoaders();
         if (!loaders.isEmpty()) {
-            queries.add("loaders=[\"" + String.join("\",\"", loaders) + "\"]");
+            url.addQueryParameter("loaders", Utils.gson.toJson(loaders));
         }
 
         // 添加游戏版本参数
@@ -121,11 +116,10 @@ public class ModrinthUpdate extends AbstractUpdate {
             ? Config.Platform_GameVersions
             : platform.getGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
-            queries.add("game_versions=[\"" + String.join("\",\"", gameVersions) + "\"]");
+            url.addQueryParameter("game_versions", Utils.gson.toJson(gameVersions));
         }
 
-        url.append("?").append(String.join("&", queries));
-        return url.toString();
+        return url.build().toString();
     }
 
     @Override
@@ -234,27 +228,26 @@ public class ModrinthUpdate extends AbstractUpdate {
         String hashAlgorithm = file.getHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getType());
             String expectedFilename = desiredFilename != null ? desiredFilename : originFilename;
 
             // 获取数据目录下的downloads文件夹
             Path downloadDir = platform.getDataPath().resolve("downloads");
             Path filePath = downloadDir.resolve(expectedFilename);
 
-            // 检查文件是否已存在且完整
+            // 检查文件是否已存在：有 hash 时校验完整，无 hash 时视为已下载
             if (filePath.toFile().exists()) {
-                if (preferredHash != null && hashAlgorithm != null
-                        && Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
+                boolean noHash = preferredHash == null || hashAlgorithm == null;
+                if (noHash || Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
                     this.downloadedFilePath = filePath;
                     logger.info(tr("message.update.hit", downloadUrl));
                     return true;  // 文件完整，不必重新下载
-                } else {
-                    Files.delete(filePath);
                 }
+                Files.delete(filePath);
             }
 
             // 执行下载
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));

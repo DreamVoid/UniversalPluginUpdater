@@ -10,6 +10,7 @@ updater:
   strategy: native
   allow-upgrade-now: true
   filename: ${originName}
+  force-filename: false
   proxy:
     uri: ~
     username: ~

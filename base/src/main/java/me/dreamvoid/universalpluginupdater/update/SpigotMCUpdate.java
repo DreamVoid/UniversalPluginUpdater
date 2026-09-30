@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.SpigotMCChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.spigotmc.SpigotMCVersion;
@@ -21,15 +22,15 @@ public class SpigotMCUpdate extends AbstractUpdate {
     private final Platform platform;
 
     private SpigotMCVersion selectedVersion;
-    private String cacheToken;
+    private Utils.Http.CacheToken cacheToken;
     private Path downloadedFilePath;
 
     public SpigotMCUpdate(String pluginId, SpigotMCChannelInfo info, Platform platform) {
+        super(UpdateType.SpigotMC);
         if (info.resource() == null || 变成文本好吗(info.resource()).isBlank()) {
             throw new IllegalArgumentException("resource 不存在或为空");
         }
 
-        this.updateType = UpdateType.SpigotMC;
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
@@ -61,7 +62,7 @@ public class SpigotMCUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                SpigotMCVersion version = Utils.getGson().fromJson(content, SpigotMCVersion.class);
+                SpigotMCVersion version = Utils.gson.fromJson(content, SpigotMCVersion.class);
                 if (version == null) {
                     logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
                     return false;
@@ -122,25 +123,20 @@ public class SpigotMCUpdate extends AbstractUpdate {
         String downloadUrl = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/" + selectedVersion.id() + "/download" + (info.proxyDownload() ? "/proxy" : "");
         
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getType());
             String expectedFilename = desiredFilename != null ? desiredFilename : pluginId + "-" + selectedVersion.name() + ".jar";
 
             Path downloadDir = platform.getDataPath().resolve("downloads");
             Path filePath = downloadDir.resolve(expectedFilename);
             
-            // 此处由于没有提供文件hash进行完整性校验，使用简化的存在性检测或强制重新下载逻辑
-            // 为了安全起见这里如果在缓存中有对应的正确文件名则使用它，通常在真实场景下载后需要更多的hash核对。
+            // 该渠道不提供文件 hash，无法校验完整性，存在同名文件时直接复用
             if (filePath.toFile().exists()) {
-                if(info.proxyDownload()){
-                    this.downloadedFilePath = filePath;
-                    logger.info(tr("message.update.hit", downloadUrl));
-                    return true;
-                } else {
-                    Files.deleteIfExists(filePath);
-                }
+                this.downloadedFilePath = filePath;
+                logger.info(tr("message.update.hit", downloadUrl));
+                return true;
             }
 
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, expectedFilename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, expectedFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));

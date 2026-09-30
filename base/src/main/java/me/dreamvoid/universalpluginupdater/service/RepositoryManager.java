@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -35,8 +36,13 @@ public final class RepositoryManager {
 
     private final Platform platform;
     private final Logger logger;
-    private final List<ChannelUpdateResult> updateResults = new ArrayList<>();
+    private final List<ChannelUpdateResult> updateResults = new CopyOnWriteArrayList<>();
     private final Map<String, RepositoryAccessor> remoteAccessorCache = new HashMap<>();
+    /**
+     * 记录 {@link #getUpdateChannel} 阶段每个插件实际命中的仓库 Accessor，
+     * 保证 {@link #download} 使用的 configUrl / configContent 与检查阶段来源仓库一致
+     */
+    private final Map<String, RepositoryAccessor> activeAccessorByPlugin = new HashMap<>();
 
     private RepositoryManager(Platform platform) {
         this.platform = platform;
@@ -69,6 +75,7 @@ public final class RepositoryManager {
             : platform.getPlatformName()).toLowerCase();
 
         updateResults.clear();
+        activeAccessorByPlugin.clear();
 
         for (String pluginIdRaw : platform.getPlugins()) {
             String pluginId = pluginIdRaw.toLowerCase();
@@ -107,10 +114,8 @@ public final class RepositoryManager {
             try {
                 Path localConfigPath = Files.createDirectories(platform.getDataPath().resolve("channels")).resolve(pluginId + ".json");
                 
-                RepositoryAccessor activeAccessor = remoteAccessorCache.values().stream()
-                        .filter(acc -> acc.pluginId.equals(pluginId) && acc.configUrl != null && acc.configContent != null)
-                        .findFirst()
-                        .orElse(null);
+                // 精确取回检查更新阶段实际命中的仓库 Accessor，避免多仓库场景下按 pluginId 模糊匹配到错误仓库
+                RepositoryAccessor activeAccessor = activeAccessorByPlugin.get(pluginId);
 
                 if (activeAccessor == null) {
                     failed += 1;
@@ -157,12 +162,12 @@ public final class RepositoryManager {
                     if (inputStream != null) {
                         Files.copy(inputStream, repositoriesPath);
                     } else {
-                        Files.writeString(repositoriesPath, Utils.getGson().toJson(List.of(DEFAULT_REPOSITORY)));
+                        Files.writeString(repositoriesPath, Utils.gson.toJson(List.of(DEFAULT_REPOSITORY)));
                     }
                 }
             }
 
-            List<String> result = Utils.getGson().fromJson(Files.readString(repositoriesPath), new TypeToken<List<String>>() {}.getType());
+            List<String> result = Utils.gson.fromJson(Files.readString(repositoriesPath), new TypeToken<List<String>>() {}.getType());
             result.replaceAll(String::trim);
             debug("repositories.json 解析成功，仓库数量: {0}", result.size());
             return result;
@@ -180,6 +185,8 @@ public final class RepositoryManager {
 
             ChannelUpdateResult result = accessor.fetch(platformName);
             if (result != null) {
+                // 记录实际命中的仓库 Accessor，供 download() 精确取回
+                activeAccessorByPlugin.put(pluginId, accessor);
                 return result;
             }
         }
@@ -191,10 +198,10 @@ public final class RepositoryManager {
         private final String repository;
 
         private String configContent;
-        private String configCacheToken;
+        private Utils.Http.CacheToken configCacheToken;
 
         private String indexContent;
-        private String indexCacheToken;
+        private Utils.Http.CacheToken indexCacheToken;
 
         private String configUrl;
 
@@ -235,7 +242,7 @@ public final class RepositoryManager {
                     return null;
                 }
 
-                RepoIndex index = Utils.getGson().fromJson(indexContent, RepoIndex.class);
+                RepoIndex index = Utils.gson.fromJson(indexContent, RepoIndex.class);
 
                 if (index.platform == null || index.platform.isEmpty()) {
                     debug("{0}: 仓库索引缺少 platform 定义: {1}", pluginId, indexUrl);
@@ -313,11 +320,11 @@ public final class RepositoryManager {
         }
 
         try {
-            JsonObject obj = Utils.getGson().fromJson(jsonText, JsonObject.class);
+            JsonObject obj = Utils.gson.fromJson(jsonText, JsonObject.class);
             if (obj != null && obj.has("last_update") && obj.get("last_update").isJsonPrimitive()) {
                 return obj.get("last_update").getAsLong();
             } else {
-                UpdateConfig cfg = Utils.getGson().fromJson(jsonText, UpdateConfig.class);
+                UpdateConfig cfg = Utils.gson.fromJson(jsonText, UpdateConfig.class);
                 long max = 0L;
                 if (cfg != null && cfg.channels() != null) {
                     for (ChannelConfig channel : cfg.channels()) {

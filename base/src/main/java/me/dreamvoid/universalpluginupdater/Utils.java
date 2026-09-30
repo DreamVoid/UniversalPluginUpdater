@@ -16,15 +16,23 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 实用工具类
@@ -37,8 +45,7 @@ public final class Utils {
     @NotNull
     private static Logger logger = Logger.getLogger("UPU");
 
-    @Getter
-    private static final Gson gson = new Gson();
+    public static final Gson gson = new Gson();
 
     @Nullable
     public static String parseFileName(String pluginId, @Nullable UpdateType channel) {
@@ -62,7 +69,6 @@ public final class Utils {
         filename = filename
                 .replace("${pluginId}", pluginId == null ? "" : pluginId)
                 .replace("${channel}", channelValue)
-                .replace("{$timestamp}", timestamp)
                 .replace("${timestamp}", timestamp)
                 .trim();
 
@@ -70,15 +76,31 @@ public final class Utils {
     }
 
     public static class Http {
+        private static final String USER_AGENT = MessageFormat.format("UniversalPluginUpdater/{0} ({1})", BuildConstants.VERSION, System.getProperty("os.name"));
         private static final OkHttpClient defaultClient = new OkHttpClient.Builder()
                 .followRedirects(true)
                 .followSslRedirects(true)
+                .connectTimeout(Duration.ofSeconds(10))
+                .readTimeout(Duration.ofSeconds(15))
+                .writeTimeout(Duration.ofSeconds(15))
                 .build();
-        private static final String USER_AGENT = MessageFormat.format("UniversalPluginUpdater/{0} ({1})", BuildConstants.VERSION, System.getProperty("os.name"));
-        private static volatile OkHttpClient client = defaultClient;
-        private static volatile String clientProxyUri = "";
-        private static volatile String clientProxyUsername = "";
-        private static volatile String clientProxyPassword = "";
+
+        private static final Object CLIENT_LOCK = new Object();
+        private static OkHttpClient client = defaultClient;
+        private static OkHttpClient downloadClient = defaultClient.newBuilder()
+                .readTimeout(Duration.ofSeconds(60))
+                .writeTimeout(Duration.ofSeconds(30))
+                .build();
+        private static String clientProxyUri = "";
+        private static String clientProxyUsername = "";
+        private static String clientProxyPassword = "";
+
+        /**
+         * HTTP 缓存验证令牌
+         * @param value 令牌内容
+         * @param etag 为 true 表示 ETag（If-None-Match），否则表示 Last-Modified（If-Modified-Since）
+         */
+        public record CacheToken (String value, boolean etag) { }
 
         /**
          * HTTP响应缓存对象
@@ -86,7 +108,7 @@ public final class Utils {
         public record Response (
                 int statusCode,
                 @Nullable String content,
-                @Nullable String cacheToken
+                @Nullable CacheToken cacheToken
         ){ }
 
         /**
@@ -101,22 +123,22 @@ public final class Utils {
         /**
          * 发送带有缓存支持的HTTP GET请求
          * @param url 请求URL
-         * @param cacheToken 缓存验证令牌（ETag 或 Last-Modified），null或空串表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
+         * @param cacheToken 缓存验证令牌，null 表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
          * @return {@link Response}对象
          */
-        public static Response get(String url, @Nullable String cacheToken) throws IOException {
+        public static Response get(String url, @Nullable CacheToken cacheToken) throws IOException {
             return get(url, cacheToken, null);
         }
 
         /**
          * 发送带有缓存支持的HTTP GET请求
          * @param url 请求URL
-         * @param cacheToken 缓存验证令牌（ETag 或 Last-Modified），null或空串表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
+         * @param cacheToken 缓存验证令牌，null 表示无缓存，首次请求后可使用 {@link Response#cacheToken} 传递
          * @param authorization Authorization 标头，为null或空串表示不附带
          * @return {@link Response}对象
          */
-        public static Response get(String url, @Nullable String cacheToken, @Nullable String authorization) throws IOException {
-            OkHttpClient httpClient = getClient();
+        public static Response get(String url, @Nullable CacheToken cacheToken, @Nullable String authorization) throws IOException {
+            OkHttpClient httpClient = getClient(false);
             Request.Builder requestBuilder = new Request.Builder().url(url)
                     .header("User-Agent", USER_AGENT);
 
@@ -124,12 +146,11 @@ public final class Utils {
                 requestBuilder.header("Authorization", authorization);
             }
 
-            if (cacheToken != null && !cacheToken.isEmpty()) {
-                // 如果是以双引号或W/开头的标准 ETag，或是没有逗号的校验码，使用 If-None-Match
-                if (cacheToken.startsWith("\"") || cacheToken.startsWith("W/\"") || !cacheToken.contains(",")) {
-                    requestBuilder.header("If-None-Match", cacheToken);
+            if (cacheToken != null && cacheToken.value() != null && !cacheToken.value().isEmpty()) {
+                if (cacheToken.etag()) {
+                    requestBuilder.header("If-None-Match", cacheToken.value());
                 } else {
-                    requestBuilder.header("If-Modified-Since", cacheToken);
+                    requestBuilder.header("If-Modified-Since", cacheToken.value());
                 }
             }
 
@@ -142,11 +163,16 @@ public final class Utils {
                 if (response.body() != null) {
                     content = response.body().string();
                 }
-                
-                String newCacheToken = Optional.ofNullable(response.header("ETag")).filter(s -> !s.isBlank())
-                        .or(() -> Optional.ofNullable(response.header("Last-Modified")).filter(s -> !s.isBlank()))
-                        .orElse(cacheToken);
-                
+
+                CacheToken newCacheToken = cacheToken;
+                String etag = response.header("ETag");
+                String lastModified = response.header("Last-Modified");
+                if (etag != null && !etag.isBlank()) {
+                    newCacheToken = new CacheToken(etag, true);
+                } else if (lastModified != null && !lastModified.isBlank()) {
+                    newCacheToken = new CacheToken(lastModified, false);
+                }
+
                 return new Response(code, content, newCacheToken);
             }
         }
@@ -155,13 +181,14 @@ public final class Utils {
          * 下载文件到指定目录
          * @param url 文件URL
          * @param saveDir 目标目录
-         * @param filename 期望的文件名，如果为null则尝试从服务器获取文件名
+         * @param filename 期望的文件名，作为服务器未提供文件名时的回退值
+         * @param forceFilename 为 true 时始终使用 filename，为 false 时优先使用服务器返回的文件名
          * @return {@link DownloadResult}对象
          */
-        public static DownloadResult download(String url, Path saveDir, @Nullable String filename) throws IOException {
+        public static DownloadResult download(String url, Path saveDir, @Nullable String filename, boolean forceFilename) throws IOException {
             // 确保目标目录存在
             Files.createDirectories(saveDir);
-            OkHttpClient httpClient = getClient();
+            OkHttpClient httpClient = getClient(true);
 
             Request request = new Request.Builder().url(url)
                     .header("User-Agent", USER_AGENT)
@@ -173,67 +200,97 @@ public final class Utils {
                 }
 
                 // 确定文件名
-                filename = Optional.ofNullable(filename)
+                String expectedName = Optional.ofNullable(filename).filter(s -> !s.isBlank()).orElse(null);
+                String serverName = Optional.ofNullable(response.header("Content-Disposition"))
+                        .filter(h -> h.contains("filename"))
+                        .map(Http::extractFilenameFromContentDisposition)
                         .filter(s -> !s.isBlank())
-                        .or(() -> Optional.ofNullable(response.header("Content-Disposition"))
-                                .filter(h -> h.contains("filename="))
-                                .map(Http::extractFilenameFromContentDisposition)
-                                .filter(s -> !s.isBlank()))
-                        .or(() -> Optional.ofNullable(extractFilenameFromUrl(url))
-                                .filter(s -> !s.isBlank()))
-                        .orElse("download-" + System.currentTimeMillis())
-                        .trim();
+                        .orElse(null);
 
-                // 构建完整的文件路径
-                Path filePath = saveDir.resolve(filename);
-
-                // 下载文件
-                try (InputStream inputStream = response.body().byteStream()) {
-                    Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+                String resolvedName = forceFilename ? expectedName : serverName;
+                if (resolvedName == null || resolvedName.isBlank()) {
+                    resolvedName = forceFilename ? serverName : expectedName;
+                }
+                if (resolvedName == null || resolvedName.isBlank()) {
+                    resolvedName = extractFilenameFromUrl(url);
+                }
+                if (resolvedName == null || resolvedName.isBlank()) {
+                    resolvedName = "download-" + System.currentTimeMillis();
                 }
 
-                return new DownloadResult(true, filename, null);
+                // 净化文件名，防止路径穿越（如 "../../evil.jar"、绝对路径、路径分隔符等）
+                String safeName;
+                try {
+                    safeName = Path.of(resolvedName.replace('\\', '/')).getFileName().toString().trim();
+                } catch (InvalidPathException e) {
+                    safeName = resolvedName.replace('\\', '/');
+                    int slash = safeName.lastIndexOf('/');
+                    safeName = (slash >= 0 ? safeName.substring(slash + 1) : safeName)
+                            .replaceAll("[\\\\/:*?\"<>|]", "").trim();
+                }
+                while (safeName.startsWith(".")) {
+                    safeName = safeName.substring(1);
+                }
+                if (safeName.isBlank()) {
+                    safeName = "download-" + System.currentTimeMillis();
+                }
+
+                // 构建完整的文件路径
+                Path filePath = saveDir.toAbsolutePath().normalize().resolve(safeName).normalize();
+                // 二次校验，确保最终路径仍位于目标目录内
+                if (!filePath.startsWith(saveDir.toAbsolutePath().normalize())) {
+                    return new DownloadResult(false, null, "Invalid filename");
+                }
+
+                // 先写入临时文件，成功后再原子移动到目标位置，避免中断时留下半成品
+                Path partPath = filePath.resolveSibling(filePath.getFileName().toString() + ".part");
+                try (InputStream inputStream = response.body().byteStream()) {
+                    Files.copy(inputStream, partPath, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    Files.deleteIfExists(partPath);
+                    throw e;
+                }
+
+                try {
+                    Files.move(partPath, filePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(partPath, filePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                return new DownloadResult(true, safeName, null);
             }
         }
 
-        private static OkHttpClient getClient() {
-            String proxyUri = trimToEmpty(Config.Updater_Proxy_Uri);
-            String username = trimToEmpty(Config.Updater_Proxy_Username);
-            String password = trimToEmpty(Config.Updater_Proxy_Password);
+        private static OkHttpClient getClient(boolean forDownload) {
+            synchronized (CLIENT_LOCK) {
+                String proxyUri = trimToEmpty(Config.Updater_Proxy_Uri);
+                String username = trimToEmpty(Config.Updater_Proxy_Username);
+                String password = trimToEmpty(Config.Updater_Proxy_Password);
 
-            if (proxyUri.isEmpty()) {
-                client = defaultClient;
-                clientProxyUri = "";
-                clientProxyUsername = "";
-                clientProxyPassword = "";
-                return client;
+                if (!Objects.equals(proxyUri, clientProxyUri)
+                        || !Objects.equals(username, clientProxyUsername)
+                        || !Objects.equals(password, clientProxyPassword)) {
+                    OkHttpClient.Builder builder = defaultClient.newBuilder();
+                    Proxy proxy = proxyUri.isEmpty() ? null : createProxy(proxyUri);
+                    if (proxy != null) {
+                        builder.proxy(proxy);
+                        if (!username.isEmpty() && !password.isEmpty()) {
+                            builder.proxyAuthenticator(proxyAuthenticator(username, password));
+                        }
+                    }
+
+                    client = builder.build();
+                    downloadClient = client.newBuilder()
+                            .readTimeout(Duration.ofSeconds(60))
+                            .writeTimeout(Duration.ofSeconds(30))
+                            .build();
+                    clientProxyUri = proxyUri;
+                    clientProxyUsername = username;
+                    clientProxyPassword = password;
+                }
+
+                return forDownload ? downloadClient : client;
             }
-
-            if (Objects.equals(proxyUri, clientProxyUri)
-                    && Objects.equals(username, clientProxyUsername)
-                    && Objects.equals(password, clientProxyPassword)) {
-                return client;
-            }
-
-            Proxy proxy = createProxy(proxyUri);
-            if (proxy == null) {
-                client = defaultClient;
-                clientProxyUri = "";
-                clientProxyUsername = "";
-                clientProxyPassword = "";
-                return client;
-            }
-
-            OkHttpClient.Builder builder = defaultClient.newBuilder().proxy(proxy);
-            if (!username.isEmpty() && !password.isEmpty()) {
-                builder.proxyAuthenticator(proxyAuthenticator(username, password));
-            }
-
-            client = builder.build();
-            clientProxyUri = proxyUri;
-            clientProxyUsername = username;
-            clientProxyPassword = password;
-            return client;
         }
 
         private static Authenticator proxyAuthenticator(String username, String password) {
@@ -296,31 +353,51 @@ public final class Utils {
          * 从Content-Disposition头提取文件名
          */
         private static String extractFilenameFromContentDisposition(String contentDisposition) {
-            // 处理 filename*=UTF-8''filename 和 filename="filename" 的格式
-            int filenameIndex = contentDisposition.indexOf("filename");
-            if (filenameIndex == -1) {
+            // 优先解析 RFC 5987 的 filename*，其值可携带非 ASCII 文件名
+            Matcher extended = Pattern.compile("filename\\*\\s*=\\s*([^;]+)", Pattern.CASE_INSENSITIVE).matcher(contentDisposition);
+            if (extended.find()) {
+                String value = extended.group(1).trim();
+                if (value.length() > 1 && value.startsWith("\"") && value.endsWith("\"")) {
+                    value = value.substring(1, value.length() - 1);
+                }
+
+                int charsetEnd = value.indexOf('\'');
+                int encodedStart = charsetEnd < 0 ? -1 : value.indexOf('\'', charsetEnd + 1);
+                if (encodedStart > charsetEnd) {
+                    String charsetName = value.substring(0, charsetEnd).trim();
+                    String encoded = value.substring(encodedStart + 1);
+
+                    Charset charset;
+                    try {
+                        charset = charsetName.isEmpty() ? StandardCharsets.UTF_8 : Charset.forName(charsetName);
+                    } catch (Exception ignored) {
+                        charset = StandardCharsets.UTF_8;
+                    }
+
+                    try {
+                        return URLDecoder.decode(encoded, charset);
+                    } catch (Exception ignored) {
+                        return encoded;
+                    }
+                }
+
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            }
+
+            // 回退到普通的 filename 参数
+            Matcher plain = Pattern.compile("filename\\s*=\\s*(\"([^\"]*)\"|[^;]+)", Pattern.CASE_INSENSITIVE).matcher(contentDisposition);
+            if (!plain.find()) {
                 return null;
             }
 
-            String filename = contentDisposition.substring(filenameIndex);
-            // 移除 filename= 或 filename*= 的前缀
-            if (filename.startsWith("filename*=")) {
-                filename = filename.substring(10);
-            } else if (filename.startsWith("filename=")) {
-                filename = filename.substring(9);
+            String value = (plain.group(2) != null ? plain.group(2) : plain.group(1)).trim();
+            if (value.length() > 1 && value.startsWith("\"") && value.endsWith("\"")) {
+                value = value.substring(1, value.length() - 1);
             }
 
-            // 移除引号
-            if (filename.startsWith("\"") && filename.endsWith("\"")) {
-                filename = filename.substring(1, filename.length() - 1);
-            }
-
-            // 移除RFC 5987编码前缀 (UTF-8'' 等)
-            if (filename.contains("''")) {
-                filename = filename.substring(filename.indexOf("''") + 2);
-            }
-
-            return filename.isEmpty() ? null : filename;
+            return value.isEmpty() ? null : value;
         }
 
         /**
@@ -446,7 +523,11 @@ public final class Utils {
     }
 
     public static void debug(String message, Object... args) {
-        logger.log((Config.Verbose ? Level.INFO : Level.FINE), "[DEBUG] " + MessageFormat.format(message, args));
+        Level level = Config.Verbose ? Level.INFO : Level.FINE;
+        if (!logger.isLoggable(level)) {
+            return;
+        }
+        logger.log(level, "[DEBUG] " + MessageFormat.format(message, args));
     }
 
     public static boolean findClass(String className) {

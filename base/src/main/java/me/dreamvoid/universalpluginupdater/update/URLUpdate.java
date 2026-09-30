@@ -1,6 +1,7 @@
 package me.dreamvoid.universalpluginupdater.update;
 
 import com.google.gson.annotations.SerializedName;
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
@@ -22,11 +23,11 @@ public class URLUpdate extends AbstractUpdate {
     private final Logger logger;
 
     private UpdateInfo updateInfo;
-    private String cacheToken;
+    private Utils.Http.CacheToken cacheToken;
     private Path downloadedFilePath;
 
     public URLUpdate(String pluginId, UrlChannelInfo info, Platform platform) {
-        this.updateType = UpdateType.URL;
+        super(UpdateType.URL);
         this.pluginId = pluginId;
         this.info = info;
         this.platform = platform;
@@ -71,7 +72,7 @@ public class URLUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                this.updateInfo = Utils.getGson().fromJson(content, UpdateInfo.class);
+                this.updateInfo = Utils.gson.fromJson(content, UpdateInfo.class);
                 this.cacheToken = response.cacheToken();
 
                 if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
@@ -111,13 +112,13 @@ public class URLUpdate extends AbstractUpdate {
         String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, updateType);
+            String desiredFilename = Utils.parseFileName(pluginId, getType());
 
             // 获取数据目录下的downloads文件夹
             Path downloadDir = platform.getDataPath().resolve("downloads");
 
             // 若配置包含 ${originName}，desiredFilename 会被解析为 null，交给 Http 层按服务器原始文件名处理
-            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename);
+            Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));

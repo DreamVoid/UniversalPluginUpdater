@@ -7,8 +7,11 @@ import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -36,9 +39,18 @@ public final class UpdateService {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdates() {
+        Set<String> checkList = new HashSet<>();
+        if (Config.Updater_PluginList != null) {
+            for (String id : Config.Updater_PluginList) {
+                if (id != null && !id.isBlank()) {
+                    checkList.add(id.trim().toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+
         return platform.getPlugins().stream()
                 .filter(pluginId -> {
-                    boolean inCheckList = Config.Updater_PluginList.stream().anyMatch(pluginId::equalsIgnoreCase);
+                    boolean inCheckList = checkList.contains(pluginId.trim().toLowerCase(Locale.ROOT));
                     boolean shouldSkip = ((Config.Updater_PluginListMode == 0) && !inCheckList)
                             || ((Config.Updater_PluginListMode == 1) && inCheckList);
                     if (shouldSkip) {
