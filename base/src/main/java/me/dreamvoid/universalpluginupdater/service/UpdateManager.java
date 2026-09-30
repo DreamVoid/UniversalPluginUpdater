@@ -3,11 +3,14 @@ package me.dreamvoid.universalpluginupdater.service;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.objects.UpdateInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.update.AbstractPluginUpdate;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
-import me.dreamvoid.universalpluginupdater.update.UpdateType;
+import me.dreamvoid.universalpluginupdater.update.UpdateChannel;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
@@ -18,12 +21,14 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
  */
 public final class UpdateManager {
     private static UpdateManager INSTANCE;
+    private final Platform platform;
     private final UpdateService updateService;
     private final UpdateChannelService updateChannelService;
 
     private volatile List<UpdateInfo> cachedUpdateInfos = List.of();  // 缓存最后一次的检查结果
 
     private UpdateManager(Platform platform) {
+        this.platform = platform;
         updateChannelService = new UpdateChannelService(platform);
         updateService = new UpdateService(platform, updateChannelService);
     }
@@ -71,7 +76,7 @@ public final class UpdateManager {
     }
 
     /**
-     * 获取指定插件的更新渠道实例，用于执行download/upgrade等操作
+     * 获取指定插件的更新渠道实例，用于执行download等操作
      * @param pluginId 插件ID
      * @return 对应的AbstractUpdate实例，若无法获取返回null
      */
@@ -80,19 +85,55 @@ public final class UpdateManager {
     }
 
     /**
-     * 注册外部更新实例
-     * @param updateInstance {@link UpdateType#Plugin} 类型的更新实例
-     * @throws IllegalArgumentException updateInstance 为 null 时<br>{@link AbstractUpdate#getPluginId()} 为 null 时<br>{@link AbstractUpdate#getType()} 不为 {@link UpdateType#Plugin} 时
+     * 获取当前已检查（缓存）的更新渠道实例列表<br>
+     * 每个插件对应一个"成功渠道"的实例，供执行下载/升级等操作时遍历
+     * @return 更新渠道实例列表
      */
-    public static void registerUpdateInstance(AbstractUpdate updateInstance) throws IllegalArgumentException {
-        UpdateChannelService.registerInstance(updateInstance);
+    @NotNull
+    public List<AbstractUpdate> getChannels() {
+        return getUpdateInfoList().stream()
+                .map(info -> updateChannelService.getUpdateInstance(info.pluginName(), info.updateChannel()))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /**
-     * 注销外部更新实例
-     * @param pluginId 插件ID
+     * 获取平台实例<br>
+     * 供第三方更新渠道获取平台能力（如下载目录、插件版本等）
+     * @return 平台实例
      */
-    public static void unregisterUpdateInstance(String pluginId) {
-        UpdateChannelService.unregisterUpdateInstance(pluginId);
+    @NotNull
+    public Platform getPlatform() {
+        return platform;
+    }
+
+    /**
+     * 获取下载文件保存目录<br>
+     * 内置更新渠道与第三方更新渠道统一通过此方法获取下载目录
+     * @return 下载目录
+     */
+    @NotNull
+    public Path getDownloadPath() {
+        return platform.getDataPath().resolve("downloads");
+    }
+
+    /**
+     * 注册通用更新渠道（插件无关，所有插件可通过配置文件使用）
+     * @param channelClass 渠道实现类，需标注 {@link UpdateChannel}，直接继承 {@link AbstractUpdate} 并提供约定构造器 {@code (String, JsonObject, Platform)}（自行解析配置并应用默认值）
+     * @throws IllegalStateException UpdateManager 尚未初始化时
+     * @throws IllegalArgumentException 渠道类无效或渠道标识重复时
+     */
+    public static void registerChannel(Class<? extends AbstractUpdate> channelClass) throws IllegalArgumentException {
+        instance().updateChannelService.registerChannel(channelClass);
+    }
+
+    /**
+     * 注册插件专属更新渠道（仅服务于指定插件，渠道标识固定为 "plugin"）
+     * @param updateInstance 更新实例
+     * @throws IllegalStateException UpdateManager 尚未初始化时
+     * @throws IllegalArgumentException 实例未实现
+     */
+    public static void registerChannel(AbstractPluginUpdate updateInstance) throws IllegalArgumentException {
+        instance().updateChannelService.registerChannel(updateInstance);
     }
 }

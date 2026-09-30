@@ -114,7 +114,6 @@
     "message.service.channel.error.config.failed": "Unable to load update config for {0}",
     "message.service.channel.error.exception": "Exception occurred while creating instance for update channel {0}: {1}",
     "message.service.channel.error.unknown": "Unknown update channel: {0}",
-    "message.service.channel.warn.illegal-type": "A plugin ({0}) is trying to register an update object of type {1}, expected type is {2}",
 
     "message.service.check-update.error": "Unable to check updates for plugin {0}!",
     "message.service.check-update.error.no-remote-version": "Unable to get remote version information for plugin {0}!",

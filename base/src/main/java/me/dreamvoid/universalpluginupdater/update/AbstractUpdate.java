@@ -1,25 +1,26 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Utils;
+import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
+import org.jetbrains.annotations.Nullable;
+
+import java.nio.file.Path;
+import java.util.logging.Logger;
+
+/**
+ * 更新渠道抽象基类<br>
+ * 实现类需直接继承本类：通用渠道在类上标注 {@link UpdateChannel} 并提供约定构造器 {@code (String, JsonObject, Platform)}（自行解析渠道配置并应用默认值），插件专属渠道实现（渠道标识固定为 "plugin"）
+ */
 public abstract class AbstractUpdate {
-    /**
-     * 更新渠道类型<br>
-     * 非 UPU 插件只能注册 {@link UpdateType#Plugin} 类型的更新实例
-     */
-    private final UpdateType updateType;
+    protected final String pluginId;
+    protected final Platform platform;
+    protected final Logger logger;
 
-    /**
-     * 创建更新渠道类型为 {@link UpdateType#Plugin} 的更新实例
-     */
-    protected AbstractUpdate() {
-        this.updateType = UpdateType.Plugin;
-    }
-
-    /**
-     * 创建指定更新渠道类型的更新实例，仅供内置更新渠道实现使用
-     * @param updateType 更新渠道类型
-     */
-    AbstractUpdate(UpdateType updateType) {
-        this.updateType = updateType;
+    protected AbstractUpdate(String pluginId, Platform platform) {
+        this.pluginId = pluginId;
+        this.platform = platform;
+        this.logger = platform.getPlatformLogger();
     }
 
     /**
@@ -27,50 +28,51 @@ public abstract class AbstractUpdate {
      * 此方法应当在用户执行 /upu update 时调用
      * @return 检查更新是否成功
      */
-    public abstract boolean update();
+    public abstract boolean checkUpdate();
 
     /**
      * 下载更新文件<br>
-     * 此方法应当在用户执行 /upu download 时调用
-     * @return 下载文件是否成功
+     * 此方法应当在用户执行 /upu download 时调用，文件保存到 {@link UpdateManager#getDownloadPath()} 目录
+     * @return 下载成功时返回插件文件路径，失败返回 null
      */
-    public abstract boolean download();
-
-    /**
-     * 升级现有插件<br>
-     * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑<br>
-     * 如果继承此类，建议重写 {@link #upgrade(boolean)} 方法而不是此方法
-     * @return 升级是否成功
-     */
-    public boolean upgrade(){
-        return upgrade(false);
-    }
-
-    /**
-     * 升级现有插件，可指定是否立刻执行<br>
-     * 此方法应当在用户执行 /upu upgrade 时调用，执行升级逻辑
-     * @param now true 立刻执行，false 延迟到插件卸载阶段执行
-     * @return 升级是否成功
-     */
-    public abstract boolean upgrade(boolean now);
-
-    /**
-     * 获取当前更新实例对应的插件 ID
-     * @return 插件 ID
-     */
-    public abstract String getPluginId();
+    @Nullable
+    public abstract Path download();
 
     /**
      * 获取更新的版本名
      * @return 新版本
      */
+    @Nullable
     public abstract String getVersion();
 
     /**
-     * 获取更新渠道类型
-     * @return {@link UpdateType}
+     * 是否存在更新<br>
+     * 将缓存的远程最新版本与本地插件版本进行语义化版本比较，本地版本较旧时返回 true
+     * @return 本地版本较旧时返回 true
      */
-    public final UpdateType getType() {
-        return updateType;
+    public boolean hasUpdate() {
+        String newVersion = getVersion();
+        if (newVersion != null) {
+            return Utils.isVersionNewer(newVersion, platform.getPluginVersion(getPluginId()));
+        } else {
+            return false;
+        }
     }
+
+    /**
+     * 获取当前更新实例对应的插件 ID
+     * @return 插件 ID
+     */
+    public final String getPluginId() {
+        return pluginId;
+    }
+
+    /**
+     * 获取更新渠道标识<br>
+     * @return 渠道标识
+     */
+    public final String getChannelId(){
+        UpdateChannel annotation = getClass().getAnnotation(UpdateChannel.class);
+        return annotation != null ? annotation.value() : null;
+    };
 }

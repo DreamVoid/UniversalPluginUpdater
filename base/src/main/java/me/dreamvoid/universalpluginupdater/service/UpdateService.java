@@ -91,8 +91,8 @@ public final class UpdateService {
                     continue;
                 }
 
-                if (!instance.update()) {
-                    String failedType = instance.getType() == null ? "unknown" : instance.getType().getIdentifier();
+                if (!instance.checkUpdate()) {
+                    String failedType = instance.getChannelId() == null ? "unknown" : instance.getChannelId();
                     debug("插件 {0} 渠道 {1} 更新检查失败，尝试下一个渠道", pluginId, failedType);
                     continue;
                 }
@@ -104,7 +104,7 @@ public final class UpdateService {
                     return null;
                 }
 
-                String channelType = instance.getType().getIdentifier();
+                String channelType = instance.getChannelId() == null ? "unknown" : instance.getChannelId();
                 debug("插件 {0} 版本: 本地={1}, 远程={2}, 渠道={3}", pluginId, localVersion, remoteVersion, channelType);
                 return new UpdateInfo(pluginId, localVersion, remoteVersion, channelType);
             }

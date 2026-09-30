@@ -1,44 +1,37 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.SpigotMCChannelInfo;
 import me.dreamvoid.universalpluginupdater.objects.update.spigotmc.SpigotMCVersion;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
+import org.jetbrains.annotations.Nullable;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("spigotmc")
 public class SpigotMCUpdate extends AbstractUpdate {
     private static final String SPIGET_API = "https://api.spiget.org/v2";
 
-    private final Logger logger;
-    private final String pluginId;
     private final SpigotMCChannelInfo info;
-    private final Platform platform;
 
     private SpigotMCVersion selectedVersion;
     private Utils.Http.CacheToken cacheToken;
-    private Path downloadedFilePath;
 
-    public SpigotMCUpdate(String pluginId, SpigotMCChannelInfo info, Platform platform) {
-        super(UpdateType.SpigotMC);
-        if (info.resource() == null || 变成文本好吗(info.resource()).isBlank()) {
+    public SpigotMCUpdate(String pluginId, JsonObject config, Platform platform) {
+        super(pluginId, platform);
+        this.info = Utils.gson.fromJson(config, SpigotMCChannelInfo.class);
+        if (this.info.resource() == null || 变成文本好吗(this.info.resource()).isBlank()) {
             throw new IllegalArgumentException("resource 不存在或为空");
         }
-
-        this.pluginId = pluginId;
-        this.info = info;
-        this.platform = platform;
-        this.logger = platform.getPlatformLogger();
     }
 
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         String url = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/latest";
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
@@ -88,67 +81,41 @@ public class SpigotMCUpdate extends AbstractUpdate {
     }
 
     @Override
-    public String getPluginId() {
-        return pluginId;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        try {
-            if (!download()) return false;
-
-            Path currentPluginFile = platform.getPluginFile(pluginId);
-            Path newPluginFile = downloadedFilePath;
-
-            if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
-                return false;
-            }
-
-            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
-        } catch (Exception e) {
-            logger.warning(tr("message.update.failed", e));
-            return false;
-        }
-    }
-
-    @Override
-    public boolean download() {
+    @Nullable
+    public Path download() {
         if (selectedVersion == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.spigotmc.failed.no-selected-version")));
-            return false;
+            return null;
         }
 
         // 使用版本id作为下载链接的版本标识
         String downloadUrl = SPIGET_API + "/resources/" + 变成文本好吗(info.resource()) + "/versions/" + selectedVersion.id() + "/download" + (info.proxyDownload() ? "/proxy" : "");
-        
+
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, getType());
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
             String expectedFilename = desiredFilename != null ? desiredFilename : pluginId + "-" + selectedVersion.name() + ".jar";
 
-            Path downloadDir = platform.getDataPath().resolve("downloads");
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
             Path filePath = downloadDir.resolve(expectedFilename);
-            
+
             // 该渠道不提供文件 hash，无法校验完整性，存在同名文件时直接复用
             if (filePath.toFile().exists()) {
-                this.downloadedFilePath = filePath;
                 logger.info(tr("message.update.hit", downloadUrl));
-                return true;
+                return filePath;
             }
 
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, expectedFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
-                return false;
+                return null;
             }
 
-            this.downloadedFilePath = downloadDir.resolve(result.filename());
             logger.info(tr("message.update.get", downloadUrl));
-            return true;
+            return downloadDir.resolve(result.filename());
         } catch (Exception e) {
             logger.warning(tr("message.update.error", downloadUrl, e));
-            return false;
+            return null;
         }
     }
 

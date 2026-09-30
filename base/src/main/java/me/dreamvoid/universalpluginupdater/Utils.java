@@ -3,7 +3,6 @@ package me.dreamvoid.universalpluginupdater;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
-import me.dreamvoid.universalpluginupdater.update.UpdateType;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -48,7 +47,7 @@ public final class Utils {
     public static final Gson gson = new Gson();
 
     @Nullable
-    public static String parseFileName(String pluginId, @Nullable UpdateType channel) {
+    public static String parseFileName(String pluginId, @Nullable String channelId) {
         String template = Config.Updater_Filename;
         if (template == null) {
             return null;
@@ -63,7 +62,7 @@ public final class Utils {
             return null;
         }
 
-        String channelValue = channel == null ? "" : channel.name().toLowerCase();
+        String channelValue = channelId == null ? "" : channelId;
         String timestamp = String.valueOf(System.currentTimeMillis());
 
         filename = filename
@@ -73,6 +72,44 @@ public final class Utils {
                 .trim();
 
         return filename.isEmpty() ? null : filename;
+    }
+
+    /**
+     * 判断新版本是否比旧版本更新（语义化版本比较）<br>
+     * 逐段比较点分版本号，数值段按数值比较，非数值段回退字符串比较<br>
+     * 预发布段（"-" 之后）与构建元数据不参与比较
+     * @param newVersion 新版本
+     * @param oldVersion 旧版本
+     * @return 新版本比旧版本新时返回 true
+     */
+    public static boolean isVersionNewer(@Nullable String newVersion, @Nullable String oldVersion) {
+        if (oldVersion == null || newVersion == null) {
+            return !Objects.equals(oldVersion, newVersion);
+        }
+
+        String[] currentParts = oldVersion.split("-")[0].split("\\.");
+        String[] newParts = newVersion.split("-")[0].split("\\.");
+
+        int max = Math.max(currentParts.length, newParts.length);
+        for (int i = 0; i < max; i++) {
+            String currentPart = i < currentParts.length ? currentParts[i].trim() : "0";
+            String newPart = i < newParts.length ? newParts[i].trim() : "0";
+
+            try {
+                int currentValue = Integer.parseInt(currentPart);
+                int newValue = Integer.parseInt(newPart);
+
+                if (newValue > currentValue) {
+                    return true;
+                } else if (newValue < currentValue) {
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                return !currentPart.equals(newPart);
+            }
+        }
+
+        return false;
     }
 
     public static class Http {

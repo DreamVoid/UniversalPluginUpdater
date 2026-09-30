@@ -1,37 +1,32 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.objects.channel.info.UrlChannelInfo;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
-import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
+import me.dreamvoid.universalpluginupdater.service.UpdateManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+@UpdateChannel("url")
 public class URLUpdate extends AbstractUpdate {
-    private final String pluginId;
     private final UrlChannelInfo info;
-    private final Platform platform;
-    private final Logger logger;
 
     private UpdateInfo updateInfo;
     private Utils.Http.CacheToken cacheToken;
-    private Path downloadedFilePath;
 
-    public URLUpdate(String pluginId, UrlChannelInfo info, Platform platform) {
-        super(UpdateType.URL);
-        this.pluginId = pluginId;
-        this.info = info;
-        this.platform = platform;
-        logger = platform.getPlatformLogger();
+    public URLUpdate(String pluginId, JsonObject config, Platform platform) {
+        super(pluginId, platform);
+        this.info = Utils.gson.fromJson(config, UrlChannelInfo.class);
 
         if (this.info.url() == null || this.info.url().isEmpty()) {
             throw new IllegalArgumentException("URL 不存在或为空");
@@ -50,44 +45,48 @@ public class URLUpdate extends AbstractUpdate {
      * }
      */
     @Override
-    public boolean update() {
+    public boolean checkUpdate() {
         String url = info.url();
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
-            if (response.statusCode() == 304) {
-                // 返回304 Not Modified，使用缓存
-                if (updateInfo != null) {
+            return switch (response.statusCode()) {
+                case 304 -> {
+                    // 返回304 Not Modified，使用缓存
+                    if (updateInfo != null) {
+                        this.cacheToken = response.cacheToken();
+                        logger.info(tr("message.update.hit", url));
+                        yield true;
+                    } else {
+                        logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
+                        yield false;
+                    }
+                }
+                case 200 -> {
+                    String content = response.content();
+                    if (content == null) {
+                        logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
+                        yield false;
+                    }
+
+                    this.updateInfo = Utils.gson.fromJson(content, UpdateInfo.class);
                     this.cacheToken = response.cacheToken();
-                    logger.info(tr("message.update.hit", url));
-                    return true;
-                } else {
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.no-cache-304")));
-                    return false;
-                }
-            } else if (response.statusCode() == 200) {
-                String content = response.content();
-                if (content == null) {
-                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.response-null")));
-                    return false;
-                }
 
-                this.updateInfo = Utils.gson.fromJson(content, UpdateInfo.class);
-                this.cacheToken = response.cacheToken();
-
-                if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
-                    logger.info(tr("message.update.get", url));
-                    return true;
-                } else {
-                    this.updateInfo = null;
-                    this.cacheToken = null;
-                    logger.warning(tr("message.update.error", url, tr("tag.update.error.response-invalid")));
-                    return false;
+                    if (updateInfo != null && updateInfo.version != null && updateInfo.downloadUrl != null) {
+                        logger.info(tr("message.update.get", url));
+                        yield true;
+                    } else {
+                        this.updateInfo = null;
+                        this.cacheToken = null;
+                        logger.warning(tr("message.update.error", url, tr("tag.update.error.response-invalid")));
+                        yield false;
+                    }
                 }
-            } else {
-                logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
-                return false;
-            }
+                default -> {
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.status-code", response.statusCode())));
+                    yield false;
+                }
+            };
         } catch (Exception e) {
             logger.warning(tr("message.update.error", url, e));
             return false;
@@ -100,11 +99,12 @@ public class URLUpdate extends AbstractUpdate {
     }
 
     @Override
-    public boolean download() {
+    @Nullable
+    public Path download() {
         // 从缓存的更新信息中获取下载链接
         if (updateInfo == null || updateInfo.downloadUrl == null) {
             logger.warning(tr("message.update.failed", tr("tag.update.url.failed.no-download-url")));
-            return false;
+            return null;
         }
 
         String downloadUrl = updateInfo.downloadUrl;
@@ -112,17 +112,17 @@ public class URLUpdate extends AbstractUpdate {
         String hashAlgorithm = updateInfo.getPreferredHashAlgorithm();
 
         try {
-            String desiredFilename = Utils.parseFileName(pluginId, getType());
+            String desiredFilename = Utils.parseFileName(pluginId, getChannelId());
 
-            // 获取数据目录下的downloads文件夹
-            Path downloadDir = platform.getDataPath().resolve("downloads");
+            // 获取下载目录
+            Path downloadDir = UpdateManager.instance().getDownloadPath();
 
             // 若配置包含 ${originName}，desiredFilename 会被解析为 null，交给 Http 层按服务器原始文件名处理
             Utils.Http.DownloadResult result = Utils.Http.download(downloadUrl, downloadDir, desiredFilename, Config.Updater_ForceFilename);
 
             if (!result.success()) {
                 logger.warning(tr("message.update.error", downloadUrl, result.errorMessage()));
-                return false;
+                return null;
             }
 
             Path filePath = downloadDir.resolve(result.filename());
@@ -130,68 +130,35 @@ public class URLUpdate extends AbstractUpdate {
             // 验证下载文件的完整性
             if (preferredHash != null && hashAlgorithm != null) {
                 if (Utils.File.verifyHash(filePath, hashAlgorithm, preferredHash)) {
-                    this.downloadedFilePath = filePath;
                     logger.info(tr("message.update.get", downloadUrl));
-                    return true;
+                    return filePath;
                 } else {
                     // 删除不完整的文件
                     Files.delete(filePath);
-                    this.downloadedFilePath = null;
                     logger.warning(tr("message.update.error", downloadUrl, tr("tag.update.error.checksum-mismatch")));
-                    return false;
+                    return null;
                 }
             } else {
-                this.downloadedFilePath = filePath;
                 logger.info(tr("message.update.get", downloadUrl));
-                return true;
+                return filePath;
             }
         } catch (Exception e) {
             logger.warning(tr("message.update.error", downloadUrl, e));
-            return false;
-        }
-    }
-
-    @Override
-    public String getPluginId() {
-        return pluginId;
-    }
-
-    @Override
-    public boolean upgrade(boolean now) {
-        // 升级逻辑：下载文件 → 获取升级策略 → 执行升级
-        try {
-            // 首先执行下载（如果还没下载）
-            if (!download()) return false;
-
-            // 获取当前插件文件
-            Path currentPluginFile = platform.getPluginFile(pluginId);
-
-            // 使用刚才下载的文件
-            Path newPluginFile = downloadedFilePath;
-
-            if (newPluginFile == null || !Files.exists(newPluginFile)) {
-                logger.warning(tr("message.update.error.downloaded-file-missing", newPluginFile));
-                return false;
-            }
-
-            return UpgradeManager.instance().upgrade(pluginId, newPluginFile, currentPluginFile, now);
-        } catch (Exception e) {
-            logger.warning(tr("message.update.failed", e));
-            return false;
+            return null;
         }
     }
 
     /**
      * 获取缓存的版本代码（若存在）
      */
-    public Integer getCachedVersionCode() {
+    public Integer getVersionCode() {
         return updateInfo != null ? updateInfo.versionCode : null;
     }
 
     /**
      * 获取缓存的更新日志链接（若存在）
      */
-    public URL getCachedChangelogLink() {
+    public URL getChangelogLink() {
         if (updateInfo != null && updateInfo.changelog != null) {
             try {
                 return new URI(updateInfo.changelog).toURL();
