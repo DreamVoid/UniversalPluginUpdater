@@ -1,6 +1,5 @@
 package me.dreamvoid.universalpluginupdater.command.action;
 
-import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.CommandSender;
