@@ -16,5 +16,5 @@ public @interface UpdateChannel {
      * 渠道标识，如 "github"、"modrinth"<br>
      * 与配置文件 {@code channels[].type} 字段对应，不区分大小写
      */
-    String value();
+    String id();
 }

@@ -10,7 +10,7 @@ public class BukkitPluginUpdate extends AbstractPluginUpdate {
     private String newVersion;
 
     public BukkitPluginUpdate(String pluginId, Platform platform) {
-        super(pluginId.toLowerCase(), platform);
+        super(pluginId.toLowerCase());
     }
 
     @Override

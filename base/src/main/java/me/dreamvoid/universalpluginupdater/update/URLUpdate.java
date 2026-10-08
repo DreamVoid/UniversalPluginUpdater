@@ -17,7 +17,7 @@ import java.util.Map;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
-@UpdateChannel("url")
+@UpdateChannel(id = "url")
 public class URLUpdate extends AbstractUpdate {
     private final UrlChannelInfo info;
 

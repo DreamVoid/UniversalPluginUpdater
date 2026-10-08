@@ -13,7 +13,7 @@ import java.nio.file.Path;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
-@UpdateChannel("spigotmc")
+@UpdateChannel(id = "spigotmc")
 public class SpigotMCUpdate extends AbstractUpdate {
     private static final String SPIGET_API = "https://api.spiget.org/v2";
 

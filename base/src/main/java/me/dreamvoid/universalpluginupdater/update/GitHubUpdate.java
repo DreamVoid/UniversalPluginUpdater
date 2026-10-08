@@ -19,11 +19,12 @@ import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
-@UpdateChannel("github")
+@UpdateChannel(id = "github")
 public class GitHubUpdate extends AbstractUpdate {
     private static final String GITHUB_API_URL = "https://api.github.com";
 
     private final GitHubChannelInfo info;
+    private static final GitHubChannelInfo defaults = new GitHubChannelInfo(null, null, List.of("application/java-archive", "application/x-java-archive"), null, "name", null);
 
     private GithubRelease selectedRelease;
     private GithubAsset selectedAsset;
@@ -38,17 +39,9 @@ public class GitHubUpdate extends AbstractUpdate {
     }
 
     /**
-     * 获取该渠道的默认配置（仅本渠道使用）
-     */
-    private GitHubChannelInfo defaults() {
-        return new GitHubChannelInfo(null, null, List.of("application/java-archive", "application/x-java-archive"), null, "name", null);
-    }
-
-    /**
      * 将配置中缺失（为 null）的字段用默认值替换
      */
-    private GitHubChannelInfo applyDefaults(GitHubChannelInfo info) {
-        GitHubChannelInfo defaults = defaults();
+    private static GitHubChannelInfo applyDefaults(GitHubChannelInfo info) {
         return new GitHubChannelInfo(
                 info.repository(),
                 info.auth(),

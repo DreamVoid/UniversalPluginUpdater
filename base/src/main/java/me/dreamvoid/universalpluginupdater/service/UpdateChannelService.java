@@ -67,7 +67,7 @@ final class UpdateChannelService {
         if (annotation == null) {
             throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
         }
-        String channelId = annotation.value();
+        String channelId = annotation.id();
         if (channelId == null || channelId.isBlank()) {
             throw new IllegalArgumentException("更新渠道标识不能为空");
         }
@@ -98,7 +98,7 @@ final class UpdateChannelService {
         if (annotation == null) {
             throw new IllegalArgumentException("更新渠道类缺少 @UpdateChannel 注解");
         }
-        String channelId = annotation.value();
+        String channelId = annotation.id();
         if (channelId == null || channelId.isBlank()) {
             throw new IllegalArgumentException("更新渠道标识不能为空");
         }

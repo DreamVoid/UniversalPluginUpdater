@@ -20,11 +20,12 @@ import java.util.regex.PatternSyntaxException;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
-@UpdateChannel("modrinth")
+@UpdateChannel(id = "modrinth")
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
 
     private final ModrinthChannelInfo info;
+    private static final ModrinthChannelInfo defaults = new ModrinthChannelInfo(null, false, "name", null);
 
     private ModrinthVersion selectedVersion;
     private Utils.Http.CacheToken cacheToken;
@@ -38,17 +39,9 @@ public class ModrinthUpdate extends AbstractUpdate {
     }
 
     /**
-     * 获取该渠道的默认配置（仅本渠道使用）
-     */
-    private ModrinthChannelInfo defaults() {
-        return new ModrinthChannelInfo(null, false, "name", null);
-    }
-
-    /**
      * 将配置中缺失（为 null）的字段用默认值替换
      */
-    private ModrinthChannelInfo applyDefaults(ModrinthChannelInfo info) {
-        ModrinthChannelInfo defaults = defaults();
+    private static ModrinthChannelInfo applyDefaults(ModrinthChannelInfo info) {
         return new ModrinthChannelInfo(
                 info.projectId(),
                 info.featured(),

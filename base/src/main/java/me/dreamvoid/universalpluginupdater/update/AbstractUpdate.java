@@ -73,6 +73,6 @@ public abstract class AbstractUpdate {
      */
     public final String getChannelId(){
         UpdateChannel annotation = getClass().getAnnotation(UpdateChannel.class);
-        return annotation != null ? annotation.value() : null;
+        return annotation != null ? annotation.id() : null;
     };
 }

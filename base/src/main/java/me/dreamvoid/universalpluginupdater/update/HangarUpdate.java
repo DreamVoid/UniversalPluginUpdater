@@ -22,7 +22,7 @@ import java.util.Set;
 import static java.net.URLEncoder.encode;
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
-@UpdateChannel("hangar")
+@UpdateChannel(id = "hangar")
 public class HangarUpdate extends AbstractUpdate {
     private static final String HANGAR_API = "https://hangar.papermc.io/api/v1";
 
