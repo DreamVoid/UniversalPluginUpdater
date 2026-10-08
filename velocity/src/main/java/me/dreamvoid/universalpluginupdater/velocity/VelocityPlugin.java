@@ -16,10 +16,7 @@ import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
-import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.platform.Scheduler;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
-import me.dreamvoid.universalpluginupdater.velocity.upgrade.VelocityUpgradeStrategy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -40,7 +37,7 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
         url = "https://www.mineblock.cc",
         authors = {"DreamVoid"}
 )
-public class VelocityPlugin implements Platform {
+public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platform.Platform {
     private final ProxyServer server;
     private final Logger logger;
     private final Path dataDirectory;
@@ -64,9 +61,6 @@ public class VelocityPlugin implements Platform {
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         lifeCycle.preLoad();
-
-        UpgradeStrategyRegistry.instance().registerStrategy(new VelocityUpgradeStrategy(this));
-
         lifeCycle.postLoad();
 
         logger.info(tr("message.lifecycle.velocity.postload.register-command"));
@@ -97,10 +91,6 @@ public class VelocityPlugin implements Platform {
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
         lifeCycle.unload();
-
-        if (UpgradeStrategyRegistry.instance().getActiveStrategy() instanceof VelocityUpgradeStrategy strategy) {
-            strategy.launch();
-        }
     }
 
     @Subscribe
@@ -192,7 +182,7 @@ public class VelocityPlugin implements Platform {
 
     @Override
     public boolean unloadPlugin(String pluginId) {
-        logger.warn("Velocity 不支持卸载插件，建议使用 velocity 升级策略替代 native 策略。");
+        logger.warn("Velocity 不支持卸载插件，建议使用 applier 升级策略替代 native 策略。");
         return false;
     }
 }

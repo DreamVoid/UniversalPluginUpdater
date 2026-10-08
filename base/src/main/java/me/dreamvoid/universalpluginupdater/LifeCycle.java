@@ -10,6 +10,7 @@ import me.dreamvoid.universalpluginupdater.update.HangarUpdate;
 import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
 import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
 import me.dreamvoid.universalpluginupdater.update.URLUpdate;
+import me.dreamvoid.universalpluginupdater.upgrade.ApplierUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
@@ -69,6 +70,7 @@ public class LifeCycle {
                 logger.info(tr("message.lifecycle.preload.gameversions", effectiveGameVersions == null ? "通用" : String.join(", ", effectiveGameVersions)));
 
             UpgradeStrategyRegistry.instance().registerStrategy(new NativeUpgradeStrategy(platform));
+            UpgradeStrategyRegistry.instance().registerStrategy(new ApplierUpgradeStrategy(platform));
 
             // 初始化服务
             UpdateManager.initialize(platform);
@@ -113,6 +115,10 @@ public class LifeCycle {
                     Thread.sleep(5000);
                 } catch (InterruptedException ignored) {
                 }
+            }
+
+            if (UpgradeStrategyRegistry.instance().getActiveStrategy() instanceof ApplierUpgradeStrategy strategy) {
+                strategy.launch();
             }
 
             logger.info(tr("message.lifecycle.unload.finish"));

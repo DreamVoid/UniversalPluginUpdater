@@ -33,6 +33,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -185,11 +187,11 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     @Nullable
     public Path getPluginFile(String pluginId) {
         Plugin plugin = getServer().getPluginManager().getPlugin(pluginId);
-        if (plugin == null || !plugin.isEnabled()) {
+        if (plugin == null) {
             return null;
         }
 
-        try {
+        try { // 从Bukkit提供的方法获取文件位置
             Method getFileMethod = JavaPlugin.class.getDeclaredMethod("getFile");
             getFileMethod.setAccessible(true);
             File pluginFile = (File) getFileMethod.invoke(plugin);
@@ -201,9 +203,37 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
             getLogger().warning("Failed to get plugin file for " + pluginId + ": getFile method not found");
         } catch (IllegalAccessException e) {
             getLogger().warning("Failed to get plugin file for " + pluginId + ": access denied");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             getLogger().warning("Failed to get plugin file for " + pluginId + " using reflection: " + e);
         }
+
+        try { // 通过class获取文件位置
+            Class<?> clazz = plugin.getClass();
+            // 方式 1：CodeSource
+            if (clazz.getProtectionDomain() != null
+                    && clazz.getProtectionDomain().getCodeSource() != null) {
+                URL location = clazz.getProtectionDomain().getCodeSource().getLocation();
+                if ("file".equals(location.getProtocol())) {
+                    Path path = Path.of(location.toURI());
+                    if (path.toFile().isFile()) return path;          // 普通 jar
+                    // 是目录：说明这个类是从 classes/ 加载的，不是 jar
+                } else if ("jar".equals(location.getProtocol())) {
+                    JarURLConnection conn = (JarURLConnection) location.openConnection();
+                    return Path.of(conn.getJarFileURL().toURI());
+                }
+            }
+
+            // 方式 2：从 class 资源 URL 解析
+            String resource = clazz.getName().replace('.', '/') + ".class";
+            URL url = clazz.getResource("/" + resource);
+            if (url == null && clazz.getClassLoader() != null) {
+                url = clazz.getClassLoader().getResource(resource);
+            }
+            if (url != null && "jar".equals(url.getProtocol())) {
+                JarURLConnection conn = (JarURLConnection) url.openConnection();
+                return Path.of(conn.getJarFileURL().toURI());
+            }
+        } catch (Throwable ignored){}
 
         return null;
     }
