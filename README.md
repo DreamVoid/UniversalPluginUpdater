@@ -33,7 +33,7 @@ UniversalPluginUpdater 的开发受到 [APT](https://wiki.debian.org/zh_CN/Apt) 
 | 命令 | 描述 |
 |-------------------|---------------------------|
 | /universalpluginupdater (/upu) | UniversalPluginUpdater 主命令 | 
-| `/upu update [--version <MC版本列表>]` | 更新可用插件列表，可指定目标 Minecraft 版本，多个版本以逗号分隔 |
+| /upu update | 更新可用插件列表 |
 | /upu list | 列出可用插件 |
 | /upu download | 通过 下载 来下载现有插件的更新版本 |
 | /upu upgrade | 通过 下载/安装 来升级现有插件到更新版本 |
