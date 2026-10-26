@@ -49,6 +49,7 @@
     "message.command.lock.warning": "&7Note: forcibly removing the lock is not always the right solution and may damage your system.",
     "message.command.error.no-permission": "&cYou do not have sufficient permission to use this command!",
     "message.command.error.unknown-argument": "&cUnknown command argument: {0}",
+    "message.command.error.argument-missing-value": "&cMissing value for argument: {0}",
     "message.command.error.unknown": "&cUnknown or incomplete command: {0}",
 
     "message.command.download.exception.game": "&cAn exception occurred while downloading updates. See console for more details!",
@@ -68,6 +69,7 @@
     "message.command.update.next": "Run \"/upu download\" to download updates, or run \"/upu upgrade\" to install updates.",
     "message.command.update.none": "All plugins are already up to date.",
     "message.command.update.start": "&7Checking plugin updates...",
+    "message.command.update.target-version": "&7Target Minecraft version(s): {0}",
 
     "message.command.upgrade.error.failed.exception": "Exception occurred while upgrading {0}: {1}",
     "message.command.upgrade.error.failed": "{0} upgrade failed!",

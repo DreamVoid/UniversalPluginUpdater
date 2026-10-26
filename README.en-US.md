@@ -33,7 +33,7 @@ This is just a list of some commonly used commands. For a complete list of comma
 | Command | Description | 
 | --- | --- |
 | /universalpluginupdater (/upu) | UniversalPluginUpdater main command |
-| /upu update | update list of available plugins. | 
+| `/upu update [--version <mcVersion...>]` | update list of available plugins. Use `--version` to check against a specific Minecraft version; separate multiple versions with commas. |
 | /upu list | list all available plugins |
 | /upu download | download existing plugins' newer version by downloading. | 
 | /upu upgrade | upgrade existing plugins by downloading/installing newer version. | 

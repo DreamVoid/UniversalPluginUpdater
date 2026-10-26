@@ -31,6 +31,8 @@ public class HangarUpdate extends AbstractUpdate {
     private HangarVersion selectedVersion;
     private String selectedPlatformKey; // eg "PAPER"
     private Utils.Http.CacheToken cacheToken;
+    // 缓存令牌与选中版本只对同一请求 URL 有效
+    private String lastRequestUrl;
 
     public HangarUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
@@ -43,6 +45,13 @@ public class HangarUpdate extends AbstractUpdate {
     @Override
     public boolean checkUpdate() {
         String url = buildUrl();
+        if (!url.equals(lastRequestUrl)) {
+            // 目标版本变化会改变请求 URL，旧令牌与旧选中版本不可复用
+            cacheToken = null;
+            selectedVersion = null;
+            selectedPlatformKey = null;
+        }
+        lastRequestUrl = url;
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
@@ -130,9 +139,7 @@ public class HangarUpdate extends AbstractUpdate {
             
             // platformVersion -> gameVersions
             // Hangar API requires platform to be specified when platformVersion is provided
-                List<String> gameVersions = (Config.Platform_GameVersions != null)
-                    ? Config.Platform_GameVersions
-                    : platform.getGameVersions();
+            List<String> gameVersions = getTargetGameVersions();
             if (gameVersions != null && !gameVersions.isEmpty()) {
                 queries.add("platformVersion=" + encode(String.join(",", gameVersions), java.nio.charset.StandardCharsets.UTF_8));
             }

@@ -1,11 +1,13 @@
 package me.dreamvoid.universalpluginupdater.update;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -21,6 +23,20 @@ public abstract class AbstractUpdate {
         this.pluginId = pluginId;
         this.platform = platform;
         this.logger = platform.getPlatformLogger();
+    }
+
+    /**
+     * 获取本次更新检查应使用的游戏版本列表<br>
+     * 优先级：{@link UpdateManager#checkUpdate(List)} 指定的覆盖值、{@code platform.game-versions} 配置、平台检测值
+     * @return 游戏版本列表，{@code null} 或空表示不限制
+     */
+    @Nullable
+    protected final List<String> getTargetGameVersions() {
+        List<String> override = UpdateManager.getGameVersionOverride();
+        if (override != null && !override.isEmpty()) {
+            return override;
+        }
+        return Config.Platform_GameVersions != null ? Config.Platform_GameVersions : platform.getGameVersions();
     }
 
     /**

@@ -36,5 +36,6 @@
 
 ## Documentation
 
+- Java 注释与 Javadoc 遵循 [.github/instructions/java-style.instructions.md](.github/instructions/java-style.instructions.md)。
 - User-facing commands and configuration are documented in the [Chinese README](README.md), [English README](README.en-US.md), and the linked [UPU Help Manual](https://docs.upu.dreamvoid.me/).
 - CI and release packaging examples are in [.github/workflows/maven.yml](.github/workflows/maven.yml) and [.github/workflows/publish.yml](.github/workflows/publish.yml).

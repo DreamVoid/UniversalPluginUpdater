@@ -8,9 +8,10 @@ import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.service.AsyncLock;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
@@ -31,12 +32,46 @@ public final class UpdateCommand extends CommandHandler {
     public void execute(CommandContext context) {
         CommandSender sender = context.sender();
         Locale locale = sender.getLocale();
+        String[] args = context.args();
+
+        Set<String> targetGameVersions = new LinkedHashSet<>();
+        boolean versionSpecified = false;
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (!"--version".equalsIgnoreCase(arg)) {
+                sender.sendMessage(tr(locale, "message.command.error.unknown-argument", arg));
+                return;
+            }
+            if (i + 1 >= args.length || args[i + 1].isBlank() || args[i + 1].startsWith("--")) {
+                sender.sendMessage(tr(locale, "message.command.error.argument-missing-value", "--version"));
+                return;
+            }
+
+            versionSpecified = true;
+            targetGameVersions.clear();
+            for (String version : args[++i].split(",")) {
+                String trimmed = version.trim();
+                if (!trimmed.isEmpty()) {
+                    targetGameVersions.add(trimmed);
+                }
+            }
+            if (targetGameVersions.isEmpty()) {
+                sender.sendMessage(tr(locale, "message.command.error.argument-missing-value", "--version"));
+                return;
+            }
+        }
+
         try(AsyncLock ignored = AsyncLock.acquire()){
             sender.broadcastMessage(tr(locale, "message.command.update.start"));
+            if (versionSpecified) {
+                sender.broadcastMessage(tr(locale, "message.command.update.target-version",
+                        String.join(", ", targetGameVersions)));
+            }
 
             // 获取待更新的插件列表
             UpdateManager updateManager = UpdateManager.instance();
-            List<UpdateInfo> updateInfos = updateManager.checkUpdate();
+            List<UpdateInfo> updateInfos = updateManager.checkUpdate(
+                    versionSpecified ? List.copyOf(targetGameVersions) : null);
 
             long updatableCount = updateInfos.stream().filter(UpdateInfo::hasUpdate).count();
 
@@ -57,6 +92,18 @@ public final class UpdateCommand extends CommandHandler {
 
     @Override
     public List<String> suggest(CommandContext context) {
-        return Collections.emptyList();
+        String[] args = context.args();
+        if (args.length == 0) {
+            return List.of();
+        }
+
+        for (int i = 0; i < args.length - 1; i++) {
+            if ("--version".equalsIgnoreCase(args[i])) {
+                return List.of();
+            }
+        }
+
+        String current = args[args.length - 1].toLowerCase(Locale.ROOT);
+        return "--version".startsWith(current) ? List.of("--version") : List.of();
     }
 }

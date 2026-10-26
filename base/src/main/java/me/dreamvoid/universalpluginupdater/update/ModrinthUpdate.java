@@ -29,6 +29,8 @@ public class ModrinthUpdate extends AbstractUpdate {
 
     private ModrinthVersion selectedVersion;
     private Utils.Http.CacheToken cacheToken;
+    // 缓存令牌与选中版本只对同一请求 URL 有效
+    private String lastRequestUrl;
 
     public ModrinthUpdate(String pluginId, JsonObject config, Platform platform) {
         super(pluginId, platform);
@@ -57,6 +59,12 @@ public class ModrinthUpdate extends AbstractUpdate {
     @Override
     public boolean checkUpdate() {
         String url = buildUrl();
+        if (!url.equals(lastRequestUrl)) {
+            // 目标版本变化会改变请求 URL，旧令牌与旧选中版本不可复用
+            cacheToken = null;
+            selectedVersion = null;
+        }
+        lastRequestUrl = url;
         try {
             Utils.Http.Response response = Utils.Http.get(url, cacheToken);
 
@@ -120,9 +128,7 @@ public class ModrinthUpdate extends AbstractUpdate {
         }
 
         // 添加游戏版本参数
-        List<String> gameVersions = (Config.Platform_GameVersions != null)
-            ? Config.Platform_GameVersions
-            : platform.getGameVersions();
+        List<String> gameVersions = getTargetGameVersions();
         if (gameVersions != null && !gameVersions.isEmpty()) {
             url.addQueryParameter("game_versions", Utils.gson.toJson(gameVersions));
         }

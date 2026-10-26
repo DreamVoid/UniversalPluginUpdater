@@ -7,6 +7,7 @@ import me.dreamvoid.universalpluginupdater.update.AbstractPluginUpdate;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.update.UpdateChannel;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,8 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
  */
 public final class UpdateManager {
     private static UpdateManager INSTANCE;
+    // 仅对当前检查线程生效，避免覆盖值污染缓存实例或并发检查
+    private static final ThreadLocal<List<String>> GAME_VERSION_OVERRIDE = new ThreadLocal<>();
     private final Platform platform;
     private final UpdateService updateService;
     private final UpdateChannelService updateChannelService;
@@ -61,9 +64,31 @@ public final class UpdateManager {
      * @return 待更新的插件列表
      */
     public List<UpdateInfo> checkUpdate() {
-        updateChannelService.validateCache();
-        cachedUpdateInfos = List.copyOf(updateService.checkUpdates());
-        return cachedUpdateInfos;
+        return checkUpdate(null);
+    }
+
+    /**
+     * 使用指定游戏版本检查所有插件的更新<br>
+     * 覆盖值仅对本次检查生效，不会写入配置或平台检测结果
+     * @param gameVersions 目标游戏版本列表，为 {@code null} 或空时使用配置/平台检测值
+     * @return 待更新的插件列表
+     */
+    public List<UpdateInfo> checkUpdate(@Nullable List<String> gameVersions) {
+        List<String> previous = GAME_VERSION_OVERRIDE.get();
+        if (gameVersions != null && !gameVersions.isEmpty()) {
+            GAME_VERSION_OVERRIDE.set(List.copyOf(gameVersions));
+        }
+        try {
+            updateChannelService.validateCache();
+            cachedUpdateInfos = List.copyOf(updateService.checkUpdates());
+            return cachedUpdateInfos;
+        } finally {
+            if (previous != null) {
+                GAME_VERSION_OVERRIDE.set(previous);
+            } else {
+                GAME_VERSION_OVERRIDE.remove();
+            }
+        }
     }
 
     /**
@@ -115,6 +140,15 @@ public final class UpdateManager {
     @NotNull
     public Path getDownloadPath() {
         return platform.getDataPath().resolve("downloads");
+    }
+
+    /**
+     * 获取当前线程正在使用的游戏版本覆盖值
+     * @return 覆盖值，未处于覆盖检查中时为 {@code null}
+     */
+    @Nullable
+    public static List<String> getGameVersionOverride() {
+        return GAME_VERSION_OVERRIDE.get();
     }
 
     /**

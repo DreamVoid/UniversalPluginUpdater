@@ -49,6 +49,7 @@
     "message.command.lock.warning": "&7请注意，通过其他手段移除锁不一定是合适的解决方案，且可能损坏您的系统。",
     "message.command.error.no-permission": "&c你没有足够的权限使用此命令！",
     "message.command.error.unknown-argument": "&c未知的命令参数: {0}",
+    "message.command.error.argument-missing-value": "&c参数缺少值: {0}",
     "message.command.error.unknown": "&c未知或不完整的命令: {0}",
 
     "message.command.download.exception.game": "&c下载插件更新时出现异常，请查看控制台了解更多信息！",
@@ -68,6 +69,7 @@
     "message.command.update.next": "使用 \"/upu download\" 命令下载更新，或使用 \"/upu upgrade\" 安装更新。",
     "message.command.update.none": "所有插件都已是最新版本。",
     "message.command.update.start": "&7开始检查插件更新...",
+    "message.command.update.target-version": "&7目标 Minecraft 版本: {0}",
 
     "message.command.upgrade.error.failed.exception": "{0} 升级时出现异常: {1}",
     "message.command.upgrade.error.failed": "{0} 升级失败！",
