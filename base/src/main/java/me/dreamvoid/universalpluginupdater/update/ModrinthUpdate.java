@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -23,9 +24,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 @UpdateChannel(id = "modrinth")
 public class ModrinthUpdate extends AbstractUpdate {
     private static final String MODRINTH_API = "https://api.modrinth.com/v2";
+    // Modrinth 只会返回这三种 version_type
+    private static final Set<String> SUPPORTED_VERSION_TYPES = Set.of("release", "beta", "alpha");
 
     private final ModrinthChannelInfo info;
-    private static final ModrinthChannelInfo defaults = new ModrinthChannelInfo(null, false, "name", null);
+    private static final ModrinthChannelInfo defaults = new ModrinthChannelInfo(null, false, "name", null, null);
 
     private ModrinthVersion selectedVersion;
     private Utils.Http.CacheToken cacheToken;
@@ -38,6 +41,17 @@ public class ModrinthUpdate extends AbstractUpdate {
         if(this.info.projectId() == null || this.info.projectId().isEmpty()){
             throw new IllegalArgumentException("projectId 不存在或为空");
         }
+
+        // 未知的版本类型不会匹配任何版本，仅在构造实例时提示一次
+        List<String> versionTypes = this.info.versionTypes();
+        if (versionTypes != null) {
+            List<String> unknownTypes = versionTypes.stream()
+                    .filter(versionType -> !SUPPORTED_VERSION_TYPES.contains(versionType))
+                    .toList();
+            if (!unknownTypes.isEmpty()) {
+                logger.warning(tr("message.update.modrinth.warn.invalid-version-type", String.join(", ", unknownTypes)));
+            }
+        }
     }
 
     /**
@@ -48,7 +62,13 @@ public class ModrinthUpdate extends AbstractUpdate {
                 info.projectId(),
                 info.featured(),
                 info.versionKey() != null ? info.versionKey() : defaults.versionKey(),
-                info.versionRegex()
+                info.versionRegex(),
+                // 比较时不区分大小写，空白项视为未配置
+                info.versionTypes() != null ? info.versionTypes().stream()
+                        .filter(versionType -> versionType != null && !versionType.isBlank())
+                        .map(versionType -> versionType.trim().toLowerCase())
+                        .distinct()
+                        .toList() : null
         );
     }
 
@@ -92,8 +112,25 @@ public class ModrinthUpdate extends AbstractUpdate {
                     return false;
                 }
 
-                // 选择第一个版本（Modrinth API已按时间排序，最新的在前）
-                this.selectedVersion = versions[0];
+                // API 不支持按 version_type 查询，只能在本地筛选；未配置类型时取第一个（已按发布时间倒序）
+                List<String> versionTypes = info.versionTypes();
+                ModrinthVersion selected = versions[0];
+                if (versionTypes != null && !versionTypes.isEmpty()) {
+                    selected = null;
+                    for (ModrinthVersion version : versions) {
+                        if (version.versionType() != null && versionTypes.contains(version.versionType().trim().toLowerCase())) {
+                            selected = version;
+                            break;
+                        }
+                    }
+                }
+
+                if (selected == null) {
+                    logger.info(tr("message.update.ignore", url, tr("tag.update.ignore.no-version")));
+                    return false;
+                }
+
+                this.selectedVersion = selected;
                 this.cacheToken = response.cacheToken();
                 logger.info(tr("message.update.get", url));
                 return true;

@@ -7,7 +7,10 @@
                 "projectId": null,
                 "featured": false,
                 "version-key": "name",
-                "version-regex": null
+                "version-regex": null,
+                "version-type": [
+                    "release"
+                ]
             }
         },
         {
