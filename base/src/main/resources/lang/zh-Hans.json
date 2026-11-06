@@ -176,4 +176,10 @@
     "tag.update.spigotmc.failed.no-selected-version": "无已选版本",
     "tag.update.url.failed.no-download-url": "无下载链接"
 
+,
+    "message.strategy.backup.success": "已替换 {0} 的文件；备份与日志：{1}。重启后加载新版。",
+    "message.strategy.backup.failed": "{0} 的备份更新失败；文件/日志：{1}；原因：{2}。请检查日志中的恢复结果。",
+    "message.strategy.backup.unavailable": "拒绝更新 {0}：backup 策略不可用或服务器已开始停止。不会回退到 native。",
+    "message.strategy.backup.recovered": "已检查备份事务：{0}；状态：{1}。",
+    "message.strategy.backup.recovery-failed": "备份恢复需要处理：{0}；{1}。请保留所有文件，检查事务日志后再重试。"
 }

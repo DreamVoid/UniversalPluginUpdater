@@ -80,7 +80,7 @@ public final class UpgradeStrategyRegistry {
         UpgradeStrategy strategy = strategies.get(activeStrategy);
         
         // 如果不存在且不是 native，则回退到 native
-        if (strategy == null && !activeStrategy.equals("native")) {
+        if (strategy == null && !activeStrategy.equals("native") && !activeStrategy.equals("backup")) {
             logger.warning(tr("message.service.strategy.warn.unavailable-fallback", activeStrategy));
             this.activeStrategy = "native";
             strategy = strategies.get("native");

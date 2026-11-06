@@ -11,6 +11,9 @@ updater:
   allow-upgrade-now: true
   filename: ${originName}
   force-filename: false
+  # Optional strategy: backup (shutdown by default; --now replaces files immediately)
+  backup:
+    directory: .disabled
   proxy:
     uri: ~
     username: ~

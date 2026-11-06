@@ -5,6 +5,7 @@ import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.BackupUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
 import java.nio.file.Files;
@@ -24,6 +25,8 @@ public final class UpgradeManager {
     private static UpgradeManager INSTANCE;
     private final Logger logger;
     private final Platform platform;
+
+    private boolean shuttingDown;
 
     private final Queue<UpgradeOperation> scheduledUpgrade = new ConcurrentLinkedQueue<>();
 
@@ -51,10 +54,23 @@ public final class UpgradeManager {
     /**
      * 执行升级操作
      */
-    public boolean upgrade(String pluginId, Path newPluginPath, Path oldPluginPath, boolean executeNow) {
+    public synchronized boolean upgrade(String pluginId, Path newPluginPath, Path oldPluginPath, boolean executeNow) {
         UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
         String strategyId = registry.getActiveStrategyId();
         UpgradeStrategy strategy = registry.getActiveStrategy();
+
+        if ("backup".equals(strategyId)) {
+            if (shuttingDown || !(strategy instanceof BackupUpgradeStrategy backup)) {
+                logger.severe(tr("message.strategy.backup.unavailable", pluginId));
+                return false;
+            }
+            try {
+                newPluginPath = backup.prepare(pluginId, newPluginPath, oldPluginPath);
+            } catch (Exception e) {
+                logger.warning(tr("message.strategy.backup.failed", pluginId, newPluginPath, e.getMessage()));
+                return false;
+            }
+        }
 
         UpgradeOperation operation = new UpgradeOperation(pluginId, newPluginPath, oldPluginPath, strategyId);
 
@@ -141,7 +157,8 @@ public final class UpgradeManager {
     /**
      * 执行所有队列升级任务
      */
-    public ExecutionResult executeScheduledUpgrades() {
+    public synchronized ExecutionResult executeScheduledUpgrades() {
+        shuttingDown = true;
         int successCount = 0, failureCount = 0;
 
         UpgradeOperation operation;
@@ -169,6 +186,14 @@ public final class UpgradeManager {
         try {
             UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
             UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
+
+            if ("backup".equals(strategyId)) {
+                if (strategy instanceof BackupUpgradeStrategy backup) {
+                    return backup.executePrepared(pluginId, operation.newPluginPath());
+                }
+                logger.severe(tr("message.strategy.backup.unavailable", pluginId));
+                return false;
+            }
 
             if (strategy == null) {
                 strategyId = registry.getActiveStrategyId();

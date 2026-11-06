@@ -175,4 +175,10 @@
     "tag.update.modrinth.failed.no-selected-version": "no selected version",
     "tag.update.spigotmc.failed.no-selected-version": "no selected version",
     "tag.update.url.failed.no-download-url": "no download url"
+,
+    "message.strategy.backup.success": "Replaced files for {0}; backup and journal: {1}. Restart to load the new version.",
+    "message.strategy.backup.failed": "Backup update failed for {0}; files/journal: {1}; reason: {2}. Check the log for restore status.",
+    "message.strategy.backup.unavailable": "Backup update refused for {0}: strategy unavailable or shutdown already started. No native fallback.",
+    "message.strategy.backup.recovered": "Backup transaction checked: {0}; state: {1}.",
+    "message.strategy.backup.recovery-failed": "Backup recovery needs attention: {0}; {1}. Preserve all files and inspect the journal before retrying."
 }

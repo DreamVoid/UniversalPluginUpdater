@@ -11,6 +11,7 @@ import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
 import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
 import me.dreamvoid.universalpluginupdater.update.URLUpdate;
 import me.dreamvoid.universalpluginupdater.upgrade.ApplierUpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.BackupUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
 
@@ -81,6 +82,10 @@ public class LifeCycle {
             UpdateManager.registerChannel(GitHubUpdate.class);
             UpdateManager.registerChannel(HangarUpdate.class);
             UpdateManager.registerChannel(SpigotMCUpdate.class);
+
+            BackupUpgradeStrategy backup = new BackupUpgradeStrategy(platform);
+            UpgradeStrategyRegistry.instance().registerStrategy(backup);
+            backup.recover();
 
             UpgradeManager.initialize(platform);
             RepositoryManager.initialize(platform);

@@ -47,3 +47,26 @@ This is just a list of some commonly used commands. For a complete list of comma
 ---
 
 [DreamVoid](https://github.com/DreamVoid), Made with ❤.
+
+
+## Optional backup upgrade strategy
+
+The shipped default remains native. To keep old JARs, opt in:
+
+    updater:
+      strategy: backup
+      allow-upgrade-now: true
+      filename: ${originName}
+      force-filename: false
+      backup:
+        directory: .disabled
+
+- /upu upgrade [plugin IDs...] downloads and validates updates, then reserves them for the UPU unload/shutdown callback.
+- /upu upgrade [plugin IDs...] --now replaces files immediately. It does not disable, unload, or reload plugins; restart to load the new versions.
+- Old JARs keep their original filenames under plugins/.disabled/<timestamp>-<UUID>/. New JAR names are selected by the existing downloader, normally the distribution filename.
+- A file replacement failure triggers restoration. Runtime errors on the next boot, configurations, and databases are outside this rollback scope.
+- Unavailable backup operations fail closed and never fall back to native.
+
+The shutdown callback runs **during JVM shutdown, not after JVM exit**. JAR locks can prevent either update mode. Moving a live JAR can affect lazy class/resource loading, so immediate replacement cannot guarantee uninterrupted operation. A plugin disable/reload that invokes UPU's unload callback can also execute queued updates.
+
+See [backup behavior, recovery, and limitations](docs/backup-upgrade.md). Supported adapters: Paper/Purpur/Folia, Bukkit, Velocity, and BungeeCord/Waterfall. Actual server behavior still requires integration testing.
