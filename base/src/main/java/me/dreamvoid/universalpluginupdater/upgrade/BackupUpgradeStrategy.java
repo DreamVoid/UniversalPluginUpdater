@@ -142,6 +142,7 @@ public final class BackupUpgradeStrategy implements UpgradeStrategy {
      * 检查持久化事务，恢复可明确判断的中断操作
      */
     public synchronized void recover() {
+        if (!Files.exists(platform.getDataPath().resolve("backup-journals"), LinkOption.NOFOLLOW_LINKS)) return;
         try {
             BackupFileTransaction engine = engine();
             try (Stream<Path> entries = Files.list(index())) {

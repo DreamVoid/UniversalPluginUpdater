@@ -31,8 +31,15 @@ public class BackupFileTransactionTest {
             out.write((descriptor.endsWith(".json") ? "{\"id\":\"" + id + "\"}" : "name: '" + id + "'\nmain: example.Main\n")
                     .getBytes(java.nio.charset.StandardCharsets.UTF_8));
             out.closeEntry();
-            out.putNextEntry(new JarEntry("payload.txt"));
-            out.write(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            byte[] payloadBytes = payload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+            crc.update(payloadBytes);
+            JarEntry payloadEntry = new JarEntry("payload.txt");
+            payloadEntry.setMethod(JarEntry.STORED);
+            payloadEntry.setSize(payloadBytes.length);
+            payloadEntry.setCrc(crc.getValue());
+            out.putNextEntry(payloadEntry);
+            out.write(payloadBytes);
             out.closeEntry();
         }
         return path;
@@ -95,7 +102,7 @@ public class BackupFileTransactionTest {
         Path broken = root.resolve("downloads/broken.jar");
         Files.writeString(broken, "not a jar");
         assertThrows(IOException.class, () -> engine.prepare("example", broken, old, ".disabled"));
-        Path badName = jar(root.resolve("downloads"), "NUL.jar", "plugin.yml", "example", "new");
+        Path badName = root.resolve("downloads/NUL.jar");
         assertThrows(IOException.class, () -> engine.prepare("example", badName, old, ".disabled"));
         assertArrayEquals(original, Files.readAllBytes(old));
     }
@@ -259,6 +266,71 @@ public class BackupFileTransactionTest {
         assertEquals("CANCELLED", engine.recover(receipt));
         assertThrows(IOException.class, () -> engine.execute(receipt));
         assertTrue(Files.exists(old));
+    }
+
+
+    /**
+     * 拒绝内容损坏但 ZIP 结构仍可读取的 JAR
+     */
+    @Test
+    public void rejectsCorruptedEntryCrc() throws Exception {
+        Path root = root();
+        Path old = jar(root, "Example-1.jar", "plugin.yml", "example", "old");
+        Path download = jar(root.resolve("downloads"), "Example-2.jar", "plugin.yml", "example", "tamper-marker");
+        byte[] bytes = Files.readAllBytes(download);
+        byte[] marker = "tamper-marker".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        boolean changed = false;
+        for (int i = 0; i <= bytes.length - marker.length; i++) {
+            if (Arrays.equals(Arrays.copyOfRange(bytes, i, i + marker.length), marker)) {
+                bytes[i] ^= 1;
+                changed = true;
+                break;
+            }
+        }
+        assertTrue(changed);
+        Files.write(download, bytes);
+        BackupFileTransaction engine = new BackupFileTransaction(root, "plugin.yml");
+        assertThrows(IOException.class, () -> engine.prepare("example", download, old, ".disabled"));
+        assertTrue(Files.exists(old));
+    }
+
+    /**
+     * 执行前拒绝被篡改的暂存文件及新出现的目标冲突
+     */
+    @Test
+    public void rejectsStagedTamperingAndLateCollision() throws Exception {
+        Path root = root();
+        Path old = jar(root, "Example-1.jar", "plugin.yml", "example", "old");
+        byte[] original = Files.readAllBytes(old);
+        Path download = jar(root.resolve("downloads"), "Example-2.jar", "plugin.yml", "example", "new");
+        BackupFileTransaction engine = new BackupFileTransaction(root, "plugin.yml");
+        Path first = engine.prepare("example", download, old, ".disabled");
+        Files.writeString(first.resolve("new.bin"), "modified");
+        assertThrows(IOException.class, () -> engine.execute(first));
+        Path second = engine.prepare("example", download, old, ".disabled");
+        Path occupied = jar(root, "Example-2.jar", "plugin.yml", "other", "unrelated");
+        byte[] foreign = Files.readAllBytes(occupied);
+        assertThrows(IOException.class, () -> engine.execute(second));
+        assertArrayEquals(foreign, Files.readAllBytes(occupied));
+        assertArrayEquals(original, Files.readAllBytes(old));
+    }
+
+    /**
+     * 拒绝符号链接保存目录
+     */
+    @Test
+    public void rejectsSymlinkBackupDirectory() throws Exception {
+        Path root = root();
+        Path outside = root();
+        Path link = root.resolve("linked");
+        try {
+            Files.createSymbolicLink(link, outside);
+        } catch (IOException | UnsupportedOperationException e) {
+            Assume.assumeNoException(e);
+        }
+        BackupFileTransaction engine = new BackupFileTransaction(root, "plugin.yml");
+        assertThrows(IOException.class, () -> engine.backupRoot("linked/backups"));
+        assertFalse(Files.exists(outside.resolve("backups")));
     }
 
     /**
