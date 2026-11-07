@@ -70,3 +70,7 @@ The shipped default remains native. To keep old JARs, opt in:
 The shutdown callback runs **during JVM shutdown, not after JVM exit**. JAR locks can prevent either update mode. Moving a live JAR can affect lazy class/resource loading, so immediate replacement cannot guarantee uninterrupted operation. A plugin disable/reload that invokes UPU's unload callback can also execute queued updates.
 
 See [backup behavior, recovery, and limitations](docs/backup-upgrade.md). Supported adapters: Paper/Purpur/Folia, Bukkit, Velocity, and BungeeCord/Waterfall. Actual server behavior still requires integration testing.
+
+## Language
+
+Japanese messages are included. Set `language: ja-JP` (or `ja`) in config.yml and run `/upu reload` or restart the server. `language: system` follows the JVM locale. An explicitly supplied `-Dupu.locale=...` JVM option takes priority over the configuration.

@@ -69,3 +69,7 @@ UniversalPluginUpdater 的开发受到 [APT](https://wiki.debian.org/zh_CN/Apt) 
 停止时更新发生在 **JVM 退出过程中的回调内，而不是 JVM 完全退出之后**。JAR 文件锁可能导致任一种模式失败；立即移动运行中的 JAR 也可能影响后续类/资源读取。触发 UPU 卸载回调的插件禁用或 reload 也可能执行预约任务。
 
 更多内容见 [更新、恢复与限制说明](docs/backup-upgrade.md)。面向 Paper/Purpur/Folia、Bukkit、Velocity、BungeeCord/Waterfall；实际服务器行为仍需集成测试。
+
+## 语言
+
+已内置日语消息。在 config.yml 中设置 `language: ja-JP`（或 `ja`），然后执行 `/upu reload` 或重启服务器。`language: system` 使用 JVM 的系统语言。显式设置的 JVM 参数 `-Dupu.locale=...` 优先于配置文件。

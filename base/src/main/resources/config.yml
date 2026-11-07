@@ -1,4 +1,5 @@
 verbose: false
+# Language: system, zh-Hans, en-US, ja-JP (ja is also accepted)
 language: system
 
 platform:
