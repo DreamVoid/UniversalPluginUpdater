@@ -78,7 +78,7 @@ public final class LanguageManager {
      * @return 当前平台的 Locale
      */
     public static Locale getLocale() {
-        String requested = System.getProperty("upu.locale", FALLBACK_LOCALE);
+        String requested = System.getProperty("upu.locale");
         if (requested != null && !requested.isBlank()) {
             return INSTANCE.parseLocale(requested);
         }
