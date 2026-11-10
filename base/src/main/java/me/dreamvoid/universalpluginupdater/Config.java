@@ -1,11 +1,8 @@
 package me.dreamvoid.universalpluginupdater;
 
-import me.dreamvoid.universalpluginupdater.service.LanguageManager;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * 配置
@@ -32,7 +29,6 @@ public abstract class Config {
      * 加载/重载配置项
      */
     public void reloadConfig() throws IOException {
-        getLogger().info(LanguageManager.tr("message.lifecycle.config.load"));
         loadConfig();
 
         Verbose = getBoolean("verbose", Verbose);
@@ -62,8 +58,6 @@ public abstract class Config {
      * 在 Bukkit 上，类似 saveDefaultConfig() + reloadConfig()
      */
     public abstract void loadConfig() throws IOException;
-
-    public abstract Logger getLogger();
 
     public abstract String getString(String path, String def);
 

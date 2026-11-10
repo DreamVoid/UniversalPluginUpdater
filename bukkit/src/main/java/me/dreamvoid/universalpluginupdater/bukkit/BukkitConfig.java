@@ -3,7 +3,6 @@ package me.dreamvoid.universalpluginupdater.bukkit;
 import me.dreamvoid.universalpluginupdater.Config;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 public class BukkitConfig extends Config {
     private final BukkitPlugin plugin;
@@ -16,11 +15,6 @@ public class BukkitConfig extends Config {
     public void loadConfig() {
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
-    }
-
-    @Override
-    public Logger getLogger() {
-        return plugin.getLogger();
     }
 
     @Override

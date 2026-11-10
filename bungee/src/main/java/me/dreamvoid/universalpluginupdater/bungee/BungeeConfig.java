@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class BungeeConfig extends Config {
     private final BungeePlugin plugin;
@@ -25,11 +24,6 @@ public class BungeeConfig extends Config {
     public void loadConfig() throws IOException {
         saveDefaultConfig();
         config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(plugin.getDataFolder(), "config.yml"));
-    }
-
-    @Override
-    public Logger getLogger() {
-        return plugin.getLogger();
     }
 
     @Override

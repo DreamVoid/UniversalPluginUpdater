@@ -5,11 +5,7 @@ import me.dreamvoid.universalpluginupdater.service.LanguageManager;
 import me.dreamvoid.universalpluginupdater.service.RepositoryManager;
 import me.dreamvoid.universalpluginupdater.service.UpdateManager;
 import me.dreamvoid.universalpluginupdater.service.UpgradeManager;
-import me.dreamvoid.universalpluginupdater.update.GitHubUpdate;
-import me.dreamvoid.universalpluginupdater.update.HangarUpdate;
-import me.dreamvoid.universalpluginupdater.update.ModrinthUpdate;
-import me.dreamvoid.universalpluginupdater.update.SpigotMCUpdate;
-import me.dreamvoid.universalpluginupdater.update.URLUpdate;
+import me.dreamvoid.universalpluginupdater.update.*;
 import me.dreamvoid.universalpluginupdater.upgrade.ApplierUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.NativeUpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
@@ -31,9 +27,10 @@ public class LifeCycle {
 
     /**
      * 此方法应在插件实例化时调用，用于设置必要的运行环境，此时配置尚未初始化。
+     *
      * @param logger {@link java.util.logging.Logger} 实例。由于各平台初始化 Logger 的时机不一，因此需要一个 Logger 来辅助。
      */
-    public void startUp(Logger logger){
+    public void startUp(Logger logger) {
         try {
             logger.info(tr("message.lifecycle.startup.start"));
 
@@ -45,7 +42,7 @@ public class LifeCycle {
         }
     }
 
-    public void preLoad(){
+    public void preLoad() {
         try {
             logger = platform.getPlatformLogger();
             LanguageManager.setPlatform(platform);
@@ -54,20 +51,21 @@ public class LifeCycle {
 
             config = platform.getPlatformConfig();
             try {
+                logger.info(LanguageManager.tr("message.lifecycle.config.load"));
                 config.reloadConfig();
-            } catch (IOException e){
-                logger.warning(tr("message.lifecycle.reload.exception"));
+            } catch (IOException e) {
+                logger.warning(tr("message.lifecycle.config.exception"));
             }
 
-                List<String> effectiveLoaders = (Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
+            List<String> effectiveLoaders = (Config.Platform_Loaders != null && !Config.Platform_Loaders.isEmpty())
                     ? Config.Platform_Loaders
                     : platform.getLoaders();
-                List<String> effectiveGameVersions = (Config.Platform_GameVersions != null)
+            List<String> effectiveGameVersions = (Config.Platform_GameVersions != null)
                     ? Config.Platform_GameVersions
                     : platform.getGameVersions();
 
-                logger.info(tr("message.lifecycle.preload.loaders", String.join(", ", effectiveLoaders)));
-                logger.info(tr("message.lifecycle.preload.gameversions", effectiveGameVersions == null ? "通用" : String.join(", ", effectiveGameVersions)));
+            logger.info(tr("message.lifecycle.preload.loaders", String.join(", ", effectiveLoaders)));
+            logger.info(tr("message.lifecycle.preload.gameversions", effectiveGameVersions == null ? "通用" : String.join(", ", effectiveGameVersions)));
 
             UpgradeStrategyRegistry.instance().registerStrategy(new NativeUpgradeStrategy(platform));
             UpgradeStrategyRegistry.instance().registerStrategy(new ApplierUpgradeStrategy(platform));
@@ -91,7 +89,7 @@ public class LifeCycle {
         }
     }
 
-    public void postLoad(){
+    public void postLoad() {
         try {
             logger.info(tr("message.lifecycle.postload.start"));
 
@@ -104,7 +102,7 @@ public class LifeCycle {
         }
     }
 
-    public void unload(){
+    public void unload() {
         try {
             logger.info(tr("message.lifecycle.unload.start"));
 
@@ -125,13 +123,14 @@ public class LifeCycle {
         }
     }
 
-    public void reload(){
+    public void reload() {
         logger.info(tr("message.lifecycle.reload.start"));
 
         try {
+            logger.info(LanguageManager.tr("message.lifecycle.config.load"));
             config.reloadConfig();
-        } catch (IOException e){
-            logger.warning(tr("message.lifecycle.reload.exception"));
+        } catch (IOException e) {
+            logger.warning(tr("message.lifecycle.config.exception"));
         }
 
         // 重新读取语言配置，使外部语言文件与 language 变更立即生效
