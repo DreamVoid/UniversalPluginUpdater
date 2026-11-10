@@ -4,21 +4,19 @@ import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
-import me.dreamvoid.universalpluginupdater.upgrade.ExecutionPhase;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeResult;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
-import me.dreamvoid.universalpluginupdater.upgrade.UpgradeTask;
+import me.dreamvoid.universalpluginupdater.upgrade.*;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
-import static me.dreamvoid.universalpluginupdater.service.LanguageManager.*;
+import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * 升级管理器<br>
@@ -37,15 +35,15 @@ public final class UpgradeManager {
     }
 
     public static UpgradeManager instance() {
-        if(INSTANCE != null) {
+        if (INSTANCE != null) {
             return INSTANCE;
         } else {
             throw new IllegalStateException(tr("message.service.error.not-initialized", "UpgradeManager"));
         }
     }
-    
-    public static void initialize(Platform platform){
-        if(INSTANCE == null){
+
+    public static void initialize(Platform platform) {
+        if (INSTANCE == null) {
             INSTANCE = new UpgradeManager(platform);
         } else {
             throw new IllegalStateException();
@@ -56,7 +54,7 @@ public final class UpgradeManager {
      * 提交一批升级任务<br>
      * RUNTIME 策略立即执行；SHUTDOWN 策略默认排队，--now 可强制立即执行
      *
-     * @param tasks 升级任务
+     * @param tasks      升级任务
      * @param executeNow 是否由 --now 要求立即执行
      * @return 提交结果
      */
@@ -71,14 +69,17 @@ public final class UpgradeManager {
             return new ExecutionResult(0, tasks.size(), false);
         }
 
+        Set<String> pluginIds = tasks.stream().map(task -> task.pluginId().toLowerCase()).collect(Collectors.toSet());
+        pendingUpgrades.removeIf(task -> pluginIds.contains(task.pluginId().toLowerCase()));
+
         boolean forced = executeNow && Config.Updater_AllowUpgradeNow;
         if (forced || strategy.getExecutionPhase() == ExecutionPhase.RUNTIME) {
             return executeBatch(strategy, tasks, forced);
+        } else {
+            pendingUpgrades.addAll(tasks);
+            logger.info(tr("message.service.upgrade.queued", tasks.size(), strategy.getId()));
+            return new ExecutionResult(tasks.size(), 0, true);
         }
-
-        pendingUpgrades.addAll(tasks);
-        logger.info(tr("message.service.upgrade.queued", tasks.size(), strategy.getId()));
-        return new ExecutionResult(tasks.size(), 0, true);
     }
 
     /**
@@ -108,8 +109,9 @@ public final class UpgradeManager {
     /**
      * 批量执行升级操作（下载 + 升级）<br>
      * 遍历更新渠道，过滤出存在更新的渠道，下载新文件后统一提交给当前升级策略
-     * @param channels 更新渠道实例列表
-     * @param executeNow 是否立即执行（false 则延迟到插件卸载阶段执行）
+     *
+     * @param channels      更新渠道实例列表
+     * @param executeNow    是否立即执行（false 则延迟到插件卸载阶段执行）
      * @param targetPlugins 目标插件ID白名单（小写，为空或null表示全部）
      * @return 升级执行结果统计
      */
@@ -167,15 +169,16 @@ public final class UpgradeManager {
         try {
             List<UpgradeResult> results = strategy.upgrade(tasks, forced);
             int successCount = 0;
+            int failureCount = 0;
             for (UpgradeResult result : results) {
                 if (result.success()) {
                     successCount++;
                 } else {
+                    failureCount++;
                     logger.warning(tr("message.command.upgrade.error.failed", result.pluginId()));
                 }
             }
-            int failureCount = Math.max(0, tasks.size() - successCount);
-            return new ExecutionResult(Math.min(successCount, tasks.size()), failureCount, false);
+            return new ExecutionResult(successCount, failureCount, false);
         } catch (Exception e) {
             logger.warning(tr("message.service.upgrade.execute.error.exception", tasks.size(), e));
             return new ExecutionResult(0, tasks.size(), false);
@@ -187,7 +190,7 @@ public final class UpgradeManager {
      *
      * @param successCount 成功数量；{@code queued} 为 true 时表示已排队的数量
      * @param failureCount 失败数量
-     * @param queued 成功数量是否代表已排队的任务
+     * @param queued       成功数量是否代表已排队的任务
      */
     public record ExecutionResult(
             int successCount,
