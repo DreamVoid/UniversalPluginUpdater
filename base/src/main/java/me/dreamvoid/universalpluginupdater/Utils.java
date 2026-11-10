@@ -115,7 +115,11 @@ public final class Utils {
     }
 
     public static class Http {
-        private static final String USER_AGENT = MessageFormat.format("UniversalPluginUpdater/{0} ({1})", BuildConstants.VERSION, System.getProperty("os.name"));
+        private static final String USER_AGENT = MessageFormat.format(
+                "UniversalPluginUpdater/{0} ({1}; +https://github.com/DreamVoid/UniversalPluginUpdater) Java/{2}",
+                BuildConstants.VERSION,
+                System.getProperty("os.name"),
+                Runtime.version());
         private static final OkHttpClient defaultClient = new OkHttpClient.Builder()
                 .followRedirects(true)
                 .followSslRedirects(true)
