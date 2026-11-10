@@ -4,6 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 升级策略接口<br>
@@ -27,20 +29,42 @@ public interface UpgradeStrategy {
     }
 
     /**
-     * 执行升级操作
-     * @param pluginId 插件标识符
-     * @param newFilePath 新的插件文件路径
-     * @param oldFilePath 当前插件文件所在路径（若为null表示插件未安装）
-     * @return 升级成功返回 true，否则返回 false
+     * 获取 upgrade() 允许被调用的阶段
+     * @return 执行阶段，默认在插件禁用阶段
      */
-    boolean upgrade(String pluginId, Path newFilePath, @Nullable Path oldFilePath);
+    @NotNull
+    default ExecutionPhase getExecutionPhase() {
+        return ExecutionPhase.SHUTDOWN;
+    }
 
     /**
-     * 是否支持在服务器运行时安全地立刻执行升级文件操作<br>
-     * 若为 true，调度层将直接执行升级并忽略 --now 参数
-     * @return 支持安全升级返回 true，否则返回 false
+     * 执行一批升级任务<br>
+     * 调度层保证同一策略在一次调度中只调用一次
+     *
+     * @param tasks 待执行的升级任务
+     * @param forced 是否由 --now 强制在命令执行时立即执行
+     * @return 每个任务的执行结果
      */
-    default boolean supportSafeUpgrade() {
-        return false;
+    @NotNull
+    default List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks, boolean forced) {
+        List<UpgradeResult> results = new ArrayList<>(tasks.size());
+        for (UpgradeTask task : tasks) {
+            results.add(new UpgradeResult(task.pluginId(), upgrade(task.pluginId(), task.newFilePath(), task.oldFilePath())));
+        }
+        return results;
+    }
+
+    /**
+     * 执行单个升级任务
+     *
+     * @param pluginId 插件标识符
+     * @param newFilePath 新的插件文件路径
+     * @param oldFilePath 当前插件文件所在路径，插件未安装时为 {@code null}
+     * @return 升级成功返回 true，否则返回 false
+     * @deprecated 使用 {@link #upgrade(List, boolean)}
+     */
+    @Deprecated(forRemoval = true)
+    default boolean upgrade(@NotNull String pluginId, @NotNull Path newFilePath, @Nullable Path oldFilePath) {
+        throw new UnsupportedOperationException();
     }
 }

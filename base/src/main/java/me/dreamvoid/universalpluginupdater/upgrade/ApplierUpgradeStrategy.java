@@ -43,32 +43,51 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public boolean supportSafeUpgrade() {
-        return true;
+    public ExecutionPhase getExecutionPhase() {
+        return ExecutionPhase.SHUTDOWN;
     }
 
+    @NotNull
     @Override
-    public boolean upgrade(String pluginId, Path newFilePath, @Nullable Path oldFilePath) {
-        try {
-            Path targetPath = plugin.getDataPath().getParent().resolve(newFilePath.getFileName());
+    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks, boolean forced) {
+        if (tasks.isEmpty()) {
+            return List.of();
+        }
 
+        Path pluginDirectory = plugin.getDataPath().getParent();
+        if (pluginDirectory == null) {
+            logger.warning(tr("message.strategy.applier.error.plugin-directory-missing"));
+            return tasks.stream().map(task -> new UpgradeResult(task.pluginId(), false)).toList();
+        }
+
+        try {
             synchronized (pendingOperations) {
-                pendingOperations.add(new PendingOperation(
-                    pluginId,
-                        newFilePath, targetPath,
-                        oldFilePath
-                ));
+                for (UpgradeTask task : tasks) {
+                    Path targetPath = pluginDirectory.resolve(task.newFilePath().getFileName());
+                    pendingOperations.add(new PendingOperation(task.pluginId(), task.newFilePath(), targetPath, task.oldFilePath()));
+                }
             }
 
-            logger.info(tr("message.strategy.applier.scheduled", pluginId));
-            return true;
+            logger.info(tr("message.strategy.applier.scheduled", tasks.size()));
+
+            // --now 在运行期调用时与关闭阶段调用一样，都需要立刻启动外部进程
+            boolean launched = launch();
+            List<UpgradeResult> results = new ArrayList<>(tasks.size());
+            for (UpgradeTask task : tasks) {
+                results.add(new UpgradeResult(task.pluginId(), launched));
+            }
+            return results;
         } catch (Exception e) {
-            logger.warning(tr("message.strategy.applier.exception", pluginId, e));
-            return false;
+            logger.warning(tr("message.strategy.applier.exception", tasks.size(), e));
+            List<UpgradeResult> results = new ArrayList<>(tasks.size());
+            for (UpgradeTask task : tasks) {
+                results.add(new UpgradeResult(task.pluginId(), false));
+            }
+            return results;
         }
     }
 
-    public void launch() {
+    private boolean launch() {
         try {
             List<PendingOperation> operations;
             synchronized (pendingOperations) {
@@ -76,19 +95,19 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
             }
 
             if (operations.isEmpty()) {
-                return;
+                return false;
             }
 
             Path selfJar = plugin.getPluginFile("UniversalPluginUpdater");
             if (selfJar == null || !Files.exists(selfJar)) {
                 logger.warning(tr("message.strategy.applier.error.self-jar-missing"));
-                return;
+                return false;
             }
 
             Path javaPath = getJavaExecutablePath();
             if (javaPath == null || !Files.exists(javaPath)) {
                 logger.warning(tr("message.strategy.applier.error.executable-java-missing"));
-                return;
+                return false;
             }
 
             Files.createDirectories(pendingDir);
@@ -102,10 +121,10 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
 
             for (PendingOperation operation : operations) {
                 command.add("--op");
-                command.add(operation.pluginId);
-                command.add(operation.newFilePath.toAbsolutePath().toString());
-                command.add(operation.targetPath.toAbsolutePath().toString());
-                command.add(operation.oldFilePath.toAbsolutePath().toString());
+                command.add(operation.pluginId());
+                command.add(operation.newFilePath().toAbsolutePath().toString());
+                command.add(operation.targetPath().toAbsolutePath().toString());
+                command.add(operation.oldFilePath() != null ? operation.oldFilePath().toAbsolutePath().toString() : "");
             }
 
             Process process = new ProcessBuilder(command)
@@ -116,8 +135,10 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
             synchronized (pendingOperations) {
                 pendingOperations.clear();
             }
+            return true;
         } catch (Exception e) {
             logger.warning(tr("message.strategy.applier.process.exception", e));
+            return false;
         }
     }
 
@@ -156,7 +177,7 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
             String pluginId,
             Path newFilePath, 
             Path targetPath,
-            Path oldFilePath
+            @Nullable Path oldFilePath
     ) { }
 
     public static final class Main {
@@ -206,7 +227,12 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
                 String newFilePath = args[i + 2];
                 String targetPath = args[i + 3];
                 String oldFilePath = args[i + 4];
-                operations.add(new PendingOperation(pluginId, Paths.get(newFilePath), Paths.get(targetPath), Paths.get(oldFilePath)));
+                operations.add(new PendingOperation(
+                        pluginId,
+                        Paths.get(newFilePath),
+                        Paths.get(targetPath),
+                        oldFilePath.isBlank() ? null : Paths.get(oldFilePath)
+                ));
                 i += 4;
             }
             return operations;

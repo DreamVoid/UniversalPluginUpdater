@@ -23,7 +23,7 @@
 - Reuse `LanguageManager` translations and existing resource files under `base/src/main/resources/lang/` for user-visible messages; do not hard-code new localized command output.
 - Reuse `Utils` for shared HTTP, JSON, logging, and file-related behavior instead of adding parallel helpers.
 - Update-channel implementations extend `AbstractUpdate`; generic channels are registered via `UpdateManager.registerChannel(Class)` (with an `@UpdateChannel` id) and plugin-specific channels via `UpdateManager.registerChannel(AbstractUpdate)` (implementing `PluginBoundUpdate`, id fixed to "plugin"). Registration lives in `UpdateManager`; `UpdateChannelService` is internal-only.
-- Upgrade behavior goes through `UpgradeStrategy` and `UpgradeStrategyRegistry`; account for delayed shutdown upgrades and platform-specific safe-upgrade support.
+- Upgrade behavior goes through `UpgradeStrategy` and `UpgradeStrategyRegistry`; account for `ExecutionPhase` (`RUNTIME` / `SHUTDOWN`), batch `upgrade(List<UpgradeTask>, boolean)` calls, and `--now` forced immediate execution.
 - Platform lifecycle classes should delegate shared initialization to `LifeCycle` and register platform-specific upgrade strategies at the platform API lifecycle hook.
 - Preserve existing resource filtering and generated `BuildConstants` behavior when editing build files or resources.
 

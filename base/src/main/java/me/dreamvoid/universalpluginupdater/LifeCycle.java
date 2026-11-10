@@ -108,17 +108,13 @@ public class LifeCycle {
         try {
             logger.info(tr("message.lifecycle.unload.start"));
 
-            UpgradeManager.ExecutionResult result = UpgradeManager.instance().executeScheduledUpgrades();
+            UpgradeManager.ExecutionResult result = UpgradeManager.instance().flushPending();
             if (result.totalCount() > 0) {
                 logger.info(tr("message.lifecycle.unload.result", result.successCount(), result.failureCount()));
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException ignored) {
                 }
-            }
-
-            if (UpgradeStrategyRegistry.instance().getActiveStrategy() instanceof ApplierUpgradeStrategy strategy) {
-                strategy.launch();
             }
 
             logger.info(tr("message.lifecycle.unload.finish"));
@@ -140,6 +136,7 @@ public class LifeCycle {
 
         // 重新读取语言配置，使外部语言文件与 language 变更立即生效
         LanguageManager.setPlatform(platform);
+        UpgradeStrategyRegistry.instance().setActiveStrategy(Config.Updater_Strategy);
 
         logger.info(tr("message.lifecycle.reload.finish"));
     }

@@ -4,11 +4,15 @@ import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.update.AbstractUpdate;
+import me.dreamvoid.universalpluginupdater.upgrade.ExecutionPhase;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeResult;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategyRegistry;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeTask;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -25,7 +29,7 @@ public final class UpgradeManager {
     private final Logger logger;
     private final Platform platform;
 
-    private final Queue<UpgradeOperation> scheduledUpgrade = new ConcurrentLinkedQueue<>();
+    private final Queue<UpgradeTask> pendingUpgrades = new ConcurrentLinkedQueue<>();
 
     private UpgradeManager(Platform platform) {
         this.logger = platform.getPlatformLogger();
@@ -49,52 +53,70 @@ public final class UpgradeManager {
     }
 
     /**
-     * 执行升级操作
+     * 提交一批升级任务<br>
+     * RUNTIME 策略立即执行；SHUTDOWN 策略默认排队，--now 可强制立即执行
+     *
+     * @param tasks 升级任务
+     * @param executeNow 是否由 --now 要求立即执行
+     * @return 提交结果
      */
-    public boolean upgrade(String pluginId, Path newPluginPath, Path oldPluginPath, boolean executeNow) {
-        UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
-        String strategyId = registry.getActiveStrategyId();
-        UpgradeStrategy strategy = registry.getActiveStrategy();
-
-        UpgradeOperation operation = new UpgradeOperation(pluginId, newPluginPath, oldPluginPath, strategyId);
-
-        if (canUpgradeNow(executeNow, strategy)) {
-            return executeUpgrade(operation);
-        } else {
-            scheduledUpgrade.add(operation);
-            logger.info(tr("message.service.upgrade.queued", pluginId, strategyId));
-            return true;
+    public ExecutionResult submit(List<UpgradeTask> tasks, boolean executeNow) {
+        if (tasks == null || tasks.isEmpty()) {
+            return new ExecutionResult(0, 0, false);
         }
+
+        UpgradeStrategy strategy = UpgradeStrategyRegistry.instance().getActiveStrategy();
+        if (strategy == null) {
+            logger.severe(tr("message.service.upgrade.error.native-unavailable", tasks.size()));
+            return new ExecutionResult(0, tasks.size(), false);
+        }
+
+        boolean forced = executeNow && Config.Updater_AllowUpgradeNow;
+        if (forced || strategy.getExecutionPhase() == ExecutionPhase.RUNTIME) {
+            return executeBatch(strategy, tasks, forced);
+        }
+
+        pendingUpgrades.addAll(tasks);
+        logger.info(tr("message.service.upgrade.queued", tasks.size(), strategy.getId()));
+        return new ExecutionResult(tasks.size(), 0, true);
     }
 
     /**
-     * 是否可以立即执行更新操作
+     * 在插件禁用阶段执行所有待处理任务
+     *
+     * @return 执行结果
      */
-    public boolean canUpgradeNow(boolean executeNow) {
-        return canUpgradeNow(executeNow, UpgradeStrategyRegistry.instance().getActiveStrategy());
-    }
+    public ExecutionResult flushPending() {
+        List<UpgradeTask> tasks = new ArrayList<>();
+        UpgradeTask task;
+        while ((task = pendingUpgrades.poll()) != null) {
+            tasks.add(task);
+        }
+        if (tasks.isEmpty()) {
+            return new ExecutionResult(0, 0, false);
+        }
 
-    /**
-     * 是否可以立即执行更新操作
-     */
-    private boolean canUpgradeNow(boolean executeNow, UpgradeStrategy strategy) {
-        if (strategy == null) return false;
-        if (strategy.supportSafeUpgrade()) return true;
-        return executeNow && Config.Updater_AllowUpgradeNow;
+        UpgradeStrategy strategy = UpgradeStrategyRegistry.instance().getActiveStrategy();
+        if (strategy == null) {
+            logger.severe(tr("message.service.upgrade.error.native-unavailable", tasks.size()));
+            return new ExecutionResult(0, tasks.size(), false);
+        }
+
+        return executeBatch(strategy, tasks, false);
     }
 
     /**
      * 批量执行升级操作（下载 + 升级）<br>
-     * 遍历更新渠道，过滤出存在更新的渠道，下载新文件后执行通用升级操作
+     * 遍历更新渠道，过滤出存在更新的渠道，下载新文件后统一提交给当前升级策略
      * @param channels 更新渠道实例列表
      * @param executeNow 是否立即执行（false 则延迟到插件卸载阶段执行）
      * @param targetPlugins 目标插件ID白名单（小写，为空或null表示全部）
      * @return 升级执行结果统计
      */
     public ExecutionResult upgradeAll(List<AbstractUpdate> channels, boolean executeNow, List<String> targetPlugins) {
-        int successCount = 0;
+        List<UpgradeTask> tasks = new ArrayList<>();
         int failureCount = 0;
-        boolean immediate = canUpgradeNow(executeNow);
+        boolean immediate = canExecuteImmediately(executeNow);
 
         for (AbstractUpdate channel : channels) {
             String pluginId = channel.getPluginId();
@@ -120,90 +142,57 @@ public final class UpgradeManager {
 
                 // 获取当前插件文件
                 Path oldPluginFile = platform.getPluginFile(pluginId);
-
-                // 执行升级
-                if (upgrade(pluginId, newPluginFile, oldPluginFile, executeNow)) {
-                    logger.info(tr(immediate ? "message.command.upgrade.success.now" : "message.command.upgrade.success.queued", pluginId));
-                    successCount++;
-                } else {
-                    logger.warning(tr("message.command.upgrade.error.failed", pluginId));
-                    failureCount++;
-                }
+                tasks.add(new UpgradeTask(pluginId, newPluginFile, oldPluginFile));
             } catch (Exception e) {
                 logger.warning(tr("message.command.upgrade.error.failed.exception", pluginId, e.getMessage()));
                 failureCount++;
             }
         }
 
-        return new ExecutionResult(successCount, failureCount);
+        ExecutionResult result = submit(tasks, executeNow);
+        return new ExecutionResult(result.successCount(), result.failureCount() + failureCount, result.queued());
     }
 
-    /**
-     * 执行所有队列升级任务
-     */
-    public ExecutionResult executeScheduledUpgrades() {
-        int successCount = 0, failureCount = 0;
+    private boolean canExecuteImmediately(boolean executeNow) {
+        UpgradeStrategy strategy = UpgradeStrategyRegistry.instance().getActiveStrategy();
+        if (strategy == null) return false;
+        return (executeNow && Config.Updater_AllowUpgradeNow) || strategy.getExecutionPhase() == ExecutionPhase.RUNTIME;
+    }
 
-        UpgradeOperation operation;
-        while ((operation = scheduledUpgrade.poll()) != null) {
-            if (executeUpgrade(operation)) {
-                successCount += 1;
-            } else {
-                failureCount += 1;
-            }
+    private ExecutionResult executeBatch(UpgradeStrategy strategy, List<UpgradeTask> tasks, boolean forced) {
+        if (tasks.isEmpty()) {
+            return new ExecutionResult(0, 0, false);
         }
-
-        return new ExecutionResult(successCount, failureCount);
-    }
-
-    /**
-     * 执行升级操作<br>
-     * 此方法实际调用升级策略的 {@link UpgradeStrategy#upgrade(String, Path, Path)} 方法。
-     * @param operation 升级操作
-     * @return 升级是否成功
-     */
-    private boolean executeUpgrade(UpgradeOperation operation) {
-        String pluginId = operation.pluginId();
-        String strategyId = operation.strategyId();
 
         try {
-            UpgradeStrategyRegistry registry = UpgradeStrategyRegistry.instance();
-            UpgradeStrategy strategy = strategyId != null ? registry.getStrategy(strategyId) : null;
-
-            if (strategy == null) {
-                strategyId = registry.getActiveStrategyId();
-                strategy = registry.getActiveStrategy();
+            List<UpgradeResult> results = strategy.upgrade(tasks, forced);
+            int successCount = 0;
+            for (UpgradeResult result : results) {
+                if (result.success()) {
+                    successCount++;
+                } else {
+                    logger.warning(tr("message.command.upgrade.error.failed", result.pluginId()));
+                }
             }
-
-            // 配置的更新策略不可用，回退native
-            if (strategy == null) {
-                logger.warning(tr("message.service.upgrade.warn.strategy-unavailable-fallback", strategyId));
-                strategy = registry.getStrategy("native");
-            }
-
-            // native更新策略不可用
-            if (strategy == null) {
-                logger.severe(tr("message.service.upgrade.error.native-unavailable", pluginId));
-                return false;
-            }
-
-            return strategy.upgrade(pluginId, operation.newPluginPath(), operation.oldPluginPath());
+            int failureCount = Math.max(0, tasks.size() - successCount);
+            return new ExecutionResult(Math.min(successCount, tasks.size()), failureCount, false);
         } catch (Exception e) {
-            logger.warning(tr("message.service.upgrade.execute.error.exception", pluginId, e));
-            return false;
+            logger.warning(tr("message.service.upgrade.execute.error.exception", tasks.size(), e));
+            return new ExecutionResult(0, tasks.size(), false);
         }
     }
 
-    public record UpgradeOperation(
-            String pluginId,
-            Path newPluginPath,
-            Path oldPluginPath,
-            String strategyId
-    ) { }
-
+    /**
+     * 升级执行结果
+     *
+     * @param successCount 成功数量；{@code queued} 为 true 时表示已排队的数量
+     * @param failureCount 失败数量
+     * @param queued 成功数量是否代表已排队的任务
+     */
     public record ExecutionResult(
             int successCount,
-            int failureCount
+            int failureCount,
+            boolean queued
     ) {
         public int totalCount() {
             return successCount + failureCount;

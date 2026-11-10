@@ -122,9 +122,9 @@
     "message.service.check-update.error.no-remote-version": "无法获取插件 {0} 的远程版本信息！",
     "message.service.check-update.error": "无法检查插件 {0} 的更新！",
 
-    "message.service.upgrade.error.native-unavailable": "由于 native 升级策略不可用，{0} 升级失败！",
-    "message.service.upgrade.execute.error.exception": "插件 {0} 执行升级任务时出现异常: {1}",
-    "message.service.upgrade.queued": "将 {0} 插件的升级任务加入队列 ({1})",
+    "message.service.upgrade.error.native-unavailable": "由于 native 升级策略不可用，{0} 个插件升级失败！",
+    "message.service.upgrade.execute.error.exception": "执行 {0} 个插件的升级任务时出现异常: {1}",
+    "message.service.upgrade.queued": "将 {0} 个插件的升级任务加入队列 ({1})",
     "message.service.upgrade.warn.strategy-unavailable-fallback": "当前升级策略 {0} 不可用，尝试回退到 native",
 
     "message.service.strategy.active.unregistered": "当前使用的升级策略: {0} [未注册]",
@@ -149,8 +149,8 @@
     "message.strategy.applier.error.executable-java-missing": "找不到 Java 可执行文件，无法启动升级进程！",
     "message.strategy.applier.process.launched": "已启动升级进程（PID：{0}），日志存放在 pending-upgrades/applier.log。",
     "message.strategy.applier.process.exception": "启动升级进程时出现异常: {0}",
-    "message.strategy.applier.scheduled": "已将插件 {0} 升级队列，重启服务器应用升级。",
-    "message.strategy.applier.exception": "更新 {0} 时出现异常: {1}",
+    "message.strategy.applier.scheduled": "已将 {0} 个插件加入升级队列，重启服务器应用升级。",
+    "message.strategy.applier.exception": "更新 {0} 个插件时出现异常: {1}",
 
     "message.update.get": "获取: {0}",
     "message.update.hit": "命中: {0}",

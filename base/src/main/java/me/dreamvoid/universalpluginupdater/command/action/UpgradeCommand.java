@@ -31,7 +31,7 @@ public final class UpgradeCommand extends CommandHandler {
     public void execute(CommandContext context) {
         CommandSender sender = context.sender();
         Locale locale = sender.getLocale();
-        try(AsyncLock ignored = AsyncLock.acquire()) {
+        try (AsyncLock ignored = AsyncLock.acquire()) {
             boolean executeNow = false;
             List<String> targetPlugins = new java.util.ArrayList<>();
             for (String arg : context.args()) {
@@ -60,9 +60,8 @@ public final class UpgradeCommand extends CommandHandler {
             }
 
             // 汇总结果
-            boolean scheduleUpgrade = UpgradeManager.instance().canUpgradeNow(executeNow);
-            sender.broadcastMessage(tr(locale, scheduleUpgrade ? "message.command.upgrade.summary.now" : "message.command.upgrade.summary.queued", result.successCount(), result.failureCount()));
-        } catch(IllegalStateException e) {
+            sender.broadcastMessage(tr(locale, result.queued() ? "message.command.upgrade.summary.queued" : "message.command.upgrade.summary.now", result.successCount(), result.failureCount()));
+        } catch (IllegalStateException e) {
             sender.sendMessage(tr(locale, "message.command.lock.failed"));
             sender.sendMessage(tr(locale, "message.command.lock.warning"));
         } catch (Exception e) {

@@ -1,13 +1,17 @@
 package me.dreamvoid.universalpluginupdater.bukkit.upgrade;
 
+import me.dreamvoid.universalpluginupdater.upgrade.ExecutionPhase;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeResult;
 import me.dreamvoid.universalpluginupdater.upgrade.UpgradeStrategy;
+import me.dreamvoid.universalpluginupdater.upgrade.UpgradeTask;
 import org.bukkit.Bukkit;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
@@ -25,7 +29,7 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public @NonNull String getId() {
+    public @NotNull String getId() {
         return "bukkit";
     }
 
@@ -35,12 +39,21 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
     }
 
     @Override
-    public boolean supportSafeUpgrade() {
-        return true;
+    public ExecutionPhase getExecutionPhase() {
+        return ExecutionPhase.RUNTIME;
     }
 
+    @NotNull
     @Override
-    public boolean upgrade(String pluginId, Path newFilePath, @Nullable Path oldFilePath) {
+    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks, boolean forced) {
+        List<UpgradeResult> results = new ArrayList<>(tasks.size());
+        for (UpgradeTask task : tasks) {
+            results.add(new UpgradeResult(task.pluginId(), moveToUpdateFolder(task.pluginId(), task.newFilePath())));
+        }
+        return results;
+    }
+
+    private boolean moveToUpdateFolder(String pluginId, Path newFilePath) {
         try {
             // 获取 Bukkit 的 update 文件夹
             Path updateFolder = Bukkit.getUpdateFolderFile().toPath();

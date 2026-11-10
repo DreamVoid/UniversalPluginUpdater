@@ -7,7 +7,9 @@ platform:
   loaders: null
 
 updater:
+  # 升级策略标识符，内置策略：native、applier；Bukkit 平台另有 bukkit
   strategy: native
+  # 是否允许 --now 在命令执行时立即升级，忽略升级策略期望的执行阶段
   allow-upgrade-now: true
   filename: ${originName}
   force-filename: false
