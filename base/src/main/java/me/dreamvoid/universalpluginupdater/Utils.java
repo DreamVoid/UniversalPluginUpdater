@@ -253,6 +253,9 @@ public final class Utils {
                 if (resolvedName == null || resolvedName.isBlank()) {
                     resolvedName = extractFilenameFromUrl(url);
                 }
+
+                // 百分号解码可能还原出控制字符（如 %00），清理后为空则回退默认名
+                resolvedName = resolvedName == null ? null : resolvedName.replaceAll("\\p{Cntrl}", "");
                 if (resolvedName == null || resolvedName.isBlank()) {
                     resolvedName = "download-" + System.currentTimeMillis();
                 }
@@ -389,6 +392,26 @@ public final class Utils {
         }
 
         /**
+         * 还原文件名中的百分号编码
+         * @param name 原始文件名
+         * @param charset 解码字符集
+         * @return 解码后的文件名，无法解码时返回原值
+         */
+        @Nullable
+        private static String decodeFilename(@Nullable String name, Charset charset) {
+            if (name == null || name.indexOf('%') < 0) {
+                return name;
+            }
+
+            // URLDecoder 会把 '+' 解码为空格，文件名中的 '+' 应保持字面量
+            try {
+                return URLDecoder.decode(name.replace("+", "%2B"), charset);
+            } catch (IllegalArgumentException ignored) {
+                return name;
+            }
+        }
+
+        /**
          * 从Content-Disposition头提取文件名
          */
         private static String extractFilenameFromContentDisposition(String contentDisposition) {
@@ -413,15 +436,11 @@ public final class Utils {
                         charset = StandardCharsets.UTF_8;
                     }
 
-                    try {
-                        return URLDecoder.decode(encoded, charset);
-                    } catch (Exception ignored) {
-                        return encoded;
-                    }
+                    return decodeFilename(encoded, charset);
                 }
 
                 if (!value.isEmpty()) {
-                    return value;
+                    return decodeFilename(value, StandardCharsets.UTF_8);
                 }
             }
 
@@ -436,7 +455,7 @@ public final class Utils {
                 value = value.substring(1, value.length() - 1);
             }
 
-            return value.isEmpty() ? null : value;
+            return value.isEmpty() ? null : decodeFilename(value, StandardCharsets.UTF_8);
         }
 
         /**
@@ -449,7 +468,7 @@ public final class Utils {
                 // 获取最后一个 / 之后的部分
                 int lastSlashIndex = path.lastIndexOf('/');
                 if (lastSlashIndex != -1 && lastSlashIndex < path.length() - 1) {
-                    return path.substring(lastSlashIndex + 1);
+                    return decodeFilename(path.substring(lastSlashIndex + 1), StandardCharsets.UTF_8);
                 }
             } catch (Exception ignored) {}
             return null;
