@@ -52,8 +52,8 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
         this.logger = logger;
         this.dataDirectory = dataDirectory;
         julLogger = LoggerConverter.fromSLF4JLogger("UniversalPluginUpdater", logger);
-        lifeCycle =  new LifeCycle(this);
-        commandHandler = new  CommandHandler(this);
+        lifeCycle = new LifeCycle(this);
+        commandHandler = new CommandHandler(this);
 
         lifeCycle.startUp(julLogger);
     }
@@ -180,9 +180,14 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
         return server.getPluginManager().getPlugin(pluginId).flatMap(p -> p.getDescription().getSource()).orElse(null);
     }
 
+    private static boolean velocityRestrictionNotified = false;
+
     @Override
     public boolean unloadPlugin(String pluginId) {
-        logger.warn("Velocity 不支持卸载插件，建议使用 applier 升级策略替代 native 策略。");
+        if (!velocityRestrictionNotified) {
+            logger.warn(tr("message.strategy.native.warn.velocity-no-unload"));
+            velocityRestrictionNotified = true;
+        }
         return false;
     }
 }

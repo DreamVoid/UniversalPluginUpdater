@@ -137,6 +137,7 @@
     "message.strategy.native.error.unload-failed": "Failed to unload plugin {0}!",
     "message.strategy.native.exception": "Exception occurred while updating {0}: {1}",
     "message.strategy.native.move-new-file": "Moving new plugin file to {0}",
+    "message.strategy.native.warn.velocity-no-unload": "Velocity doesn't support unloading plugins.",
     "message.strategy.native.unload": "Unloading plugin {0}",
     "message.strategy.native.updated": "Plugin {0} has been updated. Restart the server to apply changes.",
 
