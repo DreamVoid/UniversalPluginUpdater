@@ -1,5 +1,5 @@
 {
-    "selectedChannel": null,
+    "selected-channel": null,
     "channels": [
         {
             "type": "modrinth",

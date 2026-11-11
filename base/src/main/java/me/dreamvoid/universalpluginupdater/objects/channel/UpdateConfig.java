@@ -11,5 +11,5 @@ import java.util.List;
  */
 public record UpdateConfig(
     @SerializedName("channels") List<ChannelConfig> channels,
-    @SerializedName("selectedChannel") String selectedChannel
+    @SerializedName("selected-channel") String selectedChannel
 ) { }
