@@ -1,9 +1,6 @@
 package me.dreamvoid.universalpluginupdater.update;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 通用更新渠道的标识注解<br>
@@ -11,6 +8,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Inherited
 public @interface UpdateChannel {
     /**
      * 渠道标识，如 "github"、"modrinth"<br>
