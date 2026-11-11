@@ -167,7 +167,7 @@ public final class UpgradeManager {
         }
 
         try {
-            List<UpgradeResult> results = strategy.upgrade(tasks, forced);
+            List<UpgradeResult> results = strategy.upgrade(tasks);
             int successCount = 0;
             int failureCount = 0;
             for (UpgradeResult result : results) {

@@ -49,7 +49,7 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
 
     @NotNull
     @Override
-    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks, boolean forced) {
+    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks) {
         if (tasks.isEmpty()) {
             return List.of();
         }

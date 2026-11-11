@@ -45,7 +45,7 @@ public final class BukkitUpgradeStrategy implements UpgradeStrategy {
 
     @NotNull
     @Override
-    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks, boolean forced) {
+    public List<UpgradeResult> upgrade(@NotNull List<UpgradeTask> tasks) {
         List<UpgradeResult> results = new ArrayList<>(tasks.size());
         for (UpgradeTask task : tasks) {
             results.add(new UpgradeResult(task.pluginId(), moveToUpdateFolder(task.pluginId(), task.newFilePath())));
