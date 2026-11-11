@@ -1,5 +1,6 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
+import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import org.jetbrains.annotations.NotNull;
 
@@ -60,10 +61,12 @@ public class NativeUpgradeStrategy implements UpgradeStrategy {
                 if (pluginDirectory == null || !Files.exists(pluginDirectory)) {
                     logger.warning(tr("message.strategy.native.error.plugin-directory-missing", pluginDirectory));
                 } else {
-                    if (platform.unloadPlugin(pluginId)) {
-                        logger.info(tr("message.strategy.native.unload", pluginId));
-                    } else {
-                        logger.warning(tr("message.strategy.native.error.unload-failed", pluginId));
+                    if (Config.Strategy_Native_UnloadBeforeUpgrade) {
+                        if (platform.unloadPlugin(pluginId)) {
+                            logger.info(tr("message.strategy.native.unload", pluginId));
+                        } else {
+                            logger.warning(tr("message.strategy.native.error.unload-failed", pluginId));
+                        }
                     }
                     if (oldFilePath != null) {
                         logger.info(tr("message.strategy.native.delete-old-file", oldFilePath));

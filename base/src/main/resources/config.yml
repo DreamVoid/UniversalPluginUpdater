@@ -24,3 +24,7 @@ updater:
   plugin-list:
     - DEFAULT_MODE_IS_BLACKLIST
   plugin-list-mode: 1
+
+strategy:
+  native:
+    unload-before-upgrade: true

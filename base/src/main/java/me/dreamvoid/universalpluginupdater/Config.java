@@ -24,6 +24,7 @@ public abstract class Config {
     public static List<String> Updater_PluginList = new ArrayList<>();
     public static int Repository_CheckMode = 1;
     public static List<String> Repository_CheckList = new ArrayList<>();
+    public static boolean Strategy_Native_UnloadBeforeUpgrade = true;
 
     /**
      * 加载/重载配置项
@@ -51,6 +52,8 @@ public abstract class Config {
         Updater_PluginList = getStringList("updater.plugin-list");
         Repository_CheckMode = getInt("repository.check-mode", Repository_CheckMode);
         Repository_CheckList = getStringList("repository.check-list");
+
+        Strategy_Native_UnloadBeforeUpgrade = getBoolean("strategy.native.unload-before-upgrade", Strategy_Native_UnloadBeforeUpgrade);
     }
 
     /**
