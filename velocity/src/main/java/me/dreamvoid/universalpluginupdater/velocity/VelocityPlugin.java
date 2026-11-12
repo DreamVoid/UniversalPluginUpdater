@@ -177,7 +177,8 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
 
     @Override
     public @Nullable Path getPluginFile(String pluginId) {
-        return server.getPluginManager().getPlugin(pluginId).flatMap(p -> p.getDescription().getSource()).orElse(null);
+        return server.getPluginManager().getPlugin(pluginId.toLowerCase()) // Velocity 插件名全是小写，我不信有例外
+                .flatMap(p -> p.getDescription().getSource()).orElse(null);
     }
 
     private static boolean velocityRestrictionNotified = false;

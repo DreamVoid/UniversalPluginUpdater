@@ -22,6 +22,7 @@
 - Normalize plugin IDs and channel keys consistently with existing code, which generally treats them case-insensitively and stores them lowercase.
 - Reuse `LanguageManager` translations and existing resource files under `base/src/main/resources/lang/` for user-visible messages; do not hard-code new localized command output.
 - Reuse `Utils` for shared HTTP, JSON, logging, and file-related behavior instead of adding parallel helpers.
+- `base/.../upgrade/applier` package is extracted and executed as a standalone process at runtime; it may only depend on JDK APIs and must not reference `Platform`, `Utils`, annotations, or other plugin classes.
 - Update-channel implementations extend `AbstractUpdate`; generic channels are registered via `UpdateManager.registerChannel(Class)` (with an `@UpdateChannel` id) and plugin-specific channels via `UpdateManager.registerChannel(AbstractUpdate)` (implementing `PluginBoundUpdate`, id fixed to "plugin"). Registration lives in `UpdateManager`; `UpdateChannelService` is internal-only.
 - Upgrade behavior goes through `UpgradeStrategy` and `UpgradeStrategyRegistry`; account for `ExecutionPhase` (`RUNTIME` / `SHUTDOWN`), batch `upgrade(List<UpgradeTask>, boolean)` calls, and `--now` forced immediate execution.
 - Platform lifecycle classes should delegate shared initialization to `LifeCycle` and register platform-specific upgrade strategies at the platform API lifecycle hook.

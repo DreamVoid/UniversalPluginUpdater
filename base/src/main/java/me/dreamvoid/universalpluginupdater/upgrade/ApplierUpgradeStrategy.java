@@ -1,25 +1,37 @@
 package me.dreamvoid.universalpluginupdater.upgrade;
 
+import me.dreamvoid.universalpluginupdater.Utils;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
+import me.dreamvoid.universalpluginupdater.upgrade.applier.PendingOperation;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
+/**
+ * 延迟应用升级策略<br>
+ * 在插件卸载阶段启动独立进程，待服务端进程结束后替换插件文件
+ *
+ * @author DreamVoid
+ */
 public class ApplierUpgradeStrategy implements UpgradeStrategy {
-    private static final String APPLIER_MAIN_CLASS = ApplierUpgradeStrategy.Main.class.getName();
+    // 使用字符串常量，避免缺少 Applier 包时在类初始化阶段失败
+    private static final String APPLIER_MAIN_CLASS = "me.dreamvoid.universalpluginupdater.upgrade.applier.ApplierMain";
+    private static final String APPLIER_PACKAGE_PATH = APPLIER_MAIN_CLASS.substring(0, APPLIER_MAIN_CLASS.lastIndexOf('.')).replace('.', '/');
+    private static final String APPLIER_MAIN_FILE = APPLIER_MAIN_CLASS.replace('.', '/') + ".class";
 
     private final Platform plugin;
     private final Logger logger;
@@ -99,7 +111,7 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
             }
 
             Path selfJar = plugin.getPluginFile("UniversalPluginUpdater");
-            if (selfJar == null || !Files.exists(selfJar)) {
+            if (selfJar == null || !Files.isRegularFile(selfJar)) {
                 logger.warning(tr("message.strategy.applier.error.self-jar-missing"));
                 return false;
             }
@@ -111,11 +123,59 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
             }
 
             Files.createDirectories(pendingDir);
+            Path applierClasspath = null; // 不能直接用自身 Jar 作为 classpath，否则 applier 进程会一直占用该文件
+
+            // 清理之前放置的临时目录
+            try (Stream<Path> stream = Files.list(pendingDir)) {
+                for (Path path : stream.toList()) {
+                    String name = path.getFileName().toString();
+                    if (name.startsWith("applier-runtime-") && Files.isDirectory(path) ||
+                            name.startsWith("applier-") && name.endsWith(".jar") && Files.isRegularFile(path)) {
+                        deleteRecursively(path);
+                    }
+                }
+            } catch (Exception e1) {
+                Utils.debug("Failed to clean stale applier artifacts in {0}: {1}", pendingDir, e1);
+            }
+
+            Path runtimeDir = pendingDir.resolve("applier-runtime-" + System.currentTimeMillis());
+            Files.createDirectories(runtimeDir);
+
+            try (JarFile jar = new JarFile(selfJar.toFile())) {
+                Enumeration<JarEntry> entries = jar.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry entry = entries.nextElement();
+                    String name = entry.getName();
+                    if (!entry.isDirectory() && name.startsWith(APPLIER_PACKAGE_PATH + "/") && name.endsWith(".class")) {
+                        Path target = runtimeDir.resolve(name);
+                        Files.createDirectories(target.getParent());
+                        try (InputStream in = jar.getInputStream(entry)) {
+                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                }
+            }
+
+            if (Files.isRegularFile(runtimeDir.resolve(APPLIER_MAIN_FILE))) {
+                applierClasspath = runtimeDir;
+            } else {
+                deleteRecursively(runtimeDir);
+
+                Utils.debug("无法从文件 {0} 解压出更新类，改为复制插件文件本身", selfJar);
+                Path copy = pendingDir.resolve("applier-" + System.currentTimeMillis() + ".jar");
+                Files.copy(selfJar, copy, StandardCopyOption.REPLACE_EXISTING);
+                applierClasspath = copy;
+            }
+
+            if(!Files.exists(applierClasspath)){
+                logger.warning(tr("message.strategy.applier.error.class-missing"));
+                return false;
+            }
 
             List<String> command = new ArrayList<>();
             command.add(javaPath.toString());
             command.add("-cp");
-            command.add(selfJar.toAbsolutePath().toString());
+            command.add(applierClasspath.toAbsolutePath().toString());
             command.add(APPLIER_MAIN_CLASS);
             command.add(pendingDir.toAbsolutePath().toString());
 
@@ -129,6 +189,8 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
 
             Process process = new ProcessBuilder(command)
                     .directory(plugin.getDataPath().toFile())
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.appendTo(pendingDir.resolve("applier-bootstrap.log").toFile()))
                     .start();
 
             logger.info(tr("message.strategy.applier.process.launched", String.valueOf(process.pid())));
@@ -172,136 +234,14 @@ public class ApplierUpgradeStrategy implements UpgradeStrategy {
         return null;
     }
 
+    private static void deleteRecursively(Path path) {
+        if (!Files.exists(path)) return;
 
-    record PendingOperation(
-            String pluginId,
-            Path newFilePath, 
-            Path targetPath,
-            @Nullable Path oldFilePath
-    ) { }
-
-    public static final class Main {
-        private static final DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        private static Path workingDir;
-
-        private Main() {}
-
-        public static void main(String[] args) {
-            if (args.length < 1) {
-                return;
+        try (Stream<Path> stream = Files.walk(path)) {
+            for (Path current : stream.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(current);
             }
-
-            workingDir = Paths.get(args[0]);
-
-            try {
-                archiveLogFile();
-                List<PendingOperation> operations = parseArgs(args);
-                if (operations.isEmpty()) {
-                    log("未收到可执行的升级任务，已退出");
-                    System.exit(1);
-                    return;
-                }
-
-                for (PendingOperation operation : operations) {
-                    if (!applyOperation(operation)) {
-                        log(operation.pluginId() + ": 操作失败！");
-                    }
-                }
-                System.exit(0);
-            } catch (Exception e) {
-                log("异常退出：" + e);
-                System.exit(-1);
-            }
-        }
-
-        private static List<PendingOperation> parseArgs(String[] args) {
-            List<PendingOperation> operations = new ArrayList<>();
-            for (int i = 1; i < args.length; i++) {
-                if (!"--op".equals(args[i])) {
-                    continue;
-                }
-                if (i + 4 >= args.length) {
-                    break;
-                }
-                String pluginId = args[i + 1];
-                String newFilePath = args[i + 2];
-                String targetPath = args[i + 3];
-                String oldFilePath = args[i + 4];
-                operations.add(new PendingOperation(
-                        pluginId,
-                        Paths.get(newFilePath),
-                        Paths.get(targetPath),
-                        oldFilePath.isBlank() ? null : Paths.get(oldFilePath)
-                ));
-                i += 4;
-            }
-            return operations;
-        }
-
-        private static void archiveLogFile() throws Exception {
-            Path logFile = workingDir.resolve("applier.log");
-            if (!Files.exists(logFile)) {
-                return;
-            }
-
-            Path logsDir = workingDir.resolve("logs");
-            Files.createDirectories(logsDir);
-
-            String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            int index = 1;
-            Path archiveLogPath;
-            do {
-                archiveLogPath = logsDir.resolve(date + "-" + index + ".log");
-                index++;
-            } while (Files.exists(archiveLogPath));
-
-            Files.move(logFile, archiveLogPath, StandardCopyOption.REPLACE_EXISTING);
-        }
-
-        private static boolean applyOperation(PendingOperation operation) {
-            Path targetPath = operation.targetPath();
-            Path sourcePath = operation.newFilePath();
-            Path oldFilePath = operation.oldFilePath();
-
-            if (!Files.exists(sourcePath)) {
-                return false;
-            }
-
-            for (int retry = 0; retry < 60; retry++) {
-                try {
-                    if(oldFilePath != null){
-                        log(operation.pluginId() + ": 删除旧文件" + oldFilePath);
-                        Files.deleteIfExists(oldFilePath);
-                    }
-                    Files.createDirectories(targetPath.getParent());
-                    Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                    log(operation.pluginId() + ": 移动文件" + sourcePath + "到" + targetPath);
-                    return true;
-                } catch (Exception e) {
-                    log(operation.pluginId() + ": 第" + (retry + 1) + "次尝试失败！source=" + sourcePath + ", target=" + targetPath);
-                    try {
-                        Thread.sleep(1000L);
-                    } catch (InterruptedException interruptedException) {
-                        Thread.currentThread().interrupt();
-                        return false;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-
-        private static void log(String message) {
-            try {
-                Files.writeString(
-                        Files.createDirectories(workingDir).resolve("applier.log"),
-                        LocalDateTime.now().format(LOG_TIME_FORMATTER) + " " + message + System.lineSeparator(),
-                        StandardCharsets.UTF_8,
-                        java.nio.file.StandardOpenOption.CREATE,
-                        java.nio.file.StandardOpenOption.APPEND
-                );
-            } catch (Exception ignored) {}
+        } catch (Exception ignored) {
         }
     }
 }

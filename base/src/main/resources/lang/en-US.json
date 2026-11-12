@@ -148,6 +148,7 @@
     "message.strategy.applier.error.plugin-directory-missing": "Plugin directory does not exist!",
     "message.strategy.applier.error.self-jar-missing": "Unable to find the UniversalPluginUpdater Jar file, cannot initiate upgrade process!",
     "message.strategy.applier.error.executable-java-missing": "Unable to find the Java executable file, cannot initiate upgrade process!",
+    "message.strategy.applier.error.class-missing": "Unable to find the class file for the upgrade strategy, cannot initiate upgrade process!",
     "message.strategy.applier.process.launched": "Upgrade process launched (PID: {0}), logs stored in pending-upgrades/applier.log.",
     "message.strategy.applier.process.exception": "Exception occurred while launching upgrade process: {0}",
     "message.strategy.applier.scheduled": "{0} plugin(s) have been scheduled for upgrade, restart the server to apply changes.",
