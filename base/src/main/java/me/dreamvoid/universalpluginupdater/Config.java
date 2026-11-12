@@ -36,10 +36,8 @@ public abstract class Config {
         Language = getString("language", Language);
 
         Platform_Name = getString("platform.name", null);
-        Object gameVersionsRaw = getObject("platform.game-versions");
-        Platform_GameVersions = gameVersionsRaw == null ? null : getStringList("platform.game-versions");
-        Object loadersRaw = getObject("platform.loaders");
-        Platform_Loaders = loadersRaw == null ? null : getStringList("platform.loaders");
+        Platform_GameVersions = getObject("platform.game-versions") == null ? null : getStringList("platform.game-versions");
+        Platform_Loaders = getObject("platform.loaders") == null ? null : getStringList("platform.loaders");
 
         Updater_Strategy = getString("updater.strategy", Updater_Strategy);
         Updater_AllowUpgradeNow = getBoolean("updater.allow-upgrade-now", Updater_AllowUpgradeNow);
