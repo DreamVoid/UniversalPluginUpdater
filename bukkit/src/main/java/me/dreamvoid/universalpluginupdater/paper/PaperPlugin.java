@@ -11,7 +11,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -21,9 +20,11 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 
 /**
  * Paper平台主类
+ *
  * @author DreamVoid
  */
 public class PaperPlugin extends BukkitPlugin {
+    private final PaperScheduler scheduler = new PaperScheduler(this);
 
     @Override
     public void onLoad() {
@@ -66,42 +67,17 @@ public class PaperPlugin extends BukkitPlugin {
 
     @Override
     public @NonNull List<String> getGameVersions() {
-        return Collections.singletonList(getServer().getMinecraftVersion());
+        return List.of(getServer().getMinecraftVersion());
     }
 
     @Override
     public @NonNull List<String> getLoaders() {
-        return Arrays.asList("bukkit", "paper");
+        return List.of("bukkit", "paper");
     }
 
     @Override
     public Scheduler getScheduler() {
-        return new Scheduler() {
-            @Override
-            public void runTaskAsync(Runnable runnable) {
-                getServer().getAsyncScheduler().runNow(PaperPlugin.this, (task) -> runnable.run());
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, long delay) {
-                getServer().getAsyncScheduler().runDelayed(PaperPlugin.this, (task) -> runnable.run(), delay, TimeUnit.SECONDS);
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
-                getServer().getAsyncScheduler().runDelayed(PaperPlugin.this, (task) -> runnable.run(), delay.toMillis(), TimeUnit.MILLISECONDS);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, long repeat) {
-                getServer().getAsyncScheduler().runAtFixedRate(PaperPlugin.this, (task) -> runnable.run(), 0, repeat, TimeUnit.SECONDS);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
-                getServer().getAsyncScheduler().runAtFixedRate(PaperPlugin.this, (task) -> runnable.run(), 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
-            }
-        };
+        return scheduler;
     }
 
     @Override
@@ -118,6 +94,33 @@ public class PaperPlugin extends BukkitPlugin {
             return plugin.getPluginMeta().getVersion();
         } else {
             return null;
+        }
+    }
+
+    private record PaperScheduler(PaperPlugin plugin) implements Scheduler {
+        @Override
+        public void runTaskAsync(Runnable runnable) {
+            plugin.getServer().getAsyncScheduler().runNow(plugin, (task) -> runnable.run());
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, long delay) {
+            plugin.getServer().getAsyncScheduler().runDelayed(plugin, (task) -> runnable.run(), delay, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+            plugin.getServer().getAsyncScheduler().runDelayed(plugin, (task) -> runnable.run(), delay.toMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, long repeat) {
+            plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin, (task) -> runnable.run(), 0, repeat, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+            plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin, (task) -> runnable.run(), 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
         }
     }
 }

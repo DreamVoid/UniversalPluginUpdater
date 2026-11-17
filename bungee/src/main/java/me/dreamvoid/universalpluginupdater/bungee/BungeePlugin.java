@@ -3,11 +3,11 @@ package me.dreamvoid.universalpluginupdater.bungee;
 import me.dreamvoid.universalpluginupdater.Config;
 import me.dreamvoid.universalpluginupdater.LifeCycle;
 import me.dreamvoid.universalpluginupdater.Utils;
-import me.dreamvoid.universalpluginupdater.reflection.FieldAccessor;
 import me.dreamvoid.universalpluginupdater.command.CommandContext;
 import me.dreamvoid.universalpluginupdater.command.CommandHandler;
 import me.dreamvoid.universalpluginupdater.platform.Platform;
 import me.dreamvoid.universalpluginupdater.platform.Scheduler;
+import me.dreamvoid.universalpluginupdater.reflection.FieldAccessor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,6 +34,8 @@ import static me.dreamvoid.universalpluginupdater.service.LanguageManager.tr;
 public final class BungeePlugin extends Plugin implements Platform {
     private final LifeCycle lifeCycle;
     private final CommandHandler commandHandler;
+    private final BungeeScheduler scheduler = new BungeeScheduler(this);
+    private final boolean isWaterfall = Utils.findClass("io.github.waterfallmc.waterfall.QueryResult");
 
     public BungeePlugin() {
         lifeCycle = new LifeCycle(this);
@@ -70,7 +74,7 @@ public final class BungeePlugin extends Plugin implements Platform {
 
     @Override
     public @NonNull String getPlatformName() {
-        return Utils.findClass("io.github.waterfallmc.waterfall.QueryResult") ? "Waterfall" : "BungeeCord";
+        return isWaterfall ? "Waterfall" : "BungeeCord";
     }
 
     @Override
@@ -80,17 +84,14 @@ public final class BungeePlugin extends Plugin implements Platform {
         if (parts.length >= 3) {
             version = parts[2].split("-")[0];
         }
-        return Collections.singletonList(version);
+        return List.of(version);
     }
 
     @Override
     public @NonNull List<String> getLoaders() {
-        List<String> loaders = new ArrayList<>();
-        loaders.add("bungeecord");
-        if(getPlatformName().equals("Waterfall")){
-            loaders.add("waterfall");
-        }
-        return loaders;
+        return isWaterfall
+                ? List.of("bungeecord", "waterfall")
+                : List.of("bungeecord");
     }
 
     @Override
@@ -105,32 +106,7 @@ public final class BungeePlugin extends Plugin implements Platform {
 
     @Override
     public Scheduler getScheduler() {
-        return new Scheduler() {
-            @Override
-            public void runTaskAsync(Runnable runnable) {
-                getProxy().getScheduler().runAsync(BungeePlugin.this, runnable);
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, long delay) {
-                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, delay, TimeUnit.SECONDS);
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
-                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, long repeat) {
-                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, 0, repeat, TimeUnit.SECONDS);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
-                getProxy().getScheduler().schedule(BungeePlugin.this, runnable, 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
-            }
-        };
+        return scheduler;
     }
 
     @Override
@@ -164,7 +140,7 @@ public final class BungeePlugin extends Plugin implements Platform {
     public boolean unloadPlugin(String pluginId) {
         Plugin plugin = getProxy().getPluginManager().getPlugins().stream().filter(p -> p.getDescription().getName().equalsIgnoreCase(pluginId)).findFirst().orElse(null);
 
-        if(plugin == null){
+        if (plugin == null) {
             getLogger().log(Level.SEVERE, "插件为空");
             return false;
         }
@@ -218,5 +194,32 @@ public final class BungeePlugin extends Plugin implements Platform {
 
         System.gc();
         return true;
+    }
+
+    private record BungeeScheduler(BungeePlugin plugin) implements Scheduler {
+        @Override
+        public void runTaskAsync(Runnable runnable) {
+            plugin.getProxy().getScheduler().runAsync(plugin, runnable);
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, long delay) {
+            plugin.getProxy().getScheduler().schedule(plugin, runnable, delay, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+            plugin.getProxy().getScheduler().schedule(plugin, runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, long repeat) {
+            plugin.getProxy().getScheduler().schedule(plugin, runnable, 0, repeat, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+            plugin.getProxy().getScheduler().schedule(plugin, runnable, 0, repeat.toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
 }

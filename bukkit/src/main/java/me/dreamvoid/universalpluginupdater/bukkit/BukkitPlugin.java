@@ -46,11 +46,13 @@ import java.util.stream.Collectors;
 
 /**
  * Bukkit 平台主类
+ *
  * @author DreamVoid
  */
 public class BukkitPlugin extends JavaPlugin implements Platform {
     protected final LifeCycle lifeCycle;
     protected final CommandHandler commandHandler;
+    private final BukkitScheduler scheduler = new BukkitScheduler(this);
 
     public BukkitPlugin() {
         lifeCycle = new LifeCycle(this);
@@ -97,7 +99,7 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
     // 平台实现接口
 
     @Override
-    public @NotNull String getPlatformName(){
+    public @NotNull String getPlatformName() {
         return "Bukkit";
     }
 
@@ -133,13 +135,13 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
 
     @Override
     public @NonNull List<String> getLoaders() {
-        return Collections.singletonList("bukkit");
+        return List.of("bukkit");
     }
 
     @Override
     public @NonNull List<String> getGameVersions() {
         String version = Bukkit.getVersion();
-        return Collections.singletonList(version.substring(version.lastIndexOf("MC: ") + 4, version.length() - 1));
+        return List.of(version.substring(version.lastIndexOf("MC: ") + 4, version.length() - 1));
     }
 
     @Override
@@ -154,34 +156,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
 
     @Override
     public Scheduler getScheduler() {
-        return new Scheduler() {
-            @Override
-            public void runTaskAsync(Runnable runnable) {
-                getServer().getScheduler().runTaskAsynchronously(BukkitPlugin.this, runnable);
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, long delay) {
-                getServer().getScheduler().runTaskLaterAsynchronously(BukkitPlugin.this, runnable, delay * 50);
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
-                getServer().getScheduler().runTaskLaterAsynchronously(BukkitPlugin.this, runnable, delay.toMillis() / 50);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, long repeat) {
-                getServer().getScheduler().runTaskTimerAsynchronously(BukkitPlugin.this, runnable, 0, repeat * 50);
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
-                getServer().getScheduler().runTaskTimerAsynchronously(BukkitPlugin.this, runnable, 0, repeat.toMillis() / 50);
-            }
-        };
+        return scheduler;
     }
-
 
     @Override
     @Nullable
@@ -233,7 +209,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
                 JarURLConnection conn = (JarURLConnection) url.openConnection();
                 return Path.of(conn.getJarFileURL().toURI());
             }
-        } catch (Throwable ignored){}
+        } catch (Throwable ignored) {
+        }
 
         return null;
     }
@@ -243,12 +220,12 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
         PluginManager pluginManager = getServer().getPluginManager();
         Plugin plugin = pluginManager.getPlugin(pluginId);
 
-        if(plugin == null) return false;
+        if (plugin == null) return false;
 
         // 第一步：关闭插件
         pluginManager.disablePlugin(plugin);
 
-        if(this.getClass() == BukkitPlugin.class){
+        if (this.getClass() == BukkitPlugin.class) {
             try {
                 // 第二步：获取插件残留信息（仅Bukkit需要，Paper自动处理）
                 List<Plugin> plugins = FieldAccessor.getValue(pluginManager.getClass(), "plugins", pluginManager);
@@ -262,7 +239,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
                 // 第三步：清理Listener
                 try {
                     Map<Event, SortedSet<RegisteredListener>> listeners = FieldAccessor.getValue(pluginManager.getClass(), "listeners", pluginManager);
-                    if (listeners != null) listeners.values().forEach(set -> set.removeIf(value -> value.getPlugin() == plugin));
+                    if (listeners != null)
+                        listeners.values().forEach(set -> set.removeIf(value -> value.getPlugin() == plugin));
                 } catch (Exception ignored) {
                 }
 
@@ -304,7 +282,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
                 //Bukkit.getOnlinePlayers().forEach(Player::updateCommands);
 
                 // 第五步：从插件列表移除插件
-                if (plugins != null) plugins.removeIf(otherPlugin -> otherPlugin.getName().equalsIgnoreCase(plugin.getName()));
+                if (plugins != null)
+                    plugins.removeIf(otherPlugin -> otherPlugin.getName().equalsIgnoreCase(plugin.getName()));
                 if (names != null) names.remove(plugin.getName());
 
                 // 第六步：关闭ClassLoader
@@ -335,7 +314,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
         }
     }
 
-    private static Runnable syncCommandsRunnable = () -> {};
+    private static Runnable syncCommandsRunnable = () -> {
+    };
 
     static {
         try {
@@ -358,7 +338,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
         }
     }
 
-    private record TargetCommand(Command command) { }
+    private record TargetCommand(Command command) {
+    }
 
     private static class CommandMapWrap<T> {
         private final Map<String, TargetCommand> commands = new HashMap<>();
@@ -368,7 +349,8 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
             this.knownCommands = knownCommands;
 
             // Note: Never use `forEach` here. The implementation of `forEach` seems to be a no-op
-            for (Map.Entry<String, T> entry : knownCommands.entrySet()) commands.put(entry.getKey(), pluginCommandFactory.apply(entry.getValue()));
+            for (Map.Entry<String, T> entry : knownCommands.entrySet())
+                commands.put(entry.getKey(), pluginCommandFactory.apply(entry.getValue()));
         }
 
         public void remove(String key) {
@@ -378,6 +360,33 @@ public class BukkitPlugin extends JavaPlugin implements Platform {
 
         public Map<String, TargetCommand> asMap() {
             return Map.copyOf(commands);
+        }
+    }
+
+    private record BukkitScheduler(BukkitPlugin plugin) implements Scheduler {
+        @Override
+        public void runTaskAsync(Runnable runnable) {
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, long delay) {
+            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, runnable, delay * 50);
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, runnable, delay.toMillis() / 50);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, long repeat) {
+            plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, runnable, 0, repeat * 50);
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+            plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, runnable, 0, repeat.toMillis() / 50);
         }
     }
 }

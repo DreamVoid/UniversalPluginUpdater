@@ -45,6 +45,7 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
     private final java.util.logging.Logger julLogger;
     private final LifeCycle lifeCycle;
     private final CommandHandler commandHandler;
+    private final VelocityScheduler scheduler = new VelocityScheduler(this);
 
     @Inject
     public VelocityPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
@@ -125,32 +126,7 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
 
     @Override
     public Scheduler getScheduler() {
-        return new Scheduler() {
-            @Override
-            public void runTaskAsync(Runnable runnable) {
-                server.getScheduler().buildTask(VelocityPlugin.this, runnable).schedule();
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, long delay) {
-                server.getScheduler().buildTask(VelocityPlugin.this, runnable).delay(delay, TimeUnit.SECONDS).schedule();
-            }
-
-            @Override
-            public void runTaskLaterAsync(Runnable runnable, Duration delay) {
-                server.getScheduler().buildTask(VelocityPlugin.this, runnable).delay(delay).schedule();
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, long repeat) {
-                server.getScheduler().buildTask(VelocityPlugin.this, runnable).repeat(repeat, TimeUnit.SECONDS).schedule();
-            }
-
-            @Override
-            public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
-                server.getScheduler().buildTask(VelocityPlugin.this, runnable).repeat(repeat).schedule();
-            }
-        };
+        return scheduler;
     }
 
     @Override
@@ -190,5 +166,32 @@ public class VelocityPlugin implements me.dreamvoid.universalpluginupdater.platf
             velocityRestrictionNotified = true;
         }
         return false;
+    }
+
+    private record VelocityScheduler(VelocityPlugin plugin) implements Scheduler {
+        @Override
+        public void runTaskAsync(Runnable runnable) {
+            plugin.server.getScheduler().buildTask(plugin, runnable).schedule();
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, long delay) {
+            plugin.server.getScheduler().buildTask(plugin, runnable).delay(delay, TimeUnit.SECONDS).schedule();
+        }
+
+        @Override
+        public void runTaskLaterAsync(Runnable runnable, Duration delay) {
+            plugin.server.getScheduler().buildTask(plugin, runnable).delay(delay).schedule();
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, long repeat) {
+            plugin.server.getScheduler().buildTask(plugin, runnable).repeat(repeat, TimeUnit.SECONDS).schedule();
+        }
+
+        @Override
+        public void runTaskTimerAsync(Runnable runnable, Duration repeat) {
+            plugin.server.getScheduler().buildTask(plugin, runnable).repeat(repeat).schedule();
+        }
     }
 }
